@@ -1,0 +1,12 @@
+#ifndef DBWIDGETS_GLOBAL_H
+#define DBWIDGETS_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(DBWIDGETS_LIBRARY)
+#  define DBWIDGETSSHARED_EXPORT Q_DECL_EXPORT
+#else
+#  define DBWIDGETSSHARED_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // DBWIDGETS_GLOBAL_H
