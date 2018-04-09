@@ -10,6 +10,8 @@
 namespace Helpz {
 namespace DTLS {
 
+Q_LOGGING_CATEGORY(ClientLog, "net.DTLS.client")
+
 Client::Client(const std::vector<std::string> &next_protocols, Helpz::Database::Base* db, const QString& tls_policy_file, const QString &hostname, quint16 port, int checkServerInterval) :
     ProtoTemplate<Botan::TLS::Client,
             const Botan::TLS::Server_Information&,
@@ -40,12 +42,12 @@ void Client::init_client()
 {
     if (!canConnect())
     {
-        qCWarning(Log) << "Can't initialize connection";
+        qCWarning(ClientLog) << "Can't initialize connection";
         return;
     }
 
     close_connection();
-    qCDebug(Log) << "Try connect to" << m_hostname << port();
+    qCInfo(ClientLog) << "Try connect to" << m_hostname << port();
 
     QHostInfo hi = QHostInfo::fromName(m_hostname);
     auto addrs = hi.addresses();
@@ -82,7 +84,7 @@ void Client::checkServer()
     if (!dtls || !dtls->is_active() ||
             (isBadTime(4) && !checkReturned()) )
     {
-        qCDebug(Log) << "REINIT"
+        qCDebug(ClientLog) << "REINIT"
                  << "OBJ" << (!!dtls)
                  << "IS_ACTIVE" << (dtls ? dtls->is_active() : false)
                  << "LAST_MESSAGE" << '[' << current_time << lastMsgTime() << (current_time - lastMsgTime()) << ']'

@@ -11,6 +11,8 @@
 namespace Helpz {
 namespace DTLS {
 
+Q_DECLARE_LOGGING_CATEGORY(ClientLog)
+
 class Client :
         public ProtoTemplate<Botan::TLS::Client,
         const Botan::TLS::Server_Information&,
