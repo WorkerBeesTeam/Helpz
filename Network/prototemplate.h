@@ -141,7 +141,7 @@ protected:
     virtual void proccessMessage(quint16 cmd, QDataStream& msg) = 0;
     virtual void write(const QByteArray& buff) = 0;
 
-    void proccess_bytes(QIODevice* dev);
+    virtual void proccess_bytes(QIODevice* dev);
 
     quint16 currentCmd;
     int totalMsgSize; // QByteArray не может быть больше Int
