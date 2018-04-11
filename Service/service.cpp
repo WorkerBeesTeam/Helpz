@@ -60,7 +60,8 @@ Object::~Object()
         do {
             it--;
             (*it)->quit();
-            (*it)->wait();
+            if (!(*it)->wait(15000))
+                (*it)->terminate();
             delete *it;
         }
         while( it != th.begin() );
@@ -79,7 +80,8 @@ void Object::restart()
 {
     qCInfo(Base::Log) << "Server restart...";
     th[1]->quit();
-    th[1]->wait();
+    if (!th[1]->wait(60000))
+        th[1]->terminate();
     th[1]->start();
 }
 

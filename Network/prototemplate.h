@@ -27,15 +27,51 @@ void parse(QDataStream &ds, _Tuple& __t) {
     T obj;
     ds >> obj;
 
+    if (ds.status() != QDataStream::Ok)
+        return;
+
     std::get<x>(__t) = obj;
     parse<_Tuple, _Idx...>(ds, __t);
 }
 
-template <class T, typename _Fn, typename _Tuple, std::size_t... _Idx>
-constexpr decltype(auto) applyParseImpl(T* obj, _Fn __f, QDataStream &ds, _Tuple&& __t, std::index_sequence<_Idx...>)
+template<typename _Tuple, std::size_t... _Idx>
+bool parseImpl(QDataStream &ds, _Tuple& __t)
 {
-    auto func =  std::bind(__f, obj, std::_Placeholder<_Idx + 1>{}...);
+    QDataStream::Status oldStatus = ds.status();
+    if (!ds.device() || !ds.device()->isTransactionStarted())
+        ds.resetStatus();
+
     parse<_Tuple, _Idx...>(ds, __t);
+
+    if (ds.status() != QDataStream::Ok)
+        return false;
+
+    if (oldStatus != QDataStream::Ok) {
+        ds.resetStatus();
+        ds.setStatus(oldStatus);
+    }
+    return true;
+}
+
+template <typename RetType, class T, typename _Fn, typename _Tuple, std::size_t... _Idx>
+RetType applyParseImpl(T* obj, _Fn __f, QDataStream &ds, _Tuple&& __t, std::index_sequence<_Idx...>)
+{
+    if (!parseImpl<_Tuple, _Idx...>(ds, __t))
+    {
+        const QLoggingCategory category("helpz");
+        qCWarning(category) << "Apply parse failed!";
+
+        if constexpr (std::is_same<RetType, void>::value)
+            return;
+        else if constexpr (std::is_same<RetType, bool>::value)
+            return false;
+        else if constexpr (std::is_arithmetic<RetType>::value)
+            return 0;
+        else
+            return RetType{};
+    }
+
+    auto func = std::bind(__f, obj, std::_Placeholder<_Idx + 1>{}...);
     return std::__invoke(func, std::get<_Idx>(std::forward<_Tuple>(__t))...);
 }
 
@@ -47,7 +83,7 @@ RetType applyParse(T* obj, RetType(FT::*__f)(Args...), QDataStream &ds)
     using Tuple = decltype(tuple);
     using Indices = std::make_index_sequence<std::tuple_size<Tuple>::value>;
 
-    return applyParseImpl(obj, __f, ds, std::forward<Tuple>(tuple), Indices{});
+    return applyParseImpl<RetType>(obj, __f, ds, std::forward<Tuple>(tuple), Indices{});
 }
 
 namespace Network {

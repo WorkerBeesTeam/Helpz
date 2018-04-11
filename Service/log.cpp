@@ -7,7 +7,7 @@
 #include <iostream>
 
 #ifdef Q_OS_UNIX
-#include <syslog.h>
+#include <sys/syslog.h>
 #endif
 
 #include "logging.h"
@@ -34,7 +34,7 @@ Logging::Logging() :
     qRegisterMetaType<QtMsgType>("QtMsgType");
     qRegisterMetaType<Helpz::LogContext>("Helpz::LogContext");
 
-    connect(this, SIGNAL(new_message(QtMsgType,Helpz::LogContext,QString)), SLOT(save(QtMsgType,Helpz::LogContext,QString)));
+    connect(this, &Logging::new_message, this, &Logging::save);
     qInstallMessageHandler(handler);
 }
 
@@ -85,6 +85,9 @@ QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const
 {
     if (!obj->debug && type == QtDebugMsg) return;
 
+#ifdef Q_OS_UNIX
+    if (!obj->syslog || obj->debug)
+#endif
     qt_message_output(type, ctx, get_prefix(type, &ctx) + str);
 
     auto logContext = std::make_shared<QMessageLogContext>( ctx.file, ctx.line, ctx.function, ctx.category );
@@ -134,7 +137,7 @@ void Logging::save(QtMsgType type, const LogContext &ctx, const QString &str)
         case QtCriticalMsg: level = LOG_ERR; break;
         case QtFatalMsg: level = LOG_CRIT; break;
         }
-        ::syslog(level, "%s", qPrintable(str));
+        ::syslog(level, "[%s] %s", ctx->category, qPrintable(str));
     }
     else
 #endif
