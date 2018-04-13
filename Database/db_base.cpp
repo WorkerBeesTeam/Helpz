@@ -131,7 +131,10 @@ bool Base::createConnection(QSqlDatabase db)
         connName = db.connectionName();
     }
 
-    qCDebug(DBLog) << "Connected to" << db.hostName() << db.databaseName() << connName << db.driver() << db.driver()->thread();
+    qCDebug(DBLog).noquote() << "Database opened:" << db.databaseName()
+                   << QString("%1%2")
+                      .arg(db.hostName().isEmpty() ? QString() : db.hostName() + ' ' + QString::number(db.port()) + ' ')
+                      .arg(connName == QSqlDatabase::defaultConnection ? QString() : ' ' + connName);
 
     if (m_lastConnection)
         m_lastConnection.reset();

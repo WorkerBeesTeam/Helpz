@@ -49,11 +49,14 @@ Session_Manager_SQL::Session_Manager_SQL(Database::Base* db,
                                          Botan::RandomNumberGenerator& rng,
                                          size_t max_sessions,
                                          std::chrono::seconds session_lifetime) :
-    m_db(db->clone(QString("Session_Manager_SQL%1").arg((quintptr)this))),
+    m_db(db ? db->clone(db_name()) : nullptr),
     m_rng(rng),
     m_max_sessions(max_sessions),
     m_session_lifetime(session_lifetime)
 {
+    if (!m_db)
+        m_db = new Helpz::Database::Base({":memory:", QString(), QString(), QString(), -1, "QSQLITE"}, db_name());
+
     if (!sessionsTable)
         sessionsTable.reset( new Database::Table{"tls_sessions", {"session_id", "session_start", "hostname", "hostport", "session"}} );
     m_db->createTable(*sessionsTable, {"VARCHAR(128) PRIMARY KEY", "INTEGER", "TEXT", "INTEGER", "BLOB"});
@@ -200,6 +203,11 @@ void Session_Manager_SQL::prune_session_cache()
         m_db->del(sessionsTable->name, "session_id in (select session_id from tls_sessions limit ?)",
         {quint32(sessions - m_max_sessions)});
     }
+}
+
+QString Session_Manager_SQL::db_name() const
+{
+    return QString("Session_Manager_SQL%1").arg((quintptr)this);
 }
 
 // --------------------------------------------------------------------------------

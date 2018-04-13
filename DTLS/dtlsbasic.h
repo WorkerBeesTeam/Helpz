@@ -61,6 +61,7 @@ class Session_Manager_SQL : public Botan::TLS::Session_Manager
 
    private:
       void prune_session_cache();
+      QString db_name() const;
 
       Database::Base* m_db;
       Botan::secure_vector<uint8_t> m_session_key;
