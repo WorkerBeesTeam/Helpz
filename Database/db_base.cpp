@@ -7,6 +7,7 @@
 #include <QMutexLocker>
 
 #include <iostream>
+#include <functional>
 
 #include "db_base.h"
 
