@@ -236,14 +236,18 @@ void Basic_Credentials_Manager::load_certstores()
 {
     try
     {
+#ifdef Q_OS_UNIX
         // TODO: make path configurable
         const std::vector<std::string> paths = { "/usr/share/ca-certificates" };
-
-        for(auto&& path : paths)
+        for(const std::string& path : paths)
         {
             std::shared_ptr<Botan::Certificate_Store> cs(new Botan::Certificate_Store_In_Memory(path));
             m_certstores.push_back(cs);
         }
+#elif defined(Q_OS_WIN32)
+#pragma GCC warning "Not impliement"
+        // TODO: impliement
+#endif
     }
     catch(std::exception& e)
     {
@@ -262,7 +266,7 @@ std::vector<Botan::Certificate_Store *> Basic_Credentials_Manager::trusted_certi
     if(type == "tls-server")
         return v;
 
-    for(auto&& cs : m_certstores)
+    for(const std::shared_ptr<Botan::Certificate_Store>& cs : m_certstores)
         v.push_back(cs.get());
 
     return v;
@@ -272,7 +276,7 @@ std::vector<Botan::X509_Certificate> Basic_Credentials_Manager::cert_chain(const
 {
     BOTAN_UNUSED(type);
 
-    for(auto&& i : m_creds)
+    for(const Certificate_Info& i : m_creds)
     {
         if(std::find(algos.begin(), algos.end(), i.key->algo_name()) == algos.end())
             continue;
