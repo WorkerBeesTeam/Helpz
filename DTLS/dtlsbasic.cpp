@@ -1,5 +1,9 @@
 #include <QDebug>
 
+#ifdef Q_OS_WIN32
+#include <QCoreApplication>
+#endif
+
 #include <fstream>
 
 #include <botan/version.h>
@@ -236,8 +240,8 @@ void Basic_Credentials_Manager::load_certstores()
 {
     try
     {
-#ifdef Q_OS_UNIX
         // TODO: make path configurable
+#ifdef Q_OS_UNIX
         const std::vector<std::string> paths = { "/usr/share/ca-certificates" };
         for(const std::string& path : paths)
         {
@@ -247,6 +251,13 @@ void Basic_Credentials_Manager::load_certstores()
 #elif defined(Q_OS_WIN32)
 #pragma GCC warning "Not impliement"
         // TODO: impliement
+        /*
+        const std::vector<std::string> paths = { (qApp->applicationDirPath() + "/ca-certificates").toStdString() };
+        for(const std::string& path : paths)
+        {
+            std::shared_ptr<Botan::Certificate_Store> cs(new Botan::Certificate_Store_In_Memory(path));
+            m_certstores.push_back(cs);
+        }*/
 #endif
     }
     catch(std::exception& e)
