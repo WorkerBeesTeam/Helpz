@@ -26,7 +26,7 @@ Client::Client(const std::vector<std::string> &next_protocols, Helpz::Database::
     setSock(new QUdpSocket(this), true);
     connect(this, &Proto::DTLS_closed, this, &Client::close_connection);
 
-    connect(&checkTimer, SIGNAL(timeout()), SLOT(checkServer()));
+    connect(&checkTimer, &QTimer::timeout, this, &Client::checkServer);
     checkTimer.setInterval(checkServerInterval);
     checkTimer.start();
 }

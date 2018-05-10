@@ -33,8 +33,7 @@ Object::Object(OneObjectThread *worherThread, bool debug) :
     th[0]->start();
     while (Logging::obj == nullptr && !th[0]->wait(5));
 
-    connect(&logg(), SIGNAL(new_message(QtMsgType,Helpz::LogContext,QString)),
-            worherThread, SIGNAL(logMessage(QtMsgType,Helpz::LogContext,QString)));
+    connect(&logg(), &Logging::new_message, worherThread, &OneObjectThread::logMessage);
 
     logg().debug = debug;
 #ifdef Q_OS_UNIX
