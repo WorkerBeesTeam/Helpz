@@ -174,15 +174,13 @@ public:
 //    }
 
     template<class T, typename RetType, typename... Args>
-    RetType applyParse(RetType(T::*__f)(Args...), QDataStream &ds)
-    {
-        return Helpz::applyParse(static_cast<T*>(this), __f, ds);
+    RetType applyParse(RetType(T::*__f)(Args...), QDataStream &ds) {
+        return applyParseImpl<RetType, T, decltype(__f), Args...>(static_cast<T*>(this), __f, ds);
     }
 
     template<class T, typename RetType, typename... Args>
-    RetType applyParse(RetType(T::*__f)(Args...) const, QDataStream &ds) const
-    {
-        return Helpz::applyParse(static_cast<T*>(this), __f, ds);
+    RetType applyParse(RetType(T::*__f)(Args...) const, QDataStream &ds) const {
+        return applyParseImpl<RetType, T, decltype(__f), Args...>(static_cast<T*>(this), __f, ds);
     }
 
 protected:
