@@ -75,8 +75,8 @@ RetType applyParseImpl(T* obj, _Fn __f, QDataStream &ds, _Tuple&& __t, std::inde
     return std::__invoke(func, std::get<_Idx>(std::forward<_Tuple>(__t))...);
 }
 
-template<class T, class FT, typename RetType, typename... Args>
-RetType applyParse(T* obj, RetType(FT::*__f)(Args...), QDataStream &ds)
+template <typename RetType, class T, typename _Fn, typename... Args>
+RetType applyParseImpl(T* obj, _Fn __f, QDataStream &ds)
 {
     auto tuple = std::make_tuple(typename std::decay<Args>::type()...);
 
@@ -84,6 +84,18 @@ RetType applyParse(T* obj, RetType(FT::*__f)(Args...), QDataStream &ds)
     using Indices = std::make_index_sequence<std::tuple_size<Tuple>::value>;
 
     return applyParseImpl<RetType>(obj, __f, ds, std::forward<Tuple>(tuple), Indices{});
+}
+
+template<class T, class FT, typename RetType, typename... Args>
+RetType applyParse(T* obj, RetType(FT::*__f)(Args...) const, QDataStream &ds)
+{
+    return applyParseImpl<RetType, T, decltype(__f), Args...>(obj, __f, ds);
+}
+
+template<class T, class FT, typename RetType, typename... Args>
+RetType applyParse(T* obj, RetType(FT::*__f)(Args...), QDataStream &ds)
+{
+    return applyParseImpl<RetType, T, decltype(__f), Args...>(obj, __f, ds);
 }
 
 namespace Network {
