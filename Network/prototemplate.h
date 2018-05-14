@@ -22,15 +22,13 @@ void parse(QDataStream &, _Tuple&) {}
 
 template<typename _Tuple, std::size_t x, std::size_t... _Idx>
 void parse(QDataStream &ds, _Tuple& __t) {
-    using T = typename std::tuple_element<x, _Tuple>::type;
+//    using T = typename std::tuple_element<x, _Tuple>::type;
     // { qDebug() << "Parse" << typeid(T).name(); }
-    T obj;
-    ds >> obj;
-
-    if (ds.status() != QDataStream::Ok)
-        return;
-
-    std::get<x>(__t) = obj;
+//    T obj;
+//    ds >> obj;
+//    std::get<x>(__t) = std::move(obj);
+    ds >> std::get<x>(__t);
+    if (ds.status() != QDataStream::Ok) return;
     parse<_Tuple, _Idx...>(ds, __t);
 }
 
@@ -53,10 +51,11 @@ bool parseImpl(QDataStream &ds, _Tuple& __t)
     return true;
 }
 
-template <typename RetType, class T, typename _Fn, typename _Tuple, std::size_t... _Idx>
-RetType applyParseImpl(T* obj, _Fn __f, QDataStream &ds, _Tuple&& __t, std::index_sequence<_Idx...>)
+template <typename RetType, typename _Tuple, typename _Fn, class T, std::size_t... _Idx>
+RetType __applyParseImpl(_Fn __f, T* obj, QDataStream &ds, std::index_sequence<_Idx...>)
 {
-    if (!parseImpl<_Tuple, _Idx...>(ds, __t))
+    _Tuple tuple;
+    if (!parseImpl<_Tuple, _Idx...>(ds, tuple))
     {
         const QLoggingCategory category("helpz");
         qCWarning(category) << "Apply parse failed!";
@@ -71,31 +70,31 @@ RetType applyParseImpl(T* obj, _Fn __f, QDataStream &ds, _Tuple&& __t, std::inde
             return RetType{};
     }
 
-    auto func = std::bind(__f, obj, std::_Placeholder<_Idx + 1>{}...);
-    return std::__invoke(func, std::get<_Idx>(std::forward<_Tuple>(__t))...);
+    return std::invoke(__f, obj, std::get<_Idx>(std::forward<_Tuple&&>(tuple))...);
 }
 
-template <typename RetType, class T, typename _Fn, typename... Args>
-RetType applyParseImpl(T* obj, _Fn __f, QDataStream &ds)
+template <typename RetType, typename _Fn, class T, typename... Args>
+RetType applyParseImpl(_Fn __f, T* obj, QDataStream &ds)
 {
-    auto tuple = std::make_tuple(typename std::decay<Args>::type()...);
+//    auto tuple = std::make_tuple(typename std::decay<Args>::type()...);
+//    using Tuple = decltype(tuple);
+//    using Indices = std::make_index_sequence<std::tuple_size<Tuple>::value>;
+    using Tuple = std::tuple<typename std::decay_t<Args>...>;
+    using Indices = std::make_index_sequence<sizeof...(Args)>;
 
-    using Tuple = decltype(tuple);
-    using Indices = std::make_index_sequence<std::tuple_size<Tuple>::value>;
-
-    return applyParseImpl<RetType>(obj, __f, ds, std::forward<Tuple>(tuple), Indices{});
+    return __applyParseImpl<RetType, Tuple>(__f, obj, ds, Indices{});
 }
 
-template<class T, class FT, typename RetType, typename... Args>
-RetType applyParse(T* obj, RetType(FT::*__f)(Args...) const, QDataStream &ds)
+template<class FT, class T, typename RetType, typename... Args>
+RetType applyParse(RetType(FT::*__f)(Args...) const, T* obj, QDataStream &ds)
 {
-    return applyParseImpl<RetType, T, decltype(__f), Args...>(obj, __f, ds);
+    return applyParseImpl<RetType, decltype(__f), T, Args...>(__f, obj, ds);
 }
 
-template<class T, class FT, typename RetType, typename... Args>
-RetType applyParse(T* obj, RetType(FT::*__f)(Args...), QDataStream &ds)
+template<class FT, class T, typename RetType, typename... Args>
+RetType applyParse(RetType(FT::*__f)(Args...), T* obj, QDataStream &ds)
 {
-    return applyParseImpl<RetType, T, decltype(__f), Args...>(obj, __f, ds);
+    return applyParseImpl<RetType, decltype(__f), T, Args...>(__f, obj, ds);
 }
 
 namespace Network {
@@ -173,14 +172,14 @@ public:
 ////        T obj; ds >> obj; return obj;
 //    }
 
-    template<class T, typename RetType, typename... Args>
+    template<typename RetType, class T, typename... Args>
     RetType applyParse(RetType(T::*__f)(Args...), QDataStream &ds) {
-        return applyParseImpl<RetType, T, decltype(__f), Args...>(static_cast<T*>(this), __f, ds);
+        return applyParseImpl<RetType, decltype(__f), T, Args...>(__f, static_cast<T*>(this), ds);
     }
 
-    template<class T, typename RetType, typename... Args>
+    template<typename RetType, class T, typename... Args>
     RetType applyParse(RetType(T::*__f)(Args...) const, QDataStream &ds) const {
-        return applyParseImpl<RetType, T, decltype(__f), Args...>(static_cast<T*>(this), __f, ds);
+        return applyParseImpl<RetType, decltype(__f), T, Args...>(__f, static_cast<T*>(this), ds);
     }
 
 protected:
