@@ -73,7 +73,7 @@ void ProtoHelper::processData()
         if (first_active)
         {
             if (channel->timeout_check())
-                qCWarning(Log) << "Handshake timeout detected";
+                qCWarning(Log) << client->clientName() << "Handshake timeout detected";
 
             if (channel->is_active())
                 readyWrite();
