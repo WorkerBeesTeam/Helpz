@@ -52,6 +52,7 @@ QMAKE_EXTRA_COMPILERS += myinc
 
 INCLUDEPATH += $${PWD}/include
 
+include(helpz_version.pri)
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings

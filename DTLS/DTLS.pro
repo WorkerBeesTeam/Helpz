@@ -13,7 +13,8 @@ SOURCES += \
     dtlsserver.cpp \
     dtlsclient.cpp \
     dtlsbasic.cpp \
-    dtlsservernode.cpp
+    dtlsservernode.cpp \
+    dtls_version.cpp
 #    OpenSSL/dtlsclient.cpp \
 #    OpenSSL/dtlscookie.cpp \
 #    OpenSSL/dtlsserver.cpp \
@@ -24,7 +25,8 @@ HEADERS += \
     dtlsserver.h \
     dtlsclient.h \
     dtlsbasic.h \
-    dtlsservernode.h
+    dtlsservernode.h \
+    dtls_version.h
 #    OpenSSL/dtlssocket.h \
 #    OpenSSL/dtlsserver.h \
 #    OpenSSL/dtlscookie.h \
@@ -37,4 +39,6 @@ linux-rasp-pi2-g++ {
 LIBS += -L$${OUT_PWD}/..
 LIBS += -lbotan-2 -lHelpzNetwork
 
+VER_MAJ = 1
+VER_MIN = 3
 include(../helpz_install.pri)
