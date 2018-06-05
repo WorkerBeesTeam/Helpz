@@ -2,9 +2,7 @@ TEMPLATE = subdirs
 
 SUBDIRS = \
     Database \
-    Service \
-    Widgets \
-    DBWidgets
+    Service
 
 DTLS.depends = Network
 
@@ -12,9 +10,14 @@ DTLS.depends = Network
     SUBDIRS += \
         DTLS \
         Network
-    message('nobotanandproto');
+} else {
+    message('nobotanandproto FOUND');
 }
 
-nobotanandproto {
-    message('nobotanandproto FOUND');
+!nowidgets {
+    SUBDIRS += \
+        Widgets \
+        DBWidgets
+} else {
+    message('nowidgets FOUND');
 }
