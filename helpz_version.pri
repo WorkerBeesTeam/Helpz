@@ -4,7 +4,7 @@ defined(VER_MAJ, var):defined(VER_MIN, var) {
     exists($${OUT_PWD}/build_number) {
         VER_BUILD = $$system(cat $${OUT_PWD}/build_number)
     }
-    VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_BUILD}
+    VERSION = $${VER_MAJ}.$${VER_MIN}.100
 
     !defined(VER_NS, var) {
       VER_NS = $${TARGET}
