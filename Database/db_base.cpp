@@ -88,6 +88,7 @@ QSqlDatabase Base::dbFromInfo(const ConnectionInfo &info)
         connName = QSqlDatabase::defaultConnection;
 
     QSqlDatabase db = QSqlDatabase::addDatabase( info.driver, connName );
+    qCCritical(DBLog) << "DB INFO: " << connName << (qintptr)QThread::currentThread() << (qintptr)db.driver()->thread();
     if (!info.connectOptions.isEmpty())
         db.setConnectOptions( info.connectOptions );
     db.setHostName( info.host );
@@ -118,10 +119,13 @@ bool Base::createConnection(QSqlDatabase db)
     if (db.isOpen())
         db.close();
 
+    if (QThread::currentThread() != db.driver()->thread())
+        qCCritical(DBLog) << "OPEN DB: " << connName << (qintptr)QThread::currentThread() << (qintptr)db.driver()->thread();
+
     if (!db.open()) {
         QSqlError err = db.lastError();
         if (err.type() != QSqlError::NoError)
-            qCCritical(DBLog) << err.text() << QSqlDatabase::drivers();
+            qCCritical(DBLog) << err.text() << QSqlDatabase::drivers() << QThread::currentThread() << db.driver()->thread();
         return false;
     }
 

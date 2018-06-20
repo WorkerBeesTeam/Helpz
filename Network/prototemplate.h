@@ -57,6 +57,7 @@ RetType __applyParseImpl(_Fn __f, T* obj, QDataStream &ds, std::index_sequence<_
     _Tuple tuple;
     if (!parseImpl<_Tuple, _Idx...>(ds, tuple))
     {
+//        throw std::runtime_error("Apply parse failed!");
         const QLoggingCategory category("helpz");
         qCWarning(category) << "Apply parse failed!";
 
