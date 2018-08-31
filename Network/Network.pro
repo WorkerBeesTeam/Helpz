@@ -15,7 +15,8 @@ HEADERS += \
     prototemplate.h \
     waithelper.h \
     settingshelper.h \
-    net_version.h
+    net_version.h \
+    applyparse.h
 
 VER_MAJ = 1
 VER_MIN = 2

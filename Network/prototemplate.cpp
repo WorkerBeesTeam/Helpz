@@ -145,7 +145,11 @@ void ProtoTemplate::proccess_bytes(QIODevice *dev)
                 break;
             }
         }
-        proccessMessage(cmd, user_ds);
+        try {
+            proccessMessage(cmd, user_ds);
+        } catch(const std::exception& e) {
+            qCCritical(Log) << "EXCEPTION: proccessMessage" << cmd << e.what();
+        } catch(...) { qCCritical(Log) << "EXCEPTION Unknown: proccessMessage" << cmd; }
     }
 }
 

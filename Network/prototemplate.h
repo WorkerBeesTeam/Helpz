@@ -15,89 +15,9 @@
 
 #include <QLoggingCategory>
 
+#include "applyparse.h"
+
 namespace Helpz {
-
-template<typename _Tuple>
-void parse(QDataStream &, _Tuple&) {}
-
-template<typename _Tuple, std::size_t x, std::size_t... _Idx>
-void parse(QDataStream &ds, _Tuple& __t) {
-//    using T = typename std::tuple_element<x, _Tuple>::type;
-    // { qDebug() << "Parse" << typeid(T).name(); }
-//    T obj;
-//    ds >> obj;
-//    std::get<x>(__t) = std::move(obj);
-    ds >> std::get<x>(__t);
-    if (ds.status() != QDataStream::Ok) return;
-    parse<_Tuple, _Idx...>(ds, __t);
-}
-
-template<typename _Tuple, std::size_t... _Idx>
-bool parseImpl(QDataStream &ds, _Tuple& __t)
-{
-    QDataStream::Status oldStatus = ds.status();
-    if (!ds.device() || !ds.device()->isTransactionStarted())
-        ds.resetStatus();
-
-    parse<_Tuple, _Idx...>(ds, __t);
-
-    if (ds.status() != QDataStream::Ok)
-        return false;
-
-    if (oldStatus != QDataStream::Ok) {
-        ds.resetStatus();
-        ds.setStatus(oldStatus);
-    }
-    return true;
-}
-
-template <typename RetType, typename _Tuple, typename _Fn, class T, std::size_t... _Idx>
-RetType __applyParseImpl(_Fn __f, T* obj, QDataStream &ds, std::index_sequence<_Idx...>)
-{
-    _Tuple tuple;
-    if (!parseImpl<_Tuple, _Idx...>(ds, tuple))
-    {
-//        throw std::runtime_error("Apply parse failed!");
-        const QLoggingCategory category("helpz");
-        qCWarning(category) << "Apply parse failed!";
-
-        if constexpr (std::is_same<RetType, void>::value)
-            return;
-        else if constexpr (std::is_same<RetType, bool>::value)
-            return false;
-        else if constexpr (std::is_arithmetic<RetType>::value)
-            return 0;
-        else
-            return RetType{};
-    }
-
-    return std::invoke(__f, obj, std::get<_Idx>(std::forward<_Tuple&&>(tuple))...);
-}
-
-template <typename RetType, typename _Fn, class T, typename... Args>
-RetType applyParseImpl(_Fn __f, T* obj, QDataStream &ds)
-{
-//    auto tuple = std::make_tuple(typename std::decay<Args>::type()...);
-//    using Tuple = decltype(tuple);
-//    using Indices = std::make_index_sequence<std::tuple_size<Tuple>::value>;
-    using Tuple = std::tuple<typename std::decay_t<Args>...>;
-    using Indices = std::make_index_sequence<sizeof...(Args)>;
-
-    return __applyParseImpl<RetType, Tuple>(__f, obj, ds, Indices{});
-}
-
-template<class FT, class T, typename RetType, typename... Args>
-RetType applyParse(RetType(FT::*__f)(Args...) const, T* obj, QDataStream &ds)
-{
-    return applyParseImpl<RetType, decltype(__f), T, Args...>(__f, obj, ds);
-}
-
-template<class FT, class T, typename RetType, typename... Args>
-RetType applyParse(RetType(FT::*__f)(Args...), T* obj, QDataStream &ds)
-{
-    return applyParseImpl<RetType, decltype(__f), T, Args...>(__f, obj, ds);
-}
-
 namespace Network {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
@@ -162,10 +82,10 @@ public:
 //        return sendT(cmd) << obj;
 //    }
 
-    template<typename T>
-    T parse(QDataStream &ds) {
-        T obj; ds >> obj; return obj;
-    }
+//    template<typename T>
+//    T parse(QDataStream &ds) {
+//        T obj; ds >> obj; return obj;
+//    }
 
 //    template<class T, typename RetType, typename... Args>
 //    RetType applyParse(T* obj, RetType(T::*func)(Args...), QDataStream &ds) {
