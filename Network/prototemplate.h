@@ -40,7 +40,7 @@ class ProtoTemplate
 {
 public:
     enum { ds_ver = QDataStream::Qt_5_6 };
-#if (QT_VERSION > QT_VERSION_CHECK(5, 11, 1))
+#if (QT_VERSION > QT_VERSION_CHECK(5, 11, 2))
 #pragma GCC warning "Think about raise used version or if it the same, then raise qt version in this condition."
 #endif
 
