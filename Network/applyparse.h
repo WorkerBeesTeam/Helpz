@@ -11,8 +11,8 @@
 
 namespace Helpz {
 
-static
-void parse_out(QDataStream &) {}
+template<typename DataStream>
+void parse_out(DataStream &) {}
 
 template<typename T, typename... Args>
 void parse_out(QDataStream &ds, T& out, Args&... args) {
@@ -21,6 +21,9 @@ void parse_out(QDataStream &ds, T& out, Args&... args) {
         throw std::runtime_error(std::string("QDataStream parse failed for type: ") + typeid(T).name());
     parse_out(ds, args...);
 }
+
+//template<>
+//void parse_out(QDataStream &) {}
 
 template<typename T>
 T parse(QDataStream &ds) {
