@@ -9,6 +9,9 @@
 #include <iostream>
 #include <functional>
 
+#include <execinfo.h>
+#include <unistd.h>
+
 #include "db_base.h"
 
 namespace Helpz {
@@ -58,15 +61,15 @@ Base::~Base()
         close(false);
 }
 
-void Base::clone(Base *other, const QString &name)
-{
-    if (!other)
-        return;
-    other->setConnectionName(name);
-    other->m_lastConnection.reset(new ConnectionInfo{ db() });
-}
+//void Base::clone(Base *other, const QString &name)
+//{
+//    if (!other)
+//        return;
+//    other->setConnectionName(name);
+//    other->m_lastConnection.reset(new ConnectionInfo{ db() });
+//}
 
-Base *Base::clone(const QString &name) { return clone<Base>(name); }
+//Base *Base::clone(const QString &name) { return clone<Base>(name); }
 
 QString Base::connectionName() const { return connName; }
 void Base::setConnectionName(const QString &name)
@@ -81,7 +84,7 @@ QSqlDatabase Base::dbFromInfo(const ConnectionInfo &info)
         connName = QSqlDatabase::defaultConnection;
 
     QSqlDatabase db = QSqlDatabase::addDatabase( info.driver, connName );
-    qCCritical(DBLog) << "DB INFO: " << connName << (qintptr)QThread::currentThread() << (qintptr)db.driver()->thread();
+    qCCritical(DBLog) << "DB INFO: " << connName << (qintptr)this << (qintptr)QThread::currentThread() << (qintptr)db.driver()->thread();
     if (!info.connectOptions.isEmpty())
         db.setConnectOptions( info.connectOptions );
     db.setHostName( info.host );
@@ -113,7 +116,7 @@ bool Base::createConnection(QSqlDatabase db)
         db.close();
 
     if (QThread::currentThread() != db.driver()->thread())
-        qCCritical(DBLog) << "OPEN DB: " << connName << (qintptr)QThread::currentThread() << (qintptr)db.driver()->thread();
+        qCCritical(DBLog) << "OPEN DB: " << connName << (qintptr)this << (qintptr)QThread::currentThread() << (qintptr)db.driver()->thread();
 
     if (!db.open()) {
         QSqlError err = db.lastError();
@@ -133,6 +136,10 @@ bool Base::createConnection(QSqlDatabase db)
                    << QString("%1%2")
                       .arg(db.hostName().isEmpty() ? QString() : db.hostName() + (db.port() == -1 ? QString() : ' ' + QString::number(db.port())))
                       .arg(connName == QSqlDatabase::defaultConnection ? QString() : ' ' + connName);
+    void *array[10];
+    size_t size = backtrace(array, 10);
+    fprintf(stderr, "DB: open backtrace:\n");
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
 
     if (m_lastConnection)
         m_lastConnection.reset();

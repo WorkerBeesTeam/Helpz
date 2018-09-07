@@ -71,8 +71,8 @@ private slots:
       int remove_all_slot();
       void save_slot(const QVariantList& values);
 private:
-
       void prune_session_cache();
+      bool check_db_thread_diff();
 
       std::shared_ptr<Database::Base> db_;
       Botan::secure_vector<uint8_t> m_session_key;

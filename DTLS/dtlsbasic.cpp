@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QThread>
 
 #ifdef Q_OS_WIN32
 #include <QCoreApplication>
@@ -124,19 +125,34 @@ Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
 }
 
 bool Session_Manager_SQL::load_from_session_id(const std::vector<uint8_t>& session_id, Botan::TLS::Session& session) {
-    return load_session("where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, &session);
+    if (check_db_thread_diff())
+        return load_session("where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, &session);
+    else
+        return load_session_slot("where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, &session);
 }
 
 bool Session_Manager_SQL::load_from_server_info(const Botan::TLS::Server_Information& server, Botan::TLS::Session& session) {
-    return load_session("where hostname = ? and hostport = ? order by session_start desc",
+    if (check_db_thread_diff())
+        return load_session("where hostname = ? and hostport = ? order by session_start desc",
+                            { QString::fromStdString(server.hostname()), server.port() }, &session);
+    else
+        return load_session_slot("where hostname = ? and hostport = ? order by session_start desc",
                             { QString::fromStdString(server.hostname()), server.port() }, &session);
 }
 
 void Session_Manager_SQL::remove_entry(const std::vector<uint8_t>& session_id) {
-    remove_entry_signal(QString::fromStdString(Botan::hex_encode(session_id)));
+    if (check_db_thread_diff())
+        remove_entry_signal(QString::fromStdString(Botan::hex_encode(session_id)));
+    else
+        remove_entry_slot(QString::fromStdString(Botan::hex_encode(session_id)));
 }
 
-size_t Session_Manager_SQL::remove_all() { return remove_all_signal(); }
+size_t Session_Manager_SQL::remove_all() {
+    if (check_db_thread_diff())
+        return remove_all_signal();
+    else
+        return remove_all_slot();
+}
 
 void Session_Manager_SQL::save(const Botan::TLS::Session& session) {
     auto session_vec = session.encrypt(m_session_key, m_rng);
@@ -148,7 +164,10 @@ void Session_Manager_SQL::save(const Botan::TLS::Session& session) {
                        QString::fromStdString(session.server_info().hostname()),
                        session.server_info().port(),
                        QByteArray((const char*)session_vec.data(), session_vec.size())};
-    save_signal(values);
+    if (check_db_thread_diff())
+        save_signal(values);
+    else
+        save_slot(values);
 }
 
 std::chrono::seconds Session_Manager_SQL::session_lifetime() const { return m_session_lifetime; }
@@ -193,6 +212,10 @@ void Session_Manager_SQL::prune_session_cache() {
         db_->del(sessionsTable->name, "session_id in (select session_id from tls_sessions limit ?)",
         {quint32(sessions - m_max_sessions)});
     }
+}
+
+bool Session_Manager_SQL::check_db_thread_diff() {
+    return thread() != QThread::currentThread();
 }
 
 // --------------------------------------------------------------------------------

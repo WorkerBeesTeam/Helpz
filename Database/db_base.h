@@ -37,16 +37,16 @@ public:
     Base(QSqlDatabase &db);
     ~Base();
 
-    void clone(Base* other, const QString& name = QSqlDatabase::defaultConnection);
-    Base* clone(const QString& name = QSqlDatabase::defaultConnection);
+//    void clone(Base* other, const QString& name = QSqlDatabase::defaultConnection);
+//    Base* clone(const QString& name = QSqlDatabase::defaultConnection);
 
-    template<typename T>
-    T* clone(const QString& name = QSqlDatabase::defaultConnection)
-    {
-        T* object = new T{};
-        this->clone(object, name);
-        return object;
-    }
+//    template<typename T>
+//    T* clone(const QString& name = QSqlDatabase::defaultConnection)
+//    {
+//        T* object = new T{};
+//        this->clone(object, name);
+//        return object;
+//    }
 
     QString connectionName() const;
     void setConnectionName(const QString& name);
