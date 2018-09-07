@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_DTLS_SERVER_H
-#define ZIMNIKOV_DTLS_SERVER_H
+#ifndef HELPZ_DTLS_SERVER_H
+#define HELPZ_DTLS_SERVER_H
 
 #include <functional>
 #include <Helpz/dtlsproto.h>
@@ -17,7 +17,7 @@ class Server : public QUdpSocket, public BotanHelpers, public ProtoHelper
 {
     Q_OBJECT
 public:
-    Server(Helpz::Database::Base *db, const QString& tls_policy_file, const QString &crt_file, const QString &key_file);
+    Server(const Database::ConnectionInfo &db_info, const QString& tls_policy_file, const QString &crt_file, const QString &key_file);
     ~Server();
 
     ServerNode* client(QHostAddress host, quint16 port) const;
@@ -36,4 +36,4 @@ private:
 } // namespace DTLS
 } // namespace Helpz
 
-#endif // ZIMNIKOV_DTLS_SERVER_H
+#endif // HELPZ_DTLS_SERVER_H

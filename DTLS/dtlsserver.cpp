@@ -8,8 +8,8 @@ QDebug &operator<< (QDebug &dbg, const std::string &str) { return dbg << str.c_s
 namespace Helpz {
 namespace DTLS {
 
-Server::Server(Helpz::Database::Base* db, const QString &tls_policy_file, const QString &crt_file, const QString &key_file) :
-    QUdpSocket(), BotanHelpers(db, tls_policy_file, crt_file, key_file)
+Server::Server(const Database::ConnectionInfo &db_info, const QString &tls_policy_file, const QString &crt_file, const QString &key_file) :
+    QUdpSocket(), BotanHelpers(db_info, tls_policy_file, crt_file, key_file)
 {
     setSock(this, true);
 }

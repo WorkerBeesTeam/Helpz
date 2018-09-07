@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_SETTINGSHELPER_H
-#define ZIMNIKOV_SETTINGSHELPER_H
+#ifndef HELPZ_SETTINGSHELPER_H
+#define HELPZ_SETTINGSHELPER_H
 
 #include <QSettings>
 
@@ -134,4 +134,4 @@ using SettingsThreadHelper = SettingsHelperPtr<ParamThread<T, Args...>>;
 
 } // namespace Helpz
 
-#endif // ZIMNIKOV_SETTINGSHELPER_H
+#endif // HELPZ_SETTINGSHELPER_H

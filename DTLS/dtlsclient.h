@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_DTLS_CLIENT_H
-#define ZIMNIKOV_DTLS_CLIENT_H
+#ifndef HELPZ_DTLS_CLIENT_H
+#define HELPZ_DTLS_CLIENT_H
 
 #include <QBuffer>
 #include <QTimer>
@@ -22,7 +22,7 @@ class Client :
 {
     Q_OBJECT
 public:
-    Client(const std::vector<std::string>& next_protocols, Helpz::Database::Base *db, const QString &tls_policy_file,
+    Client(const std::vector<std::string>& next_protocols, const Database::ConnectionInfo &db_info, const QString &tls_policy_file,
            const QString &hostname = QString(), quint16 port = 0, int checkServerInterval = 15000);
 
     void setCheckServerInterval(int msec);
@@ -44,4 +44,4 @@ private:
 } // namespace DTLS
 } // namespace Helpz
 
-#endif // ZIMNIKOV_DTLS_CLIENT_H
+#endif // HELPZ_DTLS_CLIENT_H

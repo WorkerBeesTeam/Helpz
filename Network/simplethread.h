@@ -1,5 +1,5 @@
-﻿#ifndef ZIMNIKOV_SIMPLETHREAD_H
-#define ZIMNIKOV_SIMPLETHREAD_H
+﻿#ifndef HELPZ_SIMPLETHREAD_H
+#define HELPZ_SIMPLETHREAD_H
 
 #include <memory>
 #include <tuple>
@@ -67,5 +67,5 @@ private:
 
 } // namespace Helpz
 
-#endif // SIMPLETHREAD_H
+#endif // HELPZ_SIMPLETHREAD_H
 

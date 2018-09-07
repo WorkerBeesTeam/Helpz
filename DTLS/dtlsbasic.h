@@ -1,7 +1,5 @@
-#ifndef ZIMNIKOV_DTLS_BASICCREDENTIALSMANAGER_H
-#define ZIMNIKOV_DTLS_BASICCREDENTIALSMANAGER_H
-
-#include <QString>
+#ifndef HELPZ_DTLS_BASICCREDENTIALSMANAGER_H
+#define HELPZ_DTLS_BASICCREDENTIALSMANAGER_H
 
 #include <iostream>
 
@@ -11,18 +9,23 @@
 #include <botan/tls_alert.h>
 #include <botan/tls_policy.h>
 
+#include <QObject>
+
+#include <Helpz/db_connectioninfo.h>
+
 namespace Helpz {
+
 namespace Database {
-struct Table;
 class Base;
 }
 
 namespace DTLS {
 uint64_t Mytimestamp();
 
-class Session_Manager_SQL : public Botan::TLS::Session_Manager
-   {
-   public:
+class Session_Manager_SQL : public QObject, public Botan::TLS::Session_Manager
+{
+    Q_OBJECT
+public:
       /**
       * @param db A connection to the database to use
                The table names botan_tls_sessions and
@@ -34,12 +37,11 @@ class Session_Manager_SQL : public Botan::TLS::Session_Manager
       * @param session_lifetime sessions are expired after this many
       *        seconds have elapsed from initial handshake.
       */
-      Session_Manager_SQL(Database::Base* db,
-                          const std::string& passphrase,
+      Session_Manager_SQL(const std::string& passphrase,
                           Botan::RandomNumberGenerator& rng,
+                          const Database::ConnectionInfo &info = {":memory:", {}, {}, {}, -1, "QSQLITE"},
                           size_t max_sessions = 1000,
                           std::chrono::seconds session_lifetime = std::chrono::seconds(7200));
-      ~Session_Manager_SQL();
 
       Session_Manager_SQL(const Session_Manager_SQL&) = delete;
       Session_Manager_SQL& operator=(const Session_Manager_SQL&) = delete;
@@ -56,14 +58,23 @@ class Session_Manager_SQL : public Botan::TLS::Session_Manager
 
       void save(const Botan::TLS::Session& session_data) override;
 
-      std::chrono::seconds session_lifetime() const override
-         { return m_session_lifetime; }
+      std::chrono::seconds session_lifetime() const override;
 
-   private:
+signals:
+      bool load_session(const QString& sql, const QVariantList& values, Botan::TLS::Session* session);
+      void remove_entry_signal(const QString& session_id);
+      int remove_all_signal();
+      void save_signal(const QVariantList& values);
+private slots:
+      bool load_session_slot(const QString& sql, const QVariantList& values, Botan::TLS::Session* session);
+      void remove_entry_slot(const QString& session_id);
+      int remove_all_slot();
+      void save_slot(const QVariantList& values);
+private:
+
       void prune_session_cache();
-      QString db_name() const;
 
-      Database::Base* m_db;
+      std::shared_ptr<Database::Base> db_;
       Botan::secure_vector<uint8_t> m_session_key;
       Botan::RandomNumberGenerator& m_rng;
       size_t m_max_sessions;
@@ -105,7 +116,7 @@ private:
 };
 
 struct BotanHelpers {
-    BotanHelpers(Database::Base* db,
+    BotanHelpers(const Database::ConnectionInfo &db_info,
                     const QString& tls_policy_file_name,
                      const QString& crt_file_name = QString(),
                      const QString& key_file_name = QString());
@@ -119,5 +130,5 @@ struct BotanHelpers {
 } // namespace DTLS
 } // namespace Helpz
 
-#endif // ZIMNIKOV_DTLS_BASICCREDENTIALSMANAGER_H
+#endif // HELPZ_DTLS_BASICCREDENTIALSMANAGER_H
 

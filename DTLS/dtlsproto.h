@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_DTLS_PROTOCLIENT_H
-#define ZIMNIKOV_DTLS_PROTOCLIENT_H
+#ifndef HELPZ_DTLS_PROTOCLIENT_H
+#define HELPZ_DTLS_PROTOCLIENT_H
 
 #include <QUdpSocket>
 
@@ -113,4 +113,4 @@ public:
 } // namespace DTLS
 } // namespace Helpz
 
-#endif // ZIMNIKOV_DTLS_PROTOCLIENT_H
+#endif // HELPZ_DTLS_PROTOCLIENT_H

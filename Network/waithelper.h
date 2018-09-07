@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_NETWORK_WAITHELPER_H
-#define ZIMNIKOV_NETWORK_WAITHELPER_H
+#ifndef HELPZ_NETWORK_WAITHELPER_H
+#define HELPZ_NETWORK_WAITHELPER_H
 
 #include <QVariant>
 
@@ -45,4 +45,4 @@ private:
 } // namespace Network
 } // namespace Helpz
 
-#endif // ZIMNIKOV_NETWORK_WAITHELPER_H
+#endif // HELPZ_NETWORK_WAITHELPER_H

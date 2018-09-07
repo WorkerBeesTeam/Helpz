@@ -12,12 +12,12 @@ namespace DTLS {
 
 Q_LOGGING_CATEGORY(ClientLog, "net.DTLS.client")
 
-Client::Client(const std::vector<std::string> &next_protocols, Helpz::Database::Base* db, const QString& tls_policy_file, const QString &hostname, quint16 port, int checkServerInterval) :
+Client::Client(const std::vector<std::string> &next_protocols, const Database::ConnectionInfo &db_info, const QString& tls_policy_file, const QString &hostname, quint16 port, int checkServerInterval) :
     ProtoTemplate<Botan::TLS::Client,
             const Botan::TLS::Server_Information&,
             const Botan::TLS::Protocol_Version&,
             const std::vector<std::string>&>(),
-    BotanHelpers(db, tls_policy_file),
+    BotanHelpers(db_info, tls_policy_file),
     m_hostname(hostname), next_protocols(next_protocols)
 {
     if (port)

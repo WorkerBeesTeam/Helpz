@@ -30,6 +30,7 @@
 #include <botan/pbkdf.h>
 
 #include <Helpz/db_base.h>
+
 #include "dtlsbasic.h"
 #include "dtlsproto.h"
 
@@ -48,33 +49,28 @@ uint64_t Mytimestamp()
 
 static std::unique_ptr<Database::Table> sessionsTable; // Not good way
 
-Session_Manager_SQL::Session_Manager_SQL(Database::Base* db,
-                                         const std::string& passphrase,
+Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
                                          Botan::RandomNumberGenerator& rng,
+                                         const Database::ConnectionInfo &info,
                                          size_t max_sessions,
                                          std::chrono::seconds session_lifetime) :
-    m_db(db ? db->clone(db_name()) : nullptr),
-    m_rng(rng),
-    m_max_sessions(max_sessions),
-    m_session_lifetime(session_lifetime)
+    db_(new Helpz::Database::Base(info, "Session_Manager_SQL" + QString::number((quintptr)this))),
+    m_rng(rng), m_max_sessions(max_sessions), m_session_lifetime(session_lifetime)
 {
-    if (!m_db)
-        m_db = new Helpz::Database::Base({":memory:", QString(), QString(), QString(), -1, "QSQLITE"}, db_name());
-
     if (!sessionsTable)
         sessionsTable.reset( new Database::Table{"tls_sessions", {"session_id", "session_start", "hostname", "hostport", "session"}} );
-    m_db->createTable(*sessionsTable, {"VARCHAR(128) PRIMARY KEY", "INTEGER", "TEXT", "INTEGER", "BLOB"});
+    db_->createTable(*sessionsTable, {"VARCHAR(128) PRIMARY KEY", "INTEGER", "TEXT", "INTEGER", "BLOB"});
 
     Database::Table tableMetadata = {"tls_sessions_metadata", {"passphrase_salt", "passphrase_iterations", "passphrase_check"}};
-    m_db->createTable(tableMetadata, {"BLOB", "INTEGER", "INTEGER"});
+    db_->createTable(tableMetadata, {"BLOB", "INTEGER", "INTEGER"});
 
-    const size_t salts = m_db->row_count(tableMetadata.name);
+    const size_t salts = db_->row_count(tableMetadata.name);
     std::unique_ptr<Botan::PBKDF> pbkdf(Botan::get_pbkdf("PBKDF2(SHA-512)"));
 
     if(salts == 1)
     {
         // existing db
-        QSqlQuery stmt = m_db->select(tableMetadata);
+        QSqlQuery stmt = db_->select(tableMetadata);
         if(stmt.next())
         {
             QByteArray salt = stmt.value(0).toByteArray();
@@ -113,72 +109,36 @@ Session_Manager_SQL::Session_Manager_SQL(Database::Base* db,
         size_t check_val = Botan::make_uint16(x[0], x[1]);
         m_session_key.assign(x.begin() + 2, x.end());
 
-        m_db->insert(tableMetadata, {QByteArray((const char*)salt.data(), salt.size()), (quint32)iterations, (quint32)check_val});
-    }
-}
-
-Session_Manager_SQL::~Session_Manager_SQL()
-{
-    delete m_db;
-}
-
-bool Session_Manager_SQL::load_from_session_id(const std::vector<uint8_t>& session_id,
-                                               Botan::TLS::Session& session)
-{
-    QSqlQuery stmt = m_db->select(*sessionsTable, "where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, {4});
-    while(stmt.next())
-    {
-        QByteArray blob = stmt.value(0).toByteArray();
-
-        try
-        {
-            session = Botan::TLS::Session::decrypt((const uint8_t*)blob.constData(), blob.size(), m_session_key);
-            return true;
-        }
-        catch(...) {}
+        db_->insert(tableMetadata, {QByteArray((const char*)salt.data(), salt.size()), (quint32)iterations, (quint32)check_val});
     }
 
-    return false;
+    qRegisterMetaType<Botan::TLS::Session*>("Botan::TLS::Session*");
+    connect(this, &Session_Manager_SQL::load_session,
+            this, &Session_Manager_SQL::load_session, Qt::BlockingQueuedConnection);
+    connect(this, &Session_Manager_SQL::remove_entry_signal,
+            this, &Session_Manager_SQL::remove_entry_slot, Qt::QueuedConnection);
+    connect(this, &Session_Manager_SQL::remove_all_signal,
+            this, &Session_Manager_SQL::remove_all_slot, Qt::BlockingQueuedConnection);
+    connect(this, &Session_Manager_SQL::save_signal,
+            this, &Session_Manager_SQL::save_slot, Qt::BlockingQueuedConnection);
 }
 
-bool Session_Manager_SQL::load_from_server_info(const Botan::TLS::Server_Information& server,
-                                                Botan::TLS::Session& session)
-{
-    QSqlQuery stmt = m_db->select(*sessionsTable,
-                                    "where hostname = ? and hostport = ? "
-                                    "order by session_start desc",
-    { QString::fromStdString(server.hostname()), server.port()}, {4});
-
-    while(stmt.next())
-    {
-        QByteArray blob = stmt.value(0).toByteArray();
-
-        try
-        {
-            session = Botan::TLS::Session::decrypt((const uint8_t*)blob.constData(), blob.size(), m_session_key);
-            return true;
-        }
-        catch(...)
-        {
-        }
-    }
-
-    return false;
+bool Session_Manager_SQL::load_from_session_id(const std::vector<uint8_t>& session_id, Botan::TLS::Session& session) {
+    return load_session("where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, &session);
 }
 
-void Session_Manager_SQL::remove_entry(const std::vector<uint8_t>& session_id)
-{
-    m_db->del(sessionsTable->name, "session_id = ?",
-    { QString::fromStdString(Botan::hex_encode(session_id))});
+bool Session_Manager_SQL::load_from_server_info(const Botan::TLS::Server_Information& server, Botan::TLS::Session& session) {
+    return load_session("where hostname = ? and hostport = ? order by session_start desc",
+                            { QString::fromStdString(server.hostname()), server.port() }, &session);
 }
 
-size_t Session_Manager_SQL::remove_all()
-{
-    return m_db->del(sessionsTable->name).numRowsAffected();
+void Session_Manager_SQL::remove_entry(const std::vector<uint8_t>& session_id) {
+    remove_entry_signal(QString::fromStdString(Botan::hex_encode(session_id)));
 }
 
-void Session_Manager_SQL::save(const Botan::TLS::Session& session)
-{
+size_t Session_Manager_SQL::remove_all() { return remove_all_signal(); }
+
+void Session_Manager_SQL::save(const Botan::TLS::Session& session) {
     auto session_vec = session.encrypt(m_session_key, m_rng);
 
     const int timeval = std::chrono::duration_cast<std::chrono::seconds>(session.start_time().time_since_epoch()).count();
@@ -188,30 +148,51 @@ void Session_Manager_SQL::save(const Botan::TLS::Session& session)
                        QString::fromStdString(session.server_info().hostname()),
                        session.server_info().port(),
                        QByteArray((const char*)session_vec.data(), session_vec.size())};
-    m_db->replace(*sessionsTable, values);
+    save_signal(values);
+}
 
+std::chrono::seconds Session_Manager_SQL::session_lifetime() const { return m_session_lifetime; }
+
+bool Session_Manager_SQL::load_session_slot(const QString &sql, const QVariantList &values, Botan::TLS::Session *session)
+{
+    QSqlQuery stmt = db_->select(*sessionsTable, sql, values, {4});
+    QByteArray blob;
+    while(stmt.next()) {
+        blob = stmt.value(0).toByteArray();
+        try {
+            *session = Botan::TLS::Session::decrypt((const uint8_t*)blob.constData(), blob.size(), m_session_key);
+            return true;
+        } catch(...) {}
+    }
+    return false;
+}
+
+void Session_Manager_SQL::remove_entry_slot(const QString &session_id) {
+    db_->del(sessionsTable->name, "session_id = ?", {session_id});
+}
+
+int Session_Manager_SQL::remove_all_slot() {
+    return db_->del(sessionsTable->name).numRowsAffected();
+}
+
+void Session_Manager_SQL::save_slot(const QVariantList &values) {
+    db_->replace(*sessionsTable, values);
     prune_session_cache();
 }
 
-void Session_Manager_SQL::prune_session_cache()
-{
+void Session_Manager_SQL::prune_session_cache() {
     // First expire old sessions
     const int timeval = std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - m_session_lifetime).time_since_epoch()).count();
-    m_db->del(sessionsTable->name, "session_start <= ?", {timeval});
+    db_->del(sessionsTable->name, "session_start <= ?", {timeval});
 
-    const size_t sessions = m_db->row_count("tls_sessions");
+    const size_t sessions = db_->row_count("tls_sessions");
 
     // Then if needed expire some more sessions at random
     if(m_max_sessions > 0 && sessions > m_max_sessions)
     {
-        m_db->del(sessionsTable->name, "session_id in (select session_id from tls_sessions limit ?)",
+        db_->del(sessionsTable->name, "session_id in (select session_id from tls_sessions limit ?)",
         {quint32(sessions - m_max_sessions)});
     }
-}
-
-QString Session_Manager_SQL::db_name() const
-{
-    return QString("Session_Manager_SQL%1").arg((quintptr)this);
 }
 
 // --------------------------------------------------------------------------------
@@ -312,7 +293,7 @@ Botan::Private_Key *Basic_Credentials_Manager::private_key_for(const Botan::X509
     return nullptr;
 }
 
-BotanHelpers::BotanHelpers(Database::Base* db, const QString &tls_policy_file_name,
+BotanHelpers::BotanHelpers(const Database::ConnectionInfo &db_info, const QString &tls_policy_file_name,
                            const QString &crt_file_name, const QString &key_file_name)
 {
     try {
@@ -356,7 +337,7 @@ BotanHelpers::BotanHelpers(Database::Base* db, const QString &tls_policy_file_na
             throw std::runtime_error("No usable RNG enabled in build, aborting tests");
 
 //        session_manager.reset(new Botan::TLS::Session_Manager_In_Memory(*rng));
-        session_manager.reset(new Session_Manager_SQL(db, "k7R2Pu90Shh4", *rng, 0));
+        session_manager.reset(new Session_Manager_SQL("k7R2Pu90Shh4", *rng, db_info, 0));
 
         creds.reset(crt_file_name.isEmpty() ? new Basic_Credentials_Manager() :
                                   new Basic_Credentials_Manager(*rng, crt_file_name.toStdString(), key_file_name.toStdString()));

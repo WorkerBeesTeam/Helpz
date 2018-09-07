@@ -31,10 +31,10 @@ android {
     LIBS += -L/mnt/second_drive/Android/libs/build/lib
 }
 
-ZIMNIKOV_INCLUDES = $$INSTALL_PREFIX/include/Helpz
+HELPZ_INCLUDES = $$INSTALL_PREFIX/include/Helpz
 
 header_files.files = $$HEADERS
-header_files.path = $$ZIMNIKOV_INCLUDES
+header_files.path = $$HELPZ_INCLUDES
 INSTALLS += header_files
 
 target.path = $$INSTALL_PREFIX/lib

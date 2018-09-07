@@ -22,5 +22,5 @@ VER_MIN = 2
 include(../helpz_install.pri)
 
 qtservice_files.files = ../qtservice/src/qtservice.h
-qtservice_files.path = $$ZIMNIKOV_INCLUDES/
+qtservice_files.path = $$HELPZ_INCLUDES/
 INSTALLS += qtservice_files

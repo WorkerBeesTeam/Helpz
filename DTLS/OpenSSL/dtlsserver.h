@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_DTLSSERVER_H
-#define ZIMNIKOV_DTLSSERVER_H
+#ifndef HELPZ_DTLSSERVER_H
+#define HELPZ_DTLSSERVER_H
 
 #include "dtlssocket.h"
 #include "dtlscookie.h"
@@ -33,4 +33,4 @@ private:
 //server.setDHParams("dtlsDH.pem");
 //server.bind();
 
-#endif // ZIMNIKOV_DTLSSERVER_H
+#endif // HELPZ_DTLSSERVER_H

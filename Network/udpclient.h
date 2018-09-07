@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_UDPCLIENT_H
-#define ZIMNIKOV_UDPCLIENT_H
+#ifndef HELPZ_UDPCLIENT_H
+#define HELPZ_UDPCLIENT_H
 
 #include <QHostAddress>
 
@@ -25,4 +25,4 @@ protected:
 } // namespace Network
 } // namespace Helpz
 
-#endif // ZIMNIKOV_UDPCLIENT_H
+#endif // HELPZ_UDPCLIENT_H

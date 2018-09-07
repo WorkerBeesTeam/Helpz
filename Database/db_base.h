@@ -1,5 +1,7 @@
-﻿#ifndef DATABASE_BASE_H
-#define DATABASE_BASE_H
+﻿#ifndef HELPZ_DATABASE_BASE_H
+#define HELPZ_DATABASE_BASE_H
+
+#include <memory>
 
 #include <QMutex>
 #include <QTimer>
@@ -9,7 +11,7 @@
 #include <QtSql/QSqlQuery>
 #include <QLoggingCategory>
 
-#include <memory>
+#include "db_connectioninfo.h"
 
 namespace Helpz {
 
@@ -24,23 +26,9 @@ struct Table {
     bool operator !() const;
 };
 
-struct ConnectionInfo {
-    ConnectionInfo(const QString &dbName, const QString &login, const QString &pwd,
-                   const QString &host = "localhost", int port = -1, const QString &driver = "QMYSQL",
-                   const QString& connectOptions = QString());
-    ConnectionInfo(const QSqlDatabase &db);
-
-    int port;
-    QString driver;
-    QString connectOptions;
-    QString host;
-    QString dbName;
-    QString login;
-    QString pwd;
-};
-
-class Base
+class Base /*: public QObject*/
 {
+//    Q_OBJECT
 public:
     static QString odbcDriver();
 
@@ -106,6 +94,8 @@ public:
     quint32 row_count(const QString& tableName, const QString& where = QString(), const QVariantList &values = QVariantList());
 
     QSqlQuery exec(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
+//public slots:
+//    QList<QVariantList> exec_slot(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
 protected:
     void lock(bool locked = true);
 private:
@@ -125,4 +115,4 @@ private:
 } // namespace Database
 } // namespace Helpz
 
-#endif // DATABASE_BASE_H
+#endif // HELPZ_DATABASE_BASE_H

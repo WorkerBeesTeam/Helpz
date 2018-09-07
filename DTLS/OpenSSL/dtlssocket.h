@@ -1,5 +1,5 @@
-#ifndef ZIMNIKOV_DTLSSOCKET_H
-#define ZIMNIKOV_DTLSSOCKET_H
+#ifndef HELPZ_DTLSSOCKET_H
+#define HELPZ_DTLSSOCKET_H
 
 #include <string>
 
@@ -58,4 +58,4 @@ private:
 
 } // namespace Helpz
 
-#endif // ZIMNIKOV_DTLSSOCKET_H
+#endif // HELPZ_DTLSSOCKET_H
