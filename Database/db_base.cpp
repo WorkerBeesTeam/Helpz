@@ -9,9 +9,6 @@
 #include <iostream>
 #include <functional>
 
-#include <execinfo.h>
-#include <unistd.h>
-
 #include "db_base.h"
 
 namespace Helpz {
@@ -136,10 +133,6 @@ bool Base::createConnection(QSqlDatabase db)
                    << QString("%1%2")
                       .arg(db.hostName().isEmpty() ? QString() : db.hostName() + (db.port() == -1 ? QString() : ' ' + QString::number(db.port())))
                       .arg(connName == QSqlDatabase::defaultConnection ? QString() : ' ' + connName);
-    void *array[10];
-    size_t size = backtrace(array, 10);
-    fprintf(stderr, "DB: open backtrace:\n");
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
 
     if (m_lastConnection)
         m_lastConnection.reset();
