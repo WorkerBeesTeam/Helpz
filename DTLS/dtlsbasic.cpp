@@ -55,7 +55,7 @@ Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
                                          const Database::ConnectionInfo &info,
                                          size_t max_sessions,
                                          std::chrono::seconds session_lifetime) :
-    db_(new Helpz::Database::Base(info, "Session_Manager_SQL" + QString::number((quintptr)this))),
+    db_(new Helpz::Database::Base(info, "DTLSSessions_SQL" + QString::number((quintptr)this))),
     m_rng(rng), m_max_sessions(max_sessions), m_session_lifetime(session_lifetime)
 {
     if (!sessionsTable)
