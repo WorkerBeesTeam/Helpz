@@ -1,13 +1,14 @@
 #include "net_version.h"
-#include "version.h"
+
+#define STR(x) #x
 
 namespace Helpz {
 namespace Network {
 
-unsigned short ver_major() { return HelpzNetwork::Version::MAJOR; }
-unsigned short ver_minor() { return HelpzNetwork::Version::MINOR; }
-unsigned short ver_build() { return HelpzNetwork::Version::BUILD; }
-QString ver_str() { return HelpzNetwork::Version::getVersionString(); }
+quint8 ver_major() { return VER_MJ; }
+quint8 ver_minor() { return VER_MN; }
+int ver_build() { return VER_B; }
+QString ver_str() { return STR(VER_MJ) "." STR(VER_MN) "." STR(VER_B); }
 
 } // namespace Network
 } // namespace Helpz

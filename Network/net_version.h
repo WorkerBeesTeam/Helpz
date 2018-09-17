@@ -6,9 +6,9 @@
 namespace Helpz {
 namespace Network {
 
-unsigned short ver_major();
-unsigned short ver_minor();
-unsigned short ver_build();
+quint8 ver_major();
+quint8 ver_minor();
+int ver_build();
 QString ver_str();
 
 } // namespace Network

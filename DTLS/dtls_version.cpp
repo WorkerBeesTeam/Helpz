@@ -1,13 +1,14 @@
 #include "dtls_version.h"
-#include "version.h"
+
+#define STR(x) #x
 
 namespace Helpz {
 namespace DTLS {
 
-unsigned short ver_major() { return HelpzDTLS::Version::MAJOR; }
-unsigned short ver_minor() { return HelpzDTLS::Version::MINOR; }
-unsigned short ver_build() { return HelpzDTLS::Version::BUILD; }
-QString ver_str() { return HelpzDTLS::Version::getVersionString(); }
+unsigned short ver_major() { return VER_MJ; }
+unsigned short ver_minor() { return VER_MN; }
+unsigned short ver_build() { return VER_B; }
+QString ver_str() { return STR(VER_MJ) "." STR(VER_MN) "." STR(VER_B); }
 
 } // namespace DTLS
 } // namespace Helpz

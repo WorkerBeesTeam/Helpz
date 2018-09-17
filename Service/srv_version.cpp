@@ -1,13 +1,14 @@
 #include "srv_version.h"
-#include "version.h"
+
+#define STR(x) #x
 
 namespace Helpz {
 namespace Service {
 
-unsigned short ver_major() { return HelpzService::Version::MAJOR; }
-unsigned short ver_minor() { return HelpzService::Version::MINOR; }
-unsigned short ver_build() { return HelpzService::Version::BUILD; }
-QString ver_str() { return HelpzService::Version::getVersionString(); }
+quint8 ver_major() { return VER_MJ; }
+quint8 ver_minor() { return VER_MN; }
+int ver_build() { return VER_B; }
+QString ver_str() { return STR(VER_MJ) "." STR(VER_MN) "." STR(VER_B); }
 
 } // namespace Service
 } // namespace Helpz
