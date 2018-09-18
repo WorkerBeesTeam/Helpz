@@ -1,5 +1,4 @@
 #include "db_version.h"
-//#include "version.h"
 
 #define STR(x) #x
 
