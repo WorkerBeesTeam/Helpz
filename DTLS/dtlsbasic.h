@@ -61,12 +61,12 @@ public:
       std::chrono::seconds session_lifetime() const override;
 
 signals:
-      bool load_session(const QString& sql, const QVariantList& values, Botan::TLS::Session* session);
+      bool load_session(const QString& sql, Botan::TLS::Session* session);
       void remove_entry_signal(const QString& session_id);
       int remove_all_signal();
       void save_signal(const QVariantList& values);
 private slots:
-      bool load_session_slot(const QString& sql, const QVariantList& values, Botan::TLS::Session* session);
+      bool load_session_slot(const QString& sql, Botan::TLS::Session* session);
       void remove_entry_slot(const QString& session_id);
       int remove_all_slot();
       void save_slot(const QVariantList& values);
@@ -120,11 +120,17 @@ struct BotanHelpers {
                     const QString& tls_policy_file_name,
                      const QString& crt_file_name = QString(),
                      const QString& key_file_name = QString());
+    ~BotanHelpers();
     std::unique_ptr<Botan::RandomNumberGenerator> rng;
     std::unique_ptr<Basic_Credentials_Manager> creds;
-    std::unique_ptr<Session_Manager_SQL> session_manager;
-//    std::unique_ptr<Botan::TLS::Session_Manager_In_Memory> session_manager;
     std::unique_ptr<Botan::TLS::Text_Policy> policy; // TODO: read policy from file
+    Botan::TLS::Session_Manager* session_manager();
+private:
+    bool memory_sessions_;
+    union {
+        Session_Manager_SQL* sql;
+        Botan::TLS::Session_Manager_In_Memory* memory;
+    } session_manager_;
 };
 
 } // namespace DTLS

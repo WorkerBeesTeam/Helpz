@@ -164,6 +164,12 @@ QSqlDatabase Base::db() const {
     return connName.isEmpty() ? QSqlDatabase() : QSqlDatabase::database(connName, false);
 }
 
+void Base::setErrorReconnect(bool flag)
+{
+    if (m_error_reconnect != flag)
+        m_error_reconnect = flag;
+}
+
 bool Base::isSilent() const { return m_silent; }
 void Base::setSilent(bool sailent) { m_silent = sailent; }
 
@@ -377,8 +383,12 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
                 qCDebug(DBLog).noquote() << errString;
         }
 
-        if (lastError.type() == QSqlError::ConnectionError || attempts_count == 2)
-            close();
+        if (lastError.type() == QSqlError::ConnectionError || attempts_count == 2) {
+            if (m_error_reconnect)
+                close();
+            else
+                break;
+        }
 //        else
 //            break;
     }

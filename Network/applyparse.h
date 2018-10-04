@@ -47,7 +47,14 @@ RetType __applyParseImpl(_Fn __f, T* obj, QDataStream &ds, std::index_sequence<_
 
     _Tuple tuple;
     parse<_Tuple, _Idx...>(ds, tuple);
+
+#ifdef __cpp_lib_invoke
     return std::invoke(__f, obj, std::get<_Idx>(std::forward<_Tuple&&>(tuple))...);
+#else
+#pragma GCC warning "Old invoke"
+    auto func = std::bind(__f, obj, std::_Placeholder<_Idx + 1>{}...);
+    return std::__invoke(func, std::get<_Idx>(std::forward<_Tuple>(tuple))...);
+#endif
 }
 
 template <typename RetType, typename _Fn, class T, typename... Args>

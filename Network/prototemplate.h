@@ -71,6 +71,7 @@ public:
     void updateLastMessageTime();
 
     bool checkReturned() const;
+    void resetCheckReturned();
 
     Helper send(quint16 cmd);
     void sendCmd(quint16 cmd);

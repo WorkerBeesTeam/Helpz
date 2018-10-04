@@ -36,8 +36,12 @@ linux-rasp-pi2-g++ {
 #    INCLUDEPATH += /mnt/second_drive/build/botan_build/include/botan-1.11
 }
 
+win32 {
+    QMAKE_CXXFLAGS += -fstack-protector
+    QMAKE_LFLAGS += -fstack-protector
+}
 LIBS += -L$${OUT_PWD}/..
-LIBS += -lbotan-2 -lHelpzNetwork
+LIBS += -lbotan-2 -lHelpzNetwork -lHelpzDB
 
 VER_MAJ = 1
 VER_MIN = 3

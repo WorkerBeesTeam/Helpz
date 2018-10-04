@@ -74,6 +74,7 @@ ProtoTemplate::ProtoTemplate() :
 qint64 ProtoTemplate::lastMsgTime() const { return m_lastMsgTime; }
 void ProtoTemplate::updateLastMessageTime() { m_lastMsgTime = QDateTime::currentMSecsSinceEpoch(); }
 bool ProtoTemplate::checkReturned() const { return m_checkReturned; }
+void ProtoTemplate::resetCheckReturned() { if (m_checkReturned) m_checkReturned = false; }
 
 void ProtoTemplate::sendCmd(quint16 cmd)
 {

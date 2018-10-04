@@ -8,6 +8,7 @@ namespace Helpz {
 namespace DTLS {
 
 Q_LOGGING_CATEGORY(Log, "net.DTLS")
+Q_LOGGING_CATEGORY(LogDetail, "net.DTLS.detail")
 
 void ProtoHelper::setSock(QUdpSocket *sock, bool proc_data)
 {
@@ -19,6 +20,9 @@ QUdpSocket *ProtoHelper::sock() const { return m_sock; }
 
 void ProtoHelper::processData()
 {
+    if (!m_sock)
+        return;
+
     QHostAddress senderAdr;
     quint16 senderPort;
 
@@ -26,7 +30,9 @@ void ProtoHelper::processData()
     std::unique_ptr<uint8_t[]> buff(nullptr);
     Proto* client;
 
-    while (m_sock && m_sock->state() == QUdpSocket::BoundState && m_sock->hasPendingDatagrams())
+    qCDebug(LogDetail) << "new datagram" << m_sock->state() << m_sock->hasPendingDatagrams();
+
+    while (m_sock->state() == QUdpSocket::BoundState && m_sock->hasPendingDatagrams())
     {
         size = sock()->pendingDatagramSize();
         if (size <= 0)
@@ -40,25 +46,29 @@ void ProtoHelper::processData()
 
         r_size = sock()->readDatagram((char*)buff.get(), size, &senderAdr, &senderPort);
         if (r_size != size)
-            qCCritical(Log).noquote() << "Something wrong. Not all read. Read:" << r_size << "pending:" << size << sock()->errorString();
+            qCCritical(Log).noquote() << senderAdr << ':' << senderPort
+                                      << "Something wrong. Not all read. Read:" << r_size
+                                      << "pending:" << size << sock()->errorString();
 
         client = getClient(senderAdr, senderPort);
         if (!client)
         {
-            qCCritical(Log).noquote() << "No client" << senderAdr << senderPort;
+            qCCritical(Log).noquote().nospace() << senderAdr << ':' << senderPort << " No client";
             continue;
         }
 
         Botan::TLS::Channel* channel = client->channel();
         if (!channel)
         {
-            qCCritical(Log).noquote() << "No channel" << client->clientName();
+            qCCritical(Log).noquote() << client->clientName() << "No channel";
             continue;
         }
 
         bool first_active = !channel->is_active();
 
         try {
+            qCDebug(LogDetail).noquote() << client->clientName() << "READ" << size;
+
             client->updateLastMessageTime();
             channel->received_data(buff.get(), size);
         }
@@ -127,9 +137,9 @@ void Proto::tls_record_received(Botan::u64bit /*seq_no*/, const uint8_t data[], 
 
 void Proto::tls_alert(Botan::TLS::Alert alert)
 {
+    qCDebug(Log).noquote() << clientName() << tr("Alert: %1").arg(alert.type_string().c_str());
     if (alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
         emit DTLS_closed();
-    qCDebug(Log).noquote() << clientName() << tr("Alert: %1").arg(alert.type_string().c_str());
 }
 
 void Proto::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cert_chain,

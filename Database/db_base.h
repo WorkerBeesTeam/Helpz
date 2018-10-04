@@ -61,6 +61,8 @@ public:
 
     QSqlDatabase db() const;
 
+    void setErrorReconnect(bool flag);
+
     struct SilentExec {
         SilentExec(Base* db) : db(db) { db->setSilent(true); }
         ~SilentExec() { db->setSilent(false); }
@@ -106,6 +108,7 @@ private:
     static Table m_emptyTable;
 
     bool m_silent = false;
+    bool m_error_reconnect = true;
     QMutex m_mutex;
 
     std::unique_ptr<ConnectionInfo> m_lastConnection;

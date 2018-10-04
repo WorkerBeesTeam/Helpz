@@ -125,19 +125,18 @@ Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
 }
 
 bool Session_Manager_SQL::load_from_session_id(const std::vector<uint8_t>& session_id, Botan::TLS::Session& session) {
-    if (check_db_thread_diff())
-        return load_session("where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, &session);
-    else
-        return load_session_slot("where session_id = ?", {QString::fromStdString(Botan::hex_encode(session_id))}, &session);
+    QString session_where = "where session_id = '" + QString::fromStdString(Botan::hex_encode(session_id)) + '\'';
+    return check_db_thread_diff() ?
+                load_session(session_where, &session) :
+                load_session_slot(session_where, &session);
 }
 
-bool Session_Manager_SQL::load_from_server_info(const Botan::TLS::Server_Information& server, Botan::TLS::Session& session) {
-    if (check_db_thread_diff())
-        return load_session("where hostname = ? and hostport = ? order by session_start desc",
-                            { QString::fromStdString(server.hostname()), server.port() }, &session);
-    else
-        return load_session_slot("where hostname = ? and hostport = ? order by session_start desc",
-                            { QString::fromStdString(server.hostname()), server.port() }, &session);
+bool Session_Manager_SQL::load_from_server_info(const Botan::TLS::Server_Information& server, Botan::TLS::Session& session)
+{
+    QString where = "where hostname = '%1' and hostport = %2 order by session_start desc";
+    where = where.arg(QString::fromStdString(server.hostname())).arg(server.port());
+    return check_db_thread_diff() ? load_session(where, &session) :
+                                    load_session_slot(where, &session);
 }
 
 void Session_Manager_SQL::remove_entry(const std::vector<uint8_t>& session_id) {
@@ -172,9 +171,9 @@ void Session_Manager_SQL::save(const Botan::TLS::Session& session) {
 
 std::chrono::seconds Session_Manager_SQL::session_lifetime() const { return m_session_lifetime; }
 
-bool Session_Manager_SQL::load_session_slot(const QString &sql, const QVariantList &values, Botan::TLS::Session *session)
+bool Session_Manager_SQL::load_session_slot(const QString &sql, Botan::TLS::Session *session)
 {
-    QSqlQuery stmt = db_->select(*sessionsTable, sql, values, {4});
+    QSqlQuery stmt = db_->select(*sessionsTable, sql, {}, {4});
     QByteArray blob;
     while(stmt.next()) {
         blob = stmt.value(0).toByteArray();
@@ -187,7 +186,7 @@ bool Session_Manager_SQL::load_session_slot(const QString &sql, const QVariantLi
 }
 
 void Session_Manager_SQL::remove_entry_slot(const QString &session_id) {
-    db_->del(sessionsTable->name, "session_id = ?", {session_id});
+    db_->del(sessionsTable->name, "session_id = '" + session_id + '\'');
 }
 
 int Session_Manager_SQL::remove_all_slot() {
@@ -202,15 +201,16 @@ void Session_Manager_SQL::save_slot(const QVariantList &values) {
 void Session_Manager_SQL::prune_session_cache() {
     // First expire old sessions
     const int timeval = std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - m_session_lifetime).time_since_epoch()).count();
-    db_->del(sessionsTable->name, "session_start <= ?", {timeval});
+    db_->del(sessionsTable->name, "session_start <= " + QString::number(timeval));
 
     const size_t sessions = db_->row_count("tls_sessions");
 
     // Then if needed expire some more sessions at random
     if(m_max_sessions > 0 && sessions > m_max_sessions)
     {
-        db_->del(sessionsTable->name, "session_id in (select session_id from tls_sessions limit ?)",
-        {quint32(sessions - m_max_sessions)});
+        db_->del(sessionsTable->name,
+                 "session_id in (select session_id from tls_sessions limit " +
+                 QString::number(quint32(sessions - m_max_sessions)) + ")");
     }
 }
 
@@ -317,8 +317,11 @@ Botan::Private_Key *Basic_Credentials_Manager::private_key_for(const Botan::X509
 }
 
 BotanHelpers::BotanHelpers(const Database::ConnectionInfo &db_info, const QString &tls_policy_file_name,
-                           const QString &crt_file_name, const QString &key_file_name)
+                           const QString &crt_file_name, const QString &key_file_name) :
+    memory_sessions_(true)
 {
+    session_manager_.memory = nullptr;
+
     try {
         const std::string drbg_seed = "";
 
@@ -359,8 +362,11 @@ BotanHelpers::BotanHelpers(const Database::ConnectionInfo &db_info, const QStrin
         if(rng.get() == nullptr)
             throw std::runtime_error("No usable RNG enabled in build, aborting tests");
 
-//        session_manager.reset(new Botan::TLS::Session_Manager_In_Memory(*rng));
-        session_manager.reset(new Session_Manager_SQL("k7R2Pu90Shh4", *rng, db_info, 0));
+        memory_sessions_ = db_info.dbName.isEmpty();
+        if (memory_sessions_)
+            session_manager_.memory = new Botan::TLS::Session_Manager_In_Memory(*rng);
+        else
+            session_manager_.sql = new Session_Manager_SQL("k7R2Pu90Shh4", *rng, db_info, 0);
 
         creds.reset(crt_file_name.isEmpty() ? new Basic_Credentials_Manager() :
                                   new Basic_Credentials_Manager(*rng, crt_file_name.toStdString(), key_file_name.toStdString()));
@@ -382,6 +388,16 @@ BotanHelpers::BotanHelpers(const Database::ConnectionInfo &db_info, const QStrin
     }
     catch(std::exception& e) { qCCritical(Log) << "[Helper]" << e.what(); }
     catch(...) { qCCritical(Log) << "Fail to init Helper"; }
+}
+
+BotanHelpers::~BotanHelpers() {
+    if (memory_sessions_) delete session_manager_.memory;
+    else delete session_manager_.sql;
+}
+
+Botan::TLS::Session_Manager *BotanHelpers::session_manager() {
+    if (memory_sessions_) return session_manager_.memory;
+    else return session_manager_.sql;
 }
 
 } // namespace DTLS

@@ -31,8 +31,7 @@ Client::Client(const std::vector<std::string> &next_protocols, const Database::C
     checkTimer.start();
 }
 
-void Client::setCheckServerInterval(int msec)
-{
+void Client::setCheckServerInterval(int msec) {
     checkTimer.setInterval(msec);
 }
 
@@ -47,19 +46,22 @@ void Client::init_client()
     }
 
     close_connection();
-    qCInfo(ClientLog) << "Try connect to" << m_hostname << port();
 
     QHostInfo hi = QHostInfo::fromName(m_hostname);
-    auto addrs = hi.addresses();
+    QList<QHostAddress> addrs = hi.addresses();
     if (addrs.size())
     {
         setHost( addrs.first() );
+        qCInfo(ClientLog).noquote().nospace() << "Try connect to " << m_hostname
+                                              << (m_hostname != addrs.first().toString() ? " " + addrs.first().toString() : "")
+                                              << ':' << port();
 
         init(this,
              Botan::TLS::Server_Information(m_hostname.toStdString(), port()),
              Botan::TLS::Protocol_Version::latest_dtls_version(),
              next_protocols);
-    }
+    } else
+        qCWarning(ClientLog).noquote() << "Can't get host info" << m_hostname << hi.errorString();
 }
 
 void Client::close_connection()
@@ -67,6 +69,7 @@ void Client::close_connection()
     if (dtls)
         dtls->close();
     sock()->close();
+    resetCheckReturned();
 }
 
 void Client::checkServer()
@@ -84,11 +87,15 @@ void Client::checkServer()
     if (!dtls || !dtls->is_active() ||
             (isBadTime(4) && !checkReturned()) )
     {
-        qCDebug(ClientLog) << "REINIT"
-                 << "OBJ" << (!!dtls)
-                 << "IS_ACTIVE" << (dtls ? dtls->is_active() : false)
-                 << "LAST_MESSAGE" << '[' << current_time << lastMsgTime() << (current_time - lastMsgTime()) << ']'
-                 << "CheckReturned" << checkReturned();
+        if (ClientLog().isDebugEnabled()) {
+            QString debug = "Reinit becose ";
+            if (!dtls) debug += "DTLS is not init.";
+            else if (!dtls->is_active()) debug += "DTLS is not active.";
+            else if (isBadTime(4) && !checkReturned())
+                debug += QString("freeze. %1 > %2").arg(current_time - lastMsgTime()).arg((checkTimer.interval() * 4) + 500);
+            QMessageLogger(QT_MESSAGELOG_FILE, QT_MESSAGELOG_LINE, QT_MESSAGELOG_FUNC,
+                           ClientLog().categoryName()).debug().noquote() << debug;
+        }
 
         init_client();
     }

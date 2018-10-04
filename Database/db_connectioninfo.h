@@ -11,6 +11,7 @@ struct ConnectionInfo {
                    const QString &host = "localhost", int port = -1, const QString &driver = "QMYSQL",
                    const QString& connectOptions = QString());
     ConnectionInfo(const QSqlDatabase &db);
+    ConnectionInfo();
 
     int port;
     QString driver;

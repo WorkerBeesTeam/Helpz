@@ -42,15 +42,24 @@ INSTALLS += target
 
 DESTDIR = ../
 
+win32 {
+    CONFIG += skip_target_version_ext
+
+    HAVE_COPY=$$system(copy /?)
+    !isEmpty(HAVE_COPY):LINK_METHOD=copy /Y
+}
+isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s -r
+
 myinc.name = myinc
 myinc.input = HEADERS
-myinc.output = $${PWD}/include/Helpz/${QMAKE_FILE_IN_BASE}${QMAKE_FILE_EXT}
-myinc.commands = ln -f -s -r ${QMAKE_FILE_IN} ${QMAKE_FILE_OUT}
-myinc.variable_out =
+myinc.output = $${OUT_PWD}/../include/Helpz/${QMAKE_FILE_IN_BASE}${QMAKE_FILE_EXT}
+myinc.commands = $$LINK_METHOD ${QMAKE_FILE_IN} ${QMAKE_FILE_OUT}
+
+#myinc.variable_out =
 myinc.CONFIG += no_link no_clean target_predeps
 QMAKE_EXTRA_COMPILERS += myinc
 
-INCLUDEPATH += $${PWD}/include
+INCLUDEPATH += $${OUT_PWD}/../include
 
 include(helpz_version.pri)
 

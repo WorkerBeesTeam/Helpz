@@ -1,4 +1,5 @@
 #include <QTimer>
+#include <QCoreApplication>
 
 #include "dtlsservernode.h"
 #include "dtlsserver.h"
@@ -17,7 +18,7 @@ Server::Server(const Database::ConnectionInfo &db_info, const QString &tls_polic
 Server::~Server()
 {
     close();
-    for(auto cl: m_clients)
+    for(ServerNode* cl: m_clients)
         cl->deleteLater();
 }
 
@@ -31,7 +32,9 @@ ServerNode *Server::client(QHostAddress host, quint16 port) const
 
 void Server::remove_client(Helpz::DTLS::ServerNode *node)
 {
-    m_clients.erase(std::find(m_clients.begin(), m_clients.end(), node));
+    qCDebug(Log).noquote() << node->clientName() << "Remove";
+    m_clients.erase(std::remove(m_clients.begin(), m_clients.end(), node), m_clients.end());
+    node->deleteLater();
 }
 
 void Server::remove_client_if(std::function<bool (ServerNode *)> cond_func)

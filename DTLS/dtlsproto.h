@@ -83,7 +83,7 @@ public:
         try {
              dtls = std::make_shared< T >(
                          *this,
-                         *helper->session_manager,
+                         *helper->session_manager(),
                          *helper->creds,
                          *helper->policy,
                          *helper->rng,
