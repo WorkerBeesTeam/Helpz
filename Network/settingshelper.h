@@ -122,7 +122,12 @@ public:
     using Type = T;
 
     template<typename... Args>
-    Type* operator ()(QSettings* settings, const QString& begin_group, Args... param)
+    Type* operator ()(QSettings* settings, const QString& begin_group, Args... param) {
+        return this->template make<Args...>(settings, begin_group, param...);
+    }
+
+    template<typename... Args>
+    Type* make(QSettings* settings, const QString& begin_group, Args... param)
     {
         SettingsHelper<Args...> helper(settings, begin_group, param...);
         return helper.template ptr<Type>();

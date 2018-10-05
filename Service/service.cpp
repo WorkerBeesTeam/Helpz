@@ -48,6 +48,7 @@ Object::Object(OneObjectThread *worherThread, bool debug) :
 Object::~Object()
 {
     qCInfo(Base::Log) << "Server stop...";
+    disconnect(&logg(), &Logging::new_message, nullptr, nullptr);
 
     if (th.size())
     {

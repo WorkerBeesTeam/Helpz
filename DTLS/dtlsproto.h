@@ -25,6 +25,7 @@ public:
 
     virtual void readyWrite() {}
     virtual Proto* getClient(const QHostAddress& clientAddress, quint16 clientPort) = 0;
+    virtual void sock_return_zero() {}
 private:
     void processData();
     QUdpSocket* m_sock;

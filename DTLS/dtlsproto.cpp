@@ -35,8 +35,12 @@ void ProtoHelper::processData()
     while (m_sock->state() == QUdpSocket::BoundState && m_sock->hasPendingDatagrams())
     {
         size = sock()->pendingDatagramSize();
-        if (size <= 0)
-            continue;
+        if (size <= 0) {
+            if (m_sock->error() != QAbstractSocket::UnknownSocketError)
+                qCWarning(Log) << m_sock->errorString();
+            sock_return_zero();
+            break;
+        }
 
         if (size > lastSize)
         {

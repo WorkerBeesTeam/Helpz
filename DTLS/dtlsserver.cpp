@@ -17,9 +17,15 @@ Server::Server(const Database::ConnectionInfo &db_info, const QString &tls_polic
 
 Server::~Server()
 {
+    clear_clients();
     close();
+}
+
+void Server::clear_clients()
+{
     for(ServerNode* cl: m_clients)
         cl->deleteLater();
+    m_clients.clear();
 }
 
 ServerNode *Server::client(QHostAddress host, quint16 port) const
@@ -37,10 +43,9 @@ void Server::remove_client(Helpz::DTLS::ServerNode *node)
     node->deleteLater();
 }
 
-void Server::remove_client_if(std::function<bool (ServerNode *)> cond_func)
-{
-    m_clients.erase(std::remove_if(m_clients.begin(), m_clients.end(), cond_func), m_clients.end());
-}
+//void Server::remove_client_if(std::function<bool (ServerNode *)> cond_func) {
+//    m_clients.erase(std::remove_if(m_clients.begin(), m_clients.end(), cond_func), m_clients.end());
+//}
 
 const std::vector<Helpz::DTLS::ServerNode *> &Server::clients() const { return m_clients; }
 
@@ -55,6 +60,11 @@ bool Server::bind(quint16 port)
     else
         qCCritical(Log).noquote() << tr("Fail bind to udp port") << localPort() << errorString();
     return binded;
+}
+void Server::sock_return_zero() {
+    qDebug(Log) << "Reinit sock";
+    clear_clients();
+    Server::bind(localPort());
 }
 
 Proto *Server::getClient(const QHostAddress &clientAddress, quint16 clientPort)
