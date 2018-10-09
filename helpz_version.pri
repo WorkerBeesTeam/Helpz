@@ -1,4 +1,9 @@
 # Version
+
+win32 {
+    CONFIG += skip_target_version_ext
+}
+
 defined(VER_MAJ, var):defined(VER_MIN, var) {
     VER_BUILD = 100
 

@@ -43,8 +43,6 @@ INSTALLS += target
 DESTDIR = ../
 
 win32 {
-    CONFIG += skip_target_version_ext
-
     HAVE_COPY=$$system(copy /?)
     !isEmpty(HAVE_COPY):LINK_METHOD=copy /Y
 }
