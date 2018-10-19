@@ -11,7 +11,7 @@ defined(VER_MAJ, var):defined(VER_MIN, var) {
         DATE_FORMULA=$$system(date +\"%-M + (%-H*60) + (%j*24*60)\")
         VER_BUILD=$$system(echo \"$(($$DATE_FORMULA))\")
     }
-    VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_BUILD}
-
+#    VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_BUILD}
+    VERSION = $${VER_MAJ}.$${VER_MIN}
     DEFINES += VER_MJ=$${VER_MAJ} VER_MN=$${VER_MIN} VER_B=$${VER_BUILD}
 }
