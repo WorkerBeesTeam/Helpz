@@ -46,12 +46,16 @@ win32 {
     HAVE_COPY=$$system(copy /?)
     !isEmpty(HAVE_COPY):LINK_METHOD=copy /Y
 }
-isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s -r
+isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
+
+!exists($${OUT_PWD}/../include/Helpz) {
+    $$system(mkdir $${OUT_PWD}/../include/Helpz)
+}
 
 myinc.name = myinc
 myinc.input = HEADERS
 myinc.output = $${OUT_PWD}/../include/Helpz/${QMAKE_FILE_IN_BASE}${QMAKE_FILE_EXT}
-myinc.commands = $$LINK_METHOD ${QMAKE_FILE_IN} ${QMAKE_FILE_OUT}
+myinc.commands = $$LINK_METHOD $${OUT_PWD}/${QMAKE_FILE_IN} ${QMAKE_FILE_OUT}
 
 #myinc.variable_out =
 myinc.CONFIG += no_link no_clean target_predeps
