@@ -49,10 +49,10 @@ win32 {
 isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
 
 !exists($${OUT_PWD}/../include) {
-    RET=$$system(mkdir $${OUT_PWD}/../include)
+    RET=$$system(mkdir $$system_quote($$system_path($${OUT_PWD}/../include)))
 }
 !exists($${OUT_PWD}/../include/Helpz) {
-    RET=$$system(mkdir $${OUT_PWD}/../include/Helpz)
+    RET=$$system(mkdir $$system_quote($$system_path($${OUT_PWD}/../include/Helpz)))
 }
 for(f, HEADERS) {
   FILE_BASE = $$basename(f)
@@ -61,8 +61,7 @@ for(f, HEADERS) {
   } else {
     FILE_FROM = $${PWD}/$$f
   }
-
-  RET=$$system($$LINK_METHOD $$FILE_FROM $${OUT_PWD}/../include/Helpz/)
+  RET=$$system($$LINK_METHOD $$system_quote($$system_path($$FILE_FROM)) $$system_quote($$system_path($${OUT_PWD}/../include/Helpz/$$FILE_BASE)))
 }
 
 INCLUDEPATH += $${OUT_PWD}/../include
