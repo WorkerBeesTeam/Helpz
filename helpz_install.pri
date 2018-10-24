@@ -49,20 +49,21 @@ win32 {
 isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
 
 !exists($${OUT_PWD}/../include) {
-    $$system(mkdir $${OUT_PWD}/../include)
+    RET=$$system(mkdir $${OUT_PWD}/../include)
 }
 !exists($${OUT_PWD}/../include/Helpz) {
-    $$system(mkdir $${OUT_PWD}/../include/Helpz)
+    RET=$$system(mkdir $${OUT_PWD}/../include/Helpz)
 }
+for(f, HEADERS) {
+  FILE_BASE = $$basename(f)
+  exists($$f) {
+    FILE_FROM = $$f
+  } else {
+    FILE_FROM = $${PWD}/$$f
+  }
 
-myinc.name = myinc
-myinc.input = HEADERS
-myinc.output = $${OUT_PWD}/../include/Helpz/${QMAKE_FILE_IN_BASE}${QMAKE_FILE_EXT}
-myinc.commands = $$LINK_METHOD $${OUT_PWD}/${QMAKE_FILE_IN} ${QMAKE_FILE_OUT}
-
-#myinc.variable_out =
-myinc.CONFIG += no_link no_clean target_predeps
-QMAKE_EXTRA_COMPILERS += myinc
+  RET=$$system($$LINK_METHOD $$FILE_FROM $${OUT_PWD}/../include/Helpz/)
+}
 
 INCLUDEPATH += $${OUT_PWD}/../include
 
