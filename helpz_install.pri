@@ -48,6 +48,9 @@ win32 {
 }
 isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
 
+!exists($${OUT_PWD}/../include) {
+    $$system(mkdir $${OUT_PWD}/../include)
+}
 !exists($${OUT_PWD}/../include/Helpz) {
     $$system(mkdir $${OUT_PWD}/../include/Helpz)
 }
