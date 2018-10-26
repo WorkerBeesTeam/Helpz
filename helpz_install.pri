@@ -26,9 +26,6 @@ linux-rasp-pi2-g++ {
 
 android {
     CONFIG += staticlib
-
-    INCLUDEPATH += /mnt/second_drive/Android/libs/build/include
-    LIBS += -L/mnt/second_drive/Android/libs/build/lib
 }
 
 HELPZ_INCLUDES = $$INSTALL_PREFIX/include/Helpz
