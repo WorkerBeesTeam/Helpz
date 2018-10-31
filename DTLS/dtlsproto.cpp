@@ -30,7 +30,7 @@ void ProtoHelper::processData()
     std::unique_ptr<uint8_t[]> buff(nullptr);
     Proto* client;
 
-    qCDebug(LogDetail) << "new datagram" << m_sock->state() << m_sock->hasPendingDatagrams();
+//    qCDebug(LogDetail) << "new datagram" << m_sock->state() << m_sock->hasPendingDatagrams();
 
     while (m_sock->state() == QUdpSocket::BoundState && m_sock->hasPendingDatagrams())
     {
@@ -71,7 +71,7 @@ void ProtoHelper::processData()
         bool first_active = !channel->is_active();
 
         try {
-            qCDebug(LogDetail).noquote() << client->clientName() << "READ" << size;
+//            qCDebug(LogDetail).noquote() << client->clientName() << "READ" << size;
 
             client->updateLastMessageTime();
             channel->received_data(buff.get(), size);
