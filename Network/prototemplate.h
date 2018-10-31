@@ -15,7 +15,7 @@
 
 #include <QLoggingCategory>
 
-#include "applyparse.h"
+#include <Helpz/applyparse.h>
 
 namespace Helpz {
 namespace Network {

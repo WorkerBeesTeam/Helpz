@@ -10,13 +10,12 @@ SOURCES += \
     net_version.cpp
 
 HEADERS += \
-    simplethread.h \
     udpclient.h \
     prototemplate.h \
     waithelper.h \
-    settingshelper.h \
-    net_version.h \
-    applyparse.h
+    net_version.h
+
+LIBS += -lHelpzBase
 
 VER_MAJ = 1
 VER_MIN = 2

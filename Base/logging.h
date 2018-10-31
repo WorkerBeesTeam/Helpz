@@ -1,5 +1,5 @@
-#ifndef LOG_H
-#define LOG_H
+#ifndef HELPZ_LOGGING_H
+#define HELPZ_LOGGING_H
 
 #include <memory>
 
@@ -56,4 +56,4 @@ Helpz::Logging &logg();
 
 Q_DECLARE_METATYPE(Helpz::LogContext)
 
-#endif // LOG_H
+#endif // HELPZ_LOGGING_H

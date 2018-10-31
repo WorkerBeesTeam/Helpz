@@ -5,7 +5,7 @@
 
 #include "qtservice.h"
 
-#include "../Network/simplethread.h"
+#include <Helpz/simplethread.h>
 #include "service.h"
 
 namespace Helpz {

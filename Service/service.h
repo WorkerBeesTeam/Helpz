@@ -9,8 +9,8 @@
 #include <QMetaMethod>
 #include <QLoggingCategory>
 
+#include <Helpz/logging.h>
 #include "qtservice.h"
-#include "logging.h"
 
 namespace Helpz {
 namespace Service {

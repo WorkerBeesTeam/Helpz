@@ -1,5 +1,4 @@
 QT -= gui
-CONFIG += c++1z
 TEMPLATE = lib
 
 TARGET = Helpz$$TARGET
@@ -25,7 +24,9 @@ linux-rasp-pi2-g++ {
 }
 
 android {
-    CONFIG += staticlib
+    CONFIG += c++14 staticlib
+} else {
+    CONFIG += c++1z
 }
 
 HELPZ_INCLUDES = $$INSTALL_PREFIX/include/Helpz
@@ -37,31 +38,36 @@ INSTALLS += header_files
 target.path = $$INSTALL_PREFIX/lib
 INSTALLS += target
 
-DESTDIR = ../
+DESTDIR = $${OUT_PWD}/../
 
+MKDIR_FLAG=
 win32 {
     HAVE_COPY=$$system(copy /?)
     !isEmpty(HAVE_COPY):LINK_METHOD=copy /Y
+} else {
+    MKDIR_FLAG=-p
 }
 isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
 
-!exists($${OUT_PWD}/../include) {
-    RET=$$system(mkdir $$system_quote($$system_path($${OUT_PWD}/../include)))
+!exists($${OUT_PWD}) {
+    RET=$$system(mkdir $$MKDIR_FLAG $$system_quote($$system_path($${OUT_PWD})))
 }
 !exists($${OUT_PWD}/../include/Helpz) {
-    RET=$$system(mkdir $$system_quote($$system_path($${OUT_PWD}/../include/Helpz)))
+    RET=$$system(mkdir $$MKDIR_FLAG $$system_quote($$system_path($${OUT_PWD}/../include/Helpz)))
 }
+
 for(f, HEADERS) {
   FILE_BASE = $$basename(f)
   exists($$f) {
     FILE_FROM = $$f
   } else {
-    FILE_FROM = $${PWD}/$$f
+    FILE_FROM = $${_PRO_FILE_PWD_}/$$f
   }
   RET=$$system($$LINK_METHOD $$system_quote($$system_path($$FILE_FROM)) $$system_quote($$system_path($${OUT_PWD}/../include/Helpz/$$FILE_BASE)))
 }
 
 INCLUDEPATH += $${OUT_PWD}/../include
+LIBS += -L$${OUT_PWD}/..
 
 include(helpz_version.pri)
 
