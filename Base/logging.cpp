@@ -18,16 +18,16 @@ Logging* Logging::s_obj = nullptr;
 
 Logging::Logging() :
 #ifdef QT_DEBUG
-    debug(true),
+    debug_(true),
 #else
-    debug(false),
+    debug_(false),
 #endif
 #ifdef Q_OS_UNIX
-    syslog(false),
+    syslog_(false),
 #endif
-    initialized(false),
-    file(nullptr),
-    ts(nullptr)
+    initialized_(false),
+    file_(nullptr),
+    ts_(nullptr)
 {
     s_obj = this;
 
@@ -42,20 +42,30 @@ Logging::~Logging()
 {
     qInstallMessageHandler(qt_message_output);
 
-    if (initialized)
+    if (initialized_)
     {
 #ifdef Q_OS_UNIX
-        if (syslog)
+        if (syslog_)
             closelog ();
         else
 #endif
         {
-            delete ts;
-            file->close();
-            delete file;
+            delete ts_;
+            file_->close();
+            delete file_;
         }
     }
 }
+
+bool Logging::debug() const { return debug_; }
+void Logging::set_debug(bool val) { debug_ = val; }
+
+#ifdef Q_OS_UNIX
+bool Logging::syslog() const { return syslog_; }
+void Logging::set_syslog(bool val) { syslog_ = val; }
+#endif
+
+/*static*/ Logging *Logging::instance() { return s_obj; }
 
 QDebug Logging::operator <<(const QString &str)
 {
@@ -83,10 +93,10 @@ QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const
 
 /*static*/ void Logging::handler(QtMsgType type, const QMessageLogContext &ctx, const QString &str)
 {
-    if (!s_obj->debug && type == QtDebugMsg) return;
+    if (!s_obj->debug() && type == QtDebugMsg) return;
 
 #ifdef Q_OS_UNIX
-    if (!s_obj->syslog || s_obj->debug)
+    if (!s_obj->syslog() || s_obj->debug())
 #endif
     qt_message_output(type, ctx, get_prefix(type, &ctx) + str);
 
@@ -97,7 +107,7 @@ QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const
 void Logging::init()
 {
 #ifdef Q_OS_UNIX
-    if (syslog)
+    if (syslog_)
     {
         //Set our Logging Mask and open the Log
         setlogmask(LOG_UPTO(LOG_NOTICE));
@@ -112,19 +122,19 @@ void Logging::init()
     else
 #endif
     {
-        file = new QFile(qApp->applicationDirPath() + "/" + qAppName() + ".log");
-        if (file->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append))
-            ts = new QTextStream(file);
+        file_ = new QFile(qApp->applicationDirPath() + "/" + qAppName() + ".log");
+        if (file_->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append))
+            ts_ = new QTextStream(file_);
     }
-    initialized = true;
+    initialized_ = true;
 }
 
 void Logging::save(QtMsgType type, const LogContext &ctx, const QString &str)
 {
-    QMutexLocker lock(&mutex);
+    QMutexLocker lock(&mutex_);
 
 #ifdef Q_OS_UNIX
-    if (syslog)
+    if (syslog_)
     {
         int level;
         switch (type) {
@@ -141,15 +151,15 @@ void Logging::save(QtMsgType type, const LogContext &ctx, const QString &str)
     }
     else
 #endif
-        if (ts)
+        if (ts_)
     {
-        *ts << (get_prefix(type, ctx.get(), "[hh:mm:ss dd.MM]") + str) << endl;
-        ts->flush();
+        *ts_ << (get_prefix(type, ctx.get(), "[hh:mm:ss dd.MM]") + str) << endl;
+        ts_->flush();
     }
 }
 } // namespace Helpz
 
 Helpz::Logging &logg()
 {
-    return *Helpz::Logging::s_obj;
+    return *Helpz::Logging::instance();
 }

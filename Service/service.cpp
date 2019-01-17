@@ -31,13 +31,13 @@ Object::Object(OneObjectThread *worherThread, bool debug) :
     QObject::connect(worherThread, &OneObjectThread::restart, this, &Object::restart, Qt::QueuedConnection);
 
     th_[0]->start();
-    while (Logging::s_obj == nullptr && !th_[0]->wait(5));
+    while (Logging::instance() == nullptr && !th_[0]->wait(5));
 
     connect(&logg(), &Logging::new_message, worherThread, &OneObjectThread::logMessage);
 
-    logg().debug = debug;
+    logg().set_debug(debug);
 #ifdef Q_OS_UNIX
-    logg().syslog = true;
+    logg().set_syslog(true);
 #endif
 
     th_[1]->start();

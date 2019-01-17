@@ -23,13 +23,17 @@ public:
     Logging();
     ~Logging();
 
-    bool debug;
+    bool debug() const;
+    void set_debug(bool val);
+
 #ifdef Q_OS_UNIX
-    bool syslog;
+    bool syslog() const;
+    void set_syslog(bool val);
 #endif
 
+    static Logging* instance();
+
     QDebug operator <<(const QString &str);
-    static Logging* s_obj;
 
     static QString get_prefix(QtMsgType type, const QMessageLogContext *ctx, const QString &date_format = "[hh:mm:ss]");
 signals:
@@ -40,14 +44,20 @@ private slots:
     void save(QtMsgType type, const Helpz::LogContext &ctx, const QString &str);
 private:
     static void handler(QtMsgType type, const QMessageLogContext &ctx, const QString &str);
+    static Logging* s_obj;
 
-    bool initialized;
-    QFile* file;
-    QTextStream* ts;
+    bool debug_;
+#ifdef Q_OS_UNIX
+    bool syslog_;
+#endif
 
-    QMutex mutex;
+    bool initialized_;
+    QFile* file_;
+    QTextStream* ts_;
 
-    friend Logging &logg();
+    QMutex mutex_;
+
+    friend Helpz::Logging &logg();
 };
 
 } // namespace Helpz
