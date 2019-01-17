@@ -15,23 +15,23 @@ namespace Service {
 
 typedef ParamThread<Logging> LogThread;
 
-Base* obj = nullptr;
+Base* g_obj = nullptr;
 
 void term_handler(int)
 {
-    obj->stop();
+    g_obj->stop();
     qApp->quit();
     std::cerr << "Termination complete.\n";
     std::exit(0);
 }
 
 Object::Object(OneObjectThread *worherThread, bool debug) :
-    th{ new LogThread, worherThread }
+    th_{ new LogThread, worherThread }
 {
     QObject::connect(worherThread, &OneObjectThread::restart, this, &Object::restart, Qt::QueuedConnection);
 
-    th[0]->start();
-    while (Logging::obj == nullptr && !th[0]->wait(5));
+    th_[0]->start();
+    while (Logging::s_obj == nullptr && !th_[0]->wait(5));
 
     connect(&logg(), &Logging::new_message, worherThread, &OneObjectThread::logMessage);
 
@@ -40,7 +40,7 @@ Object::Object(OneObjectThread *worherThread, bool debug) :
     logg().syslog = true;
 #endif
 
-    th[1]->start();
+    th_[1]->start();
 
     qCInfo(Base::Log) << "Server start!";
 }
@@ -50,12 +50,12 @@ Object::~Object()
     qCInfo(Base::Log) << "Server stop...";
     disconnect(&logg(), &Logging::new_message, nullptr, nullptr);
 
-    if (th.size())
+    if (th_.size())
     {
-        if (th.size() >= 2)
-            QObject::disconnect(th[1], SIGNAL(finished()), nullptr, nullptr);
+        if (th_.size() >= 2)
+            QObject::disconnect(th_[1], SIGNAL(finished()), nullptr, nullptr);
 
-        auto it = th.end();
+        auto it = th_.end();
 
         do {
             it--;
@@ -64,14 +64,14 @@ Object::~Object()
                 (*it)->terminate();
             delete *it;
         }
-        while( it != th.begin() );
-        th.clear();
+        while( it != th_.begin() );
+        th_.clear();
     }
 }
 
 void Object::processCommands(const QStringList &cmdList)
 {
-    auto obj = static_cast<OneObjectThread*>(th.at(1))->obj();
+    auto obj = static_cast<OneObjectThread*>(th_.at(1))->obj();
     QMetaObject::invokeMethod(obj, "processCommands", Qt::QueuedConnection,
                 Q_ARG(QStringList, cmdList));
 }
@@ -79,16 +79,16 @@ void Object::processCommands(const QStringList &cmdList)
 void Object::restart()
 {
     qCInfo(Base::Log) << "Server restart...";
-    th[1]->quit();
-    if (!th[1]->wait(60000))
-        th[1]->terminate();
-    th[1]->start();
+    th_[1]->quit();
+    if (!th_[1]->wait(60000))
+        th_[1]->terminate();
+    th_[1]->start();
 }
 
 Base::Base(int argc, char **argv) :
     QtService( argc, argv, QCoreApplication::applicationName() )
 {
-    obj = this;
+    g_obj = this;
 
     assert( !QCoreApplication::applicationName().isEmpty() );
 
@@ -102,7 +102,7 @@ Base::Base(int argc, char **argv) :
         QString a(argv[i]);
         if (a == QLatin1String("-e") || a == QLatin1String("-exec"))
         {
-            m_isImmediately = true;
+            isImmediately_ = true;
             break;
         }
     }
@@ -110,12 +110,12 @@ Base::Base(int argc, char **argv) :
 }
 
 #ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-bool Base::isImmediately() const { return m_isImmediately; }
+bool Base::isImmediately() const { return isImmediately_; }
 #endif
 
 void Base::start()
 {
-    service = std::make_shared<Object>(getWorkerThread(), isImmediately());
+    service_ = std::make_shared<Object>(getWorkerThread(), isImmediately());
 
     std::signal(SIGTERM, term_handler);
     std::signal(SIGINT, term_handler);
@@ -123,12 +123,12 @@ void Base::start()
 
 void Base::stop()
 {
-    service.reset();
+    service_.reset();
 }
 
 void Base::processCommands(const QStringList &cmdList)
 {
-    service->processCommands(cmdList);
+    service_->processCommands(cmdList);
 }
 
 } // namespace Service

@@ -14,7 +14,7 @@
 
 namespace Helpz {
 
-Logging* Logging::obj = nullptr;
+Logging* Logging::s_obj = nullptr;
 
 Logging::Logging() :
 #ifdef QT_DEBUG
@@ -29,7 +29,7 @@ Logging::Logging() :
     file(nullptr),
     ts(nullptr)
 {
-    obj = this;
+    s_obj = this;
 
     qRegisterMetaType<QtMsgType>("QtMsgType");
     qRegisterMetaType<Helpz::LogContext>("Helpz::LogContext");
@@ -83,15 +83,15 @@ QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const
 
 /*static*/ void Logging::handler(QtMsgType type, const QMessageLogContext &ctx, const QString &str)
 {
-    if (!obj->debug && type == QtDebugMsg) return;
+    if (!s_obj->debug && type == QtDebugMsg) return;
 
 #ifdef Q_OS_UNIX
-    if (!obj->syslog || obj->debug)
+    if (!s_obj->syslog || s_obj->debug)
 #endif
     qt_message_output(type, ctx, get_prefix(type, &ctx) + str);
 
     auto logContext = std::make_shared<QMessageLogContext>( ctx.file, ctx.line, ctx.function, ctx.category );
-    emit obj->new_message(type, logContext, str);
+    emit s_obj->new_message(type, logContext, str);
 }
 
 void Logging::init()
@@ -151,5 +151,5 @@ void Logging::save(QtMsgType type, const LogContext &ctx, const QString &str)
 
 Helpz::Logging &logg()
 {
-    return *Helpz::Logging::obj;
+    return *Helpz::Logging::s_obj;
 }

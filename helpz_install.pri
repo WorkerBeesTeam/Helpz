@@ -6,7 +6,7 @@ TARGET = Helpz$$TARGET
 INCLUDEPATH += $$PWD/include
 
 unix : !android {
-    INSTALL_PREFIX = /usr
+    INSTALL_PREFIX = /usr/local
 } else {
     INSTALL_PREFIX = $$[QT_INSTALL_PREFIX]
 }

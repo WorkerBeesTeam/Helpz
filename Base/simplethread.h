@@ -6,6 +6,8 @@
 
 #include <QThread>
 
+#include "fake_integer_sequence.h"
+
 namespace Helpz {
 
 template<class T, typename... Args>

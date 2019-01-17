@@ -8,8 +8,8 @@ defined(VER_MAJ, var):defined(VER_MIN, var) {
     VER_BUILD = 100
 
     unix {
-        DATE_FORMULA=$$system(date +\"%-M + (%-H*60) + (%j*24*60)\")
-        VER_BUILD=$$system(echo \"$(($$DATE_FORMULA))\")
+        DATE_FORMULA=$$system(date \+\"%-M+(%-H*60)+(%-j*24*60)\")
+        VER_BUILD=$$system(echo \"$(($${DATE_FORMULA}))\")
     }
 #    VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_BUILD}
     VERSION = $${VER_MAJ}.$${VER_MIN}

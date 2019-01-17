@@ -29,7 +29,7 @@ public:
 #endif
 
     QDebug operator <<(const QString &str);
-    static Logging* obj;
+    static Logging* s_obj;
 
     static QString get_prefix(QtMsgType type, const QMessageLogContext *ctx, const QString &date_format = "[hh:mm:ss]");
 signals:

@@ -14,7 +14,8 @@ HEADERS += \
     base_version.h \
     simplethread.h \
     settingshelper.h \
-    applyparse.h
+    applyparse.h \
+    fake_integer_sequence.h
 
 VER_MAJ = 1
 VER_MIN = 2

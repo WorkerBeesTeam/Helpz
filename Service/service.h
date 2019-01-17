@@ -18,9 +18,9 @@ namespace Service {
 class OneObjectThread : public QThread {
     Q_OBJECT
 protected:
-    QObject *m_obj = nullptr;
+    QObject *obj_ = nullptr;
 public:
-    QObject *obj() const { return m_obj; }
+    QObject *obj() const { return obj_; }
 signals:
     void logMessage(QtMsgType type, const Helpz::LogContext &ctx, const QString &str);
     void restart();
@@ -35,7 +35,7 @@ public:
 
 private:
     void restart();
-    std::vector<QThread*> th;
+    std::vector<QThread*> th_;
 };
 
 class Base : public QtService<QCoreApplication>
@@ -58,10 +58,10 @@ private:
     friend void term_handler(int);
 
 #ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-    bool m_isImmediately = false;
+    bool isImmediately_ = false;
 #endif
 
-    std::shared_ptr<Object> service;
+    std::shared_ptr<Object> service_;
 };
 
 template<class T>
@@ -69,7 +69,7 @@ class WorkerThread : public OneObjectThread {
     void run() override
     {
         std::unique_ptr<T> workObj(new T);
-        m_obj = workObj.get();
+        obj_ = workObj.get();
 
         for (int n = 0; n < T::staticMetaObject.methodCount(); n++)
         {

@@ -3,11 +3,12 @@
 
 #include <iostream>
 #include <tuple>
-#include <utility>
 #include <functional>
 #include <type_traits>
 
 #include <QDataStream>
+
+#include "fake_integer_sequence.h"
 
 namespace Helpz {
 
@@ -63,7 +64,7 @@ RetType applyParseImpl(_Fn __f, T* obj, QDataStream &ds)
 //    auto tuple = std::make_tuple(typename std::decay<Args>::type()...);
 //    using Tuple = decltype(tuple);
 //    using Indices = std::make_index_sequence<std::tuple_size<Tuple>::value>;
-    using Tuple = std::tuple<typename std::decay_t<Args>...>;
+    using Tuple = std::tuple<typename std::decay<Args>::type...>;
     using Indices = std::make_index_sequence<sizeof...(Args)>;
 
     return __applyParseImpl<RetType, Tuple>(__f, obj, ds, Indices{});
