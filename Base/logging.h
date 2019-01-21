@@ -20,7 +20,16 @@ class Logging : public QObject
 {
     Q_OBJECT
 public:
-    Logging();
+    Logging(bool debug =
+#ifdef QT_DEBUG
+            true
+#else
+            false
+#endif
+#ifdef Q_OS_UNIX
+            , bool syslog = false
+#endif
+            );
     ~Logging();
 
     bool debug() const;

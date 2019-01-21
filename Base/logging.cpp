@@ -16,14 +16,14 @@ namespace Helpz {
 
 Logging* Logging::s_obj = nullptr;
 
-Logging::Logging() :
-#ifdef QT_DEBUG
-    debug_(true),
-#else
-    debug_(false),
-#endif
+Logging::Logging(bool debug
 #ifdef Q_OS_UNIX
-    syslog_(false),
+                 , bool syslog
+#endif
+                 ) :
+    debug_(debug),
+#ifdef Q_OS_UNIX
+    syslog_(syslog),
 #endif
     initialized_(false),
     file_(nullptr),
