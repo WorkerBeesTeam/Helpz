@@ -44,6 +44,11 @@ public:
 #pragma GCC warning "Think about raise used version or if it the same, then raise qt version in this condition."
 #endif
 
+    enum TransmissionType {
+        WithoutCheck,
+        WithCheck,
+    };
+
     class Helper {
     public:
         Helper(ProtoTemplate* protoTemplate, quint16 command);
