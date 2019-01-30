@@ -36,8 +36,19 @@ enum ReservedCommands {
 };
 }
 
+/**
+ * @brief The Proto class
+ * Protocol structure:
+ * [2bytes Checksum][2bytes [13bits cmd][3bits flags]][4bytes data][Nbytes... data]
+ */
 class ProtoTemplate
 {
+    enum Flags {
+        FragmentFlag                    = 0x2000,
+        TransmissionConfirmationFlag    = 0x4000,
+        CompressedFlag                  = 0x8000,
+        AllFlags                        = FragmentFlag | TransmissionConfirmationFlag | CompressedFlag
+    };
 public:
     enum { ds_ver = QDataStream::Qt_5_6 };
 #if (QT_VERSION > QT_VERSION_CHECK(5, 11, 2))

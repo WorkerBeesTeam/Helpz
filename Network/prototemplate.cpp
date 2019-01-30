@@ -42,15 +42,15 @@ QDataStream &ProtoTemplate::Helper::dataStream() { return ds; }
 
 QByteArray ProtoTemplate::Helper::prepareMessage()
 {
-    if ((cmd >> 15) & 1)
+    if (cmd & AllFlags)
     {
-        qCCritical(Log) << "ERROR: Try to send bad cmd with setted last bit" << cmd;
-        cmd &= ~(1 << 15);
+        qCCritical(Log) << "ERROR: Try to send bad cmd with setted flags" << cmd;
+        cmd &= ~AllFlags;
     }
 
     bool compress = data.size() >= 1024;
     if (compress)
-        cmd |= 1 << 15;
+        cmd |= 0x8000;
 
     QByteArray buffer;
     QDataStream buffer_stream(&buffer, QIODevice::WriteOnly);
@@ -58,7 +58,7 @@ QByteArray ProtoTemplate::Helper::prepareMessage()
     buffer_stream.device()->seek(0);
     buffer_stream << qChecksum(buffer.constData() + 2, 6);
 
-    qCDebug(DetailLog) << "CMD OUT" << (cmd & ~(1 << 15)) << "SIZE" << data.size() << "WRITE" << buffer.size();
+    qCDebug(DetailLog) << "CMD OUT" << (cmd & ~AllFlags) << "SIZE" << data.size() << "WRITE" << buffer.size();
     return buffer;
 }
 
@@ -108,7 +108,7 @@ void ProtoTemplate::proccess_bytes(QIODevice *dev)
 
         msg_stream >> cmd >> buffer;
 
-        qCDebug(DetailLog) << "CMD" << (cmd & ~(1 << 15)) << "SIZE" << buffer.size();
+        qCDebug(DetailLog) << "CMD" << (cmd & ~AllFlags) << "SIZE" << buffer.size();
 
         if (!msg_stream.commitTransaction() && checksum_ok)
             return; // Wait more bytes
@@ -124,11 +124,10 @@ void ProtoTemplate::proccess_bytes(QIODevice *dev)
             return;
         }
 
-        if ((cmd >> 15) & 1)
-        {
-            cmd &= ~(1 << 15);
+        if (cmd & CompressedFlag)
             buffer = qUncompress(buffer);
-        }
+
+        cmd &= ~AllFlags;
 
         QDataStream user_ds(&buffer, QIODevice::ReadOnly);
         user_ds.setVersion(ds_ver);
