@@ -71,6 +71,11 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
 
             if (protocol_ && dtls_->is_active())
             {
+//                auto client = dynamic_cast<Botan::TLS::Client*>(dtls_.get());
+//                if (client)
+//                {
+//                    std::cout << "Connected. Server choose protocol: " << dtls->application_protocol() << std::endl;
+//                }
                 protocol_->ready_write();
             }
         }
