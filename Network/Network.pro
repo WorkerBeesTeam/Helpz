@@ -5,15 +5,17 @@ TARGET = Network
 
 SOURCES += \  
     udpclient.cpp \
-    prototemplate.cpp \
     waithelper.cpp \
-    net_version.cpp
+    net_version.cpp \
+    net_protocol.cpp \
+    net_protocol_sender.cpp
 
 HEADERS += \
     udpclient.h \
-    prototemplate.h \
     waithelper.h \
-    net_version.h
+    net_version.h \
+    net_protocol.h \
+    net_protocol_sender.h
 
 LIBS += -lHelpzBase
 

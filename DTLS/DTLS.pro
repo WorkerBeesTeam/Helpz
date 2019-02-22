@@ -9,24 +9,40 @@ debug {
 INCLUDEPATH += ../Network/
 
 SOURCES += \
-    dtlsproto.cpp \
-    dtlsserver.cpp \
-    dtlsclient.cpp \
-    dtlsbasic.cpp \
-    dtlsservernode.cpp \
-    dtls_version.cpp
+    dtls_version.cpp \
+    dtls_tools.cpp \
+    dtls_credentials_manager.cpp \
+    dtls_session_manager_sql.cpp \
+    dtls_client_controller.cpp \
+    dtls_client.cpp \
+    dtls_client_thread.cpp \
+    dtls_controller.cpp \
+    dtls_socket.cpp \
+    dtls_server_thread.cpp \
+    dtls_server.cpp \
+    dtls_server_controller.cpp \
+    dtls_server_node.cpp \
+    dtls_node.cpp
 #    OpenSSL/dtlsclient.cpp \
 #    OpenSSL/dtlscookie.cpp \
 #    OpenSSL/dtlsserver.cpp \
 #    OpenSSL/dtlssocket.cpp
 
 HEADERS += \
-    dtlsproto.h \
-    dtlsserver.h \
-    dtlsclient.h \
-    dtlsbasic.h \
-    dtlsservernode.h \
-    dtls_version.h
+    dtls_version.h \
+    dtls_tools.h \
+    dtls_credentials_manager.h \
+    dtls_session_manager_sql.h \
+    dtls_client_controller.h \
+    dtls_client.h \
+    dtls_client_thread.h \
+    dtls_controller.h \
+    dtls_socket.h \
+    dtls_server_thread.h \
+    dtls_server.h \
+    dtls_server_controller.h \
+    dtls_server_node.h \
+    dtls_node.h
 #    OpenSSL/dtlssocket.h \
 #    OpenSSL/dtlsserver.h \
 #    OpenSSL/dtlscookie.h \
@@ -41,7 +57,7 @@ win32 {
     QMAKE_LFLAGS += -fstack-protector
 }
 LIBS += -L$${OUT_PWD}/..
-LIBS += -lbotan-2 -lHelpzNetwork -lHelpzDB
+LIBS += -lbotan-2 -lHelpzNetwork -lHelpzDB -lboost_thread
 
 VER_MAJ = 1
 VER_MIN = 3

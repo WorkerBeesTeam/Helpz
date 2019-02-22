@@ -1,5 +1,5 @@
-#ifndef HELPZ_DTLS_BASICCREDENTIALSMANAGER_H
-#define HELPZ_DTLS_BASICCREDENTIALSMANAGER_H
+#ifndef HELPZ_DTLS_SESSIONMANAGER_SQL_H
+#define HELPZ_DTLS_SESSIONMANAGER_SQL_H
 
 #include <iostream>
 
@@ -12,6 +12,7 @@
 #include <QObject>
 
 #include <Helpz/db_connectioninfo.h>
+#include <Helpz/dtls_credentials_manager.h>
 
 namespace Helpz {
 
@@ -81,60 +82,8 @@ private:
       std::chrono::seconds m_session_lifetime;
    };
 
-class Basic_Credentials_Manager : public Botan::Credentials_Manager
-{
-public:
-    Basic_Credentials_Manager();
-    Basic_Credentials_Manager(Botan::RandomNumberGenerator& rng,
-                              const std::string& server_crt,
-                              const std::string& server_key);
-
-    void load_certstores();
-
-    std::vector<Botan::Certificate_Store*>
-    trusted_certificate_authorities(const std::string& type,
-                                    const std::string& hostname) override;
-
-    std::vector<Botan::X509_Certificate> cert_chain(
-            const std::vector<std::string>& algos,
-            const std::string& type,
-            const std::string& hostname) override;
-
-    Botan::Private_Key* private_key_for(const Botan::X509_Certificate& cert,
-                                        const std::string& /*type*/,
-                                        const std::string& /*context*/) override;
-
-private:
-    struct Certificate_Info
-    {
-        std::vector<Botan::X509_Certificate> certs;
-        std::shared_ptr<Botan::Private_Key> key;
-    };
-
-    std::vector<Certificate_Info> m_creds;
-    std::vector<std::shared_ptr<Botan::Certificate_Store>> m_certstores;
-};
-
-struct BotanHelpers {
-    BotanHelpers(const Database::ConnectionInfo &db_info,
-                    const QString& tls_policy_file_name,
-                     const QString& crt_file_name = QString(),
-                     const QString& key_file_name = QString());
-    ~BotanHelpers();
-    std::unique_ptr<Botan::RandomNumberGenerator> rng;
-    std::unique_ptr<Basic_Credentials_Manager> creds;
-    std::unique_ptr<Botan::TLS::Text_Policy> policy; // TODO: read policy from file
-    Botan::TLS::Session_Manager* session_manager();
-private:
-    bool memory_sessions_;
-    union {
-        Session_Manager_SQL* sql;
-        Botan::TLS::Session_Manager_In_Memory* memory;
-    } session_manager_;
-};
-
 } // namespace DTLS
 } // namespace Helpz
 
-#endif // HELPZ_DTLS_BASICCREDENTIALSMANAGER_H
+#endif // HELPZ_DTLS_SESSIONMANAGER_SQL_H
 
