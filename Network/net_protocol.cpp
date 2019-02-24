@@ -17,7 +17,8 @@ void Protocol_Writer::set_last_msg_recv_time(std::chrono::time_point<std::chrono
 // ----------------------------------------------------------------------------------
 
 Protocol::Protocol() :
-    protocol_writer_(nullptr)
+    protocol_writer_(nullptr),
+    next_rx_msg_id_(0), next_tx_msg_id_(0)
 {
     device_.open(QBuffer::ReadWrite);
     msg_stream_.setDevice(&device_);
@@ -81,7 +82,7 @@ QByteArray Protocol::prepare_packet(Message_Item &msg)
 
     QByteArray packet;
     QDataStream ds(&packet, QIODevice::ReadWrite);
-    ds << uint16_t(0) << msg.cmd_;
+    ds << uint16_t(0) << (next_tx_msg_id_++) << msg.cmd_;
 
     if (msg.cmd_ & COMPRESSED)
     {
@@ -93,7 +94,7 @@ QByteArray Protocol::prepare_packet(Message_Item &msg)
     }
 
     ds.device()->seek(0);
-    ds << qChecksum(packet.constData() + 2, 6);
+    ds << qChecksum(packet.constData() + 2, 7);
 
 //    qCDebug(DetailLog) << "CMD OUT" << (cmd & ~Protocol::ALL_FLAGS) << "SIZE" << data.size() << "WRITE" << buffer.size();
     return packet;
@@ -121,17 +122,18 @@ void Protocol::process_bytes(const quint8* data, size_t size)
 void Protocol::process_stream()
 {
     bool checksum_ok;
+    uint8_t msg_id;
     quint16 checksum, cmd, flags;
     quint32 buffer_size;
     quint64 pos;
 
-    while (device_.bytesAvailable() >= 8)
+    while (device_.bytesAvailable() >= 9)
     {
         pos = device_.pos();
 
         // Using QDataStream for auto swap bytes for big or little endian
-        msg_stream_ >> checksum >> cmd >> buffer_size;
-        checksum_ok = checksum == qChecksum(device_.buffer().constData() + pos + 2, 6);
+        msg_stream_ >> checksum >> msg_id >> cmd >> buffer_size;
+        checksum_ok = checksum == qChecksum(device_.buffer().constData() + pos + 2, 7);
 
         if (buffer_size == 0xffffffff)
         {
@@ -186,31 +188,14 @@ void Protocol::internal_process_message(quint16 cmd, quint16 flags, const char *
 
     if (flags & ANSWER)
     {
-        quint8 msg_id, confirmed_flag;
-        parse_out(data, msg_id, confirmed_flag);
-
-        if (confirmed_flag)
-        {
-            // remove from confirmation map, stop timer
-            return;
-        }
-
-        confirmed_flag = true;
-        send(cmd, flags) << msg_id << confirmed_flag;
-        if (last_confirmation_id_ == msg_id)
-        {
-            return;
-        }
-
-        last_confirmation_id_ = msg_id;
-        data.remove(0, 2);
+        // TODO: find in message list and call function
     }
 
     if (flags & FRAGMENT)
     {
-        quint8 msg_id, fragment_flag;
+        quint8 fragment_flag;
         quint32 full_size, pos;
-        parse_out(data, msg_id, fragment_flag, full_size, pos);
+        parse_out(data, fragment_flag, full_size, pos);
 
         if (full_size >= MAX_MESSAGE_SIZE)
         {

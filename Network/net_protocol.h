@@ -59,10 +59,11 @@ public:
 #endif
 
     enum Flags {
+        REPEAT                      = 0x1000,
         FRAGMENT                    = 0x2000,
         ANSWER                      = 0x4000,
         COMPRESSED                  = 0x8000,
-        ALL_FLAGS                   = ANSWER | FRAGMENT | COMPRESSED
+        ALL_FLAGS                   = REPEAT | FRAGMENT | ANSWER | COMPRESSED
     };
 
     template<typename... Args>
@@ -135,13 +136,14 @@ private:
     void process_stream();
     void internal_process_message(quint16 cmd, quint16 flags, const char* data_ptr, quint32 data_size);
 
+    uint8_t next_rx_msg_id_;
+    std::atomic<uint8_t> next_tx_msg_id_;
+    std::vector<std::pair<uint8_t,std::chrono::time_point<std::chrono::system_clock>>> lost_msg_list_;
+
     QBuffer device_;
     QDataStream msg_stream_;
 
     std::chrono::time_point<std::chrono::system_clock> last_msg_send_time_;
-
-    std::atomic<quint8> last_confirmation_id_;
-//    std::vector<quint8> last_confirmed_list_;
 
     std::vector<Message_Item> wait_list_;
 };
