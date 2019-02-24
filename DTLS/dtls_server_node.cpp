@@ -21,6 +21,11 @@ Server_Node::Server_Node(Server_Controller *controller, const boost::asio::ip::u
                                         *tools->policy_, *tools->rng_, true });
 }
 
+void Server_Node::add_timeout_at(Network::Protocol *protocol, std::chrono::time_point<std::chrono::system_clock> time_point)
+{
+    // TODO: add timer
+}
+
 void Server_Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[size]);

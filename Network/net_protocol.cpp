@@ -53,6 +53,22 @@ void Protocol::send_message(Message_Item message)
     last_msg_send_time_ = std::chrono::system_clock::now();
 
     const QByteArray data = prepare_packet(message);
+
+    auto now = std::chrono::system_clock::now();
+    if (message.end_time_ > now)
+    {
+        decltype(now) time_point;
+        if ((now - message.end_time_) > std::chrono::milliseconds(1500))
+        {
+            time_point = now + std::chrono::milliseconds(1500);
+        }
+        else
+        {
+            time_point = message.end_time_;
+        }
+        protocol_writer_->add_timeout_at(this, time_point);
+    }
+
     protocol_writer_->write(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
 }
 
@@ -118,7 +134,9 @@ void Protocol::process_stream()
         checksum_ok = checksum == qChecksum(device_.buffer().constData() + pos + 2, 6);
 
         if (buffer_size == 0xffffffff)
+        {
             buffer_size = 0;
+        }
 
         if (!checksum_ok || buffer_size > MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
         {
@@ -137,7 +155,8 @@ void Protocol::process_stream()
         flags = cmd & ALL_FLAGS;
         cmd &= ~ALL_FLAGS;
 
-        try {
+        try
+        {
             internal_process_message(cmd, flags, device_.buffer().constData() + pos + 8, buffer_size);
         }
         catch(const std::exception& e)

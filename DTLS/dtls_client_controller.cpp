@@ -51,5 +51,10 @@ void Client_Controller::process_data(const udp::endpoint &/*remote_endpoint*/, s
     process_received_data(std::move(data), size);
 }
 
+void Client_Controller::add_timeout_at(Network::Protocol *protocol, std::chrono::time_point<std::chrono::system_clock> time_point)
+{
+    // TODO: add timer
+}
+
 } // namespace DTLS
 } // namespace Helpz

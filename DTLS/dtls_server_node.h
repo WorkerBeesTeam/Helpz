@@ -20,9 +20,10 @@ public:
 
     Server_Node(Server_Controller* controller, const boost::asio::ip::udp::endpoint& endpoint);
 private:
-    void tls_record_received(Botan::u64bit, const uint8_t data[], size_t size) override;
-    void tls_alert(Botan::TLS::Alert alert) override;
-    std::string tls_server_choose_app_protocol(const std::vector<std::string> &client_protos) override;
+    void add_timeout_at(Network::Protocol* protocol, std::chrono::time_point<std::chrono::system_clock> time_point) override final;
+    void tls_record_received(Botan::u64bit, const uint8_t data[], size_t size) override final;
+    void tls_alert(Botan::TLS::Alert alert) override final;
+    std::string tls_server_choose_app_protocol(const std::vector<std::string> &client_protos) override final;
 
     Server_Controller* controller_;
 };
