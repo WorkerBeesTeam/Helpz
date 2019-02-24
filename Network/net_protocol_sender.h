@@ -15,7 +15,7 @@ class Protocol;
 struct Message_Item
 {
     uint16_t cmd_;
-    std::chrono::time_point<std::chrono::system_clock> start_time_;
+    std::chrono::time_point<std::chrono::system_clock> begin_time_, end_time_;
     QByteArray data_;
     std::shared_ptr<QIODevice> data_device_;
     std::function<void(QByteArray&&, QIODevice*)> answer_func_;
@@ -33,7 +33,7 @@ public:
 
     Protocol_Sender &data_device(std::shared_ptr<QIODevice> data_dev);
     Protocol_Sender &answer(std::function<void(QByteArray &&, QIODevice *)> answer_func);
-    Protocol_Sender &timeout(std::function<void()> timeout_func);
+    Protocol_Sender &timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration);
 
     template<typename T>
     QDataStream& operator <<(const T& item) { return static_cast<QDataStream&>(*this) << item; }

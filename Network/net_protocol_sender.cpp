@@ -86,9 +86,10 @@ Protocol_Sender &Protocol_Sender::answer(std::function<void (QByteArray&&, QIODe
     msg_.answer_func_ = std::move(answer_func);
     return *this;
 }
-Protocol_Sender &Protocol_Sender::timeout(std::function<void ()> timeout_func)
+Protocol_Sender &Protocol_Sender::timeout(std::function<void ()> timeout_func, std::chrono::milliseconds timeout_duration)
 {
     msg_.timeout_func_ = std::move(timeout_func);
+    msg_.end_time_ = std::chrono::system_clock::now() + timeout_duration;
     return *this;
 }
 

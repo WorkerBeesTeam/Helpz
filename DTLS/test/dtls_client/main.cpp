@@ -32,7 +32,7 @@ public:
             std::cout << "Answer text: " << answer_text.toStdString() << std::endl;
         }).timeout([]() {
             std::cout << "MSG_ANSWERED timeout" << std::endl;
-        }) << true << quint32(777);
+        }, std::chrono::seconds(5)) << true << quint32(777);
     }
 
     void test_send_file()
