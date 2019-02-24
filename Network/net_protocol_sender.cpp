@@ -84,6 +84,11 @@ Protocol_Sender &Protocol_Sender::data_device(std::shared_ptr<QIODevice> data_de
 Protocol_Sender &Protocol_Sender::answer(std::function<void (QByteArray&&, QIODevice*)> answer_func)
 {
     msg_.answer_func_ = std::move(answer_func);
+    auto now = std::chrono::system_clock::now();
+    if (msg_.end_time_ < now)
+    {
+        msg_.end_time_ = now + std::chrono::seconds(3);
+    }
     return *this;
 }
 Protocol_Sender &Protocol_Sender::timeout(std::function<void ()> timeout_func, std::chrono::milliseconds timeout_duration)
