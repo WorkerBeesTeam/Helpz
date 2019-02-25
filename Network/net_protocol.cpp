@@ -67,6 +67,7 @@ void Protocol::send_message(Message_Item message)
         {
             time_point = message.end_time_;
         }
+        add_to_wait_list(std::move(message));
         protocol_writer_->add_timeout_at(this, time_point);
     }
 
@@ -117,6 +118,11 @@ void Protocol::process_bytes(const quint8* data, size_t size)
     else
         device_.buffer().clear();
     device_.seek(next_start_pos);
+}
+
+void Protocol::process_wait_list()
+{
+    std::lock_guard lock(wait_list_mutex_);
 }
 
 void Protocol::process_stream()
@@ -221,6 +227,12 @@ void Protocol::internal_process_message(quint16 cmd, quint16 flags, const char *
             process_message(cmd, std::move(data), nullptr);
         }
     }
+}
+
+void Protocol::add_to_wait_list(Message_Item &&message)
+{
+    std::lock_guard lock(wait_list_mutex_);
+    wait_list_.push_back(std::move(message));
 }
 
 } // namespace Network

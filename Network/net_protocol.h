@@ -2,6 +2,7 @@
 #define HELPZ_NETWORK_PROTOCOL_H
 
 #include <chrono>
+#include <mutex>
 
 #include <Helpz/apply_parse.h>
 #include <Helpz/net_protocol_sender.h>
@@ -118,6 +119,7 @@ public:
 public:
     QByteArray prepare_packet(Message_Item& msg);
     void process_bytes(const quint8 *data, size_t size);
+    void process_wait_list();
 
     /**
      * @brief ready_write
@@ -136,6 +138,8 @@ private:
     void process_stream();
     void internal_process_message(quint16 cmd, quint16 flags, const char* data_ptr, quint32 data_size);
 
+    void add_to_wait_list(Message_Item&& message);
+
     uint8_t next_rx_msg_id_;
     std::atomic<uint8_t> next_tx_msg_id_;
     std::vector<std::pair<uint8_t,std::chrono::time_point<std::chrono::system_clock>>> lost_msg_list_;
@@ -146,6 +150,7 @@ private:
     std::chrono::time_point<std::chrono::system_clock> last_msg_send_time_;
 
     std::vector<Message_Item> wait_list_;
+    std::mutex wait_list_mutex_;
 };
 
 } // namespace Network
