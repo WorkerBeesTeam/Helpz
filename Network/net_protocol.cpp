@@ -18,7 +18,8 @@ void Protocol_Writer::set_last_msg_recv_time(std::chrono::time_point<std::chrono
 
 Protocol::Protocol() :
     protocol_writer_(nullptr),
-    next_rx_msg_id_(0), next_tx_msg_id_(0)
+    next_rx_msg_id_(0), next_tx_msg_id_(0),
+    last_msg_send_time_(Time_Point{})
 {
     device_.open(QBuffer::ReadWrite);
     msg_stream_.setDevice(&device_);
@@ -30,9 +31,9 @@ void Protocol::set_protocol_writer(Protocol_Writer *protocol_writer)
     protocol_writer_ = protocol_writer;
 }
 
-std::chrono::time_point<std::chrono::system_clock> Protocol::last_msg_send_time() const
+Protocol::Time_Point Protocol::last_msg_send_time() const
 {
-    return last_msg_send_time_;
+    return last_msg_send_time_.load();
 }
 
 Protocol_Sender Protocol::send(quint16 cmd, quint16 flags) { return Protocol_Sender(this, cmd, flags); }
@@ -55,10 +56,10 @@ void Protocol::send_message(Message_Item message)
 
     const QByteArray data = prepare_packet(message);
 
-    auto now = std::chrono::system_clock::now();
+    Time_Point now = std::chrono::system_clock::now();
     if (message.end_time_ > now)
     {
-        decltype(now) time_point;
+        Time_Point time_point;
         if ((now - message.end_time_) > std::chrono::milliseconds(1500))
         {
             time_point = now + std::chrono::milliseconds(1500);
@@ -67,25 +68,26 @@ void Protocol::send_message(Message_Item message)
         {
             time_point = message.end_time_;
         }
-        add_to_wait_list(std::move(message));
-        protocol_writer_->add_timeout_at(this, time_point);
+        add_to_waiting(time_point, std::move(message));
+        protocol_writer_->add_timeout_at(time_point);
     }
 
     protocol_writer_->write(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
 }
 
-QByteArray Protocol::prepare_packet(Message_Item &msg)
+QByteArray Protocol::prepare_packet(const Message_Item &msg)
 {
+    uint16_t cmd = msg.cmd_;
     if (msg.data_.size() > 512)
     {
-        msg.cmd_ |= COMPRESSED;
+        cmd |= COMPRESSED;
     }
 
     QByteArray packet;
     QDataStream ds(&packet, QIODevice::ReadWrite);
-    ds << uint16_t(0) << (next_tx_msg_id_++) << msg.cmd_;
+    ds << uint16_t(0) << (next_tx_msg_id_++) << cmd;
 
-    if (msg.cmd_ & COMPRESSED)
+    if (cmd & COMPRESSED)
     {
         ds << qCompress(msg.data_);
     }
@@ -122,7 +124,15 @@ void Protocol::process_bytes(const quint8* data, size_t size)
 
 void Protocol::process_wait_list()
 {
-    std::lock_guard lock(wait_list_mutex_);
+    std::vector<Message_Item> messages = pop_waiting_messages();
+
+    Time_Point now = std::chrono::system_clock::now();
+    for (Message_Item& msg: messages)
+    {
+
+    }
+
+    std::chrono::milliseconds(1500);
 }
 
 void Protocol::process_stream()
@@ -229,10 +239,46 @@ void Protocol::internal_process_message(quint16 cmd, quint16 flags, const char *
     }
 }
 
-void Protocol::add_to_wait_list(Message_Item &&message)
+void Protocol::add_to_waiting(Time_Point time_point, Message_Item &&message)
 {
-    std::lock_guard lock(wait_list_mutex_);
-    wait_list_.push_back(std::move(message));
+    std::lock_guard lock(waiting_messages_mutex_);
+    waiting_messages_.emplace(time_point, std::move(message));
+}
+
+std::vector<Message_Item> Protocol::pop_waiting_messages()
+{
+    std::vector<Message_Item> messages;
+    std::lock_guard lock(waiting_messages_mutex_);
+
+    Time_Point now = std::chrono::system_clock::now() + std::chrono::milliseconds(20);
+    for (auto it = waiting_messages_.begin(); it != waiting_messages_.end(); )
+    {
+        if (it->first > now)
+        {
+            break;
+        }
+
+        messages.push_back(std::move(it->second));
+        it = waiting_messages_.erase(it);
+    }
+    return messages;
+}
+
+Protocol::Time_Point Protocol::calc_wait_for_point(const Time_Point &end_point) const
+{
+    Time_Point now = std::chrono::system_clock::now();
+    if (end_point > now)
+    {
+        if ((now - end_point) > std::chrono::milliseconds(1500))
+        {
+            return now + std::chrono::milliseconds(1500);
+        }
+        else
+        {
+            return end_point;
+        }
+    }
+    return {};
 }
 
 } // namespace Network

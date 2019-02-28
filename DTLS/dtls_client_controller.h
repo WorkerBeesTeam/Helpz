@@ -23,7 +23,7 @@ public:
 
     void process_data(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override final;
 private:
-    void add_timeout_at(Network::Protocol* protocol, std::chrono::time_point<std::chrono::system_clock> time_point) override final;
+    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override final;
 
     bool ping_flag_;
     Client* client_;

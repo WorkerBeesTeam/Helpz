@@ -21,7 +21,7 @@ Server_Node::Server_Node(Server_Controller *controller, const boost::asio::ip::u
                                         *tools->policy_, *tools->rng_, true });
 }
 
-void Server_Node::add_timeout_at(Network::Protocol *protocol, std::chrono::time_point<std::chrono::system_clock> time_point)
+void Server_Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)
 {
     // TODO: add timer
 }

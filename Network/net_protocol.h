@@ -37,7 +37,7 @@ public:
     void set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value);
 
     virtual void write(const quint8* data, std::size_t size) = 0;
-    virtual void add_timeout_at(Protocol* protocol, std::chrono::time_point<std::chrono::system_clock> time_point) = 0;
+    virtual void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) = 0;
 private:
     std::string title_;
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time_;
@@ -108,7 +108,9 @@ public:
 
     void set_protocol_writer(Protocol_Writer* protocol_writer);
 
-    std::chrono::time_point<std::chrono::system_clock> last_msg_send_time() const;
+    typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;
+
+    Time_Point last_msg_send_time() const;
 
     Protocol_Sender send(quint16 cmd, quint16 flags = 0);
     void send_cmd(quint16 cmd, quint16 flags = 0);
@@ -117,7 +119,7 @@ public:
     void send_message(Message_Item message);
 
 public:
-    QByteArray prepare_packet(Message_Item& msg);
+    QByteArray prepare_packet(const Message_Item& msg);
     void process_bytes(const quint8 *data, size_t size);
     void process_wait_list();
 
@@ -138,19 +140,22 @@ private:
     void process_stream();
     void internal_process_message(quint16 cmd, quint16 flags, const char* data_ptr, quint32 data_size);
 
-    void add_to_wait_list(Message_Item&& message);
+    void add_to_waiting(Time_Point time_point, Message_Item&& message);
+    std::vector<Message_Item> pop_waiting_messages();
+
+    Time_Point calc_wait_for_point(const Time_Point& end_point) const;
 
     uint8_t next_rx_msg_id_;
     std::atomic<uint8_t> next_tx_msg_id_;
-    std::vector<std::pair<uint8_t,std::chrono::time_point<std::chrono::system_clock>>> lost_msg_list_;
+    std::vector<std::pair<uint8_t,Time_Point>> lost_msg_list_;
 
     QBuffer device_;
     QDataStream msg_stream_;
 
-    std::chrono::time_point<std::chrono::system_clock> last_msg_send_time_;
+    std::atomic<Time_Point> last_msg_send_time_;
 
-    std::vector<Message_Item> wait_list_;
-    std::mutex wait_list_mutex_;
+    std::map<Time_Point,Message_Item> waiting_messages_;
+    std::mutex waiting_messages_mutex_;
 };
 
 } // namespace Network
