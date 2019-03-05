@@ -43,13 +43,23 @@ Protocol::Protocol() :
     msg_stream_.setVersion(DATASTREAM_VERSION);
 }
 
+std::string Protocol::title() const
+{
+    return protocol_writer_ ? protocol_writer_->title() : std::string{};
+}
+
 void Protocol::reset_msg_id()
 {
     next_rx_msg_id_ = 0;
     next_tx_msg_id_ = 0;
 }
 
-void Protocol::set_protocol_writer(Protocol_Writer *protocol_writer)
+Protocol_Writer *Protocol::writer()
+{
+    return protocol_writer_;
+}
+
+void Protocol::set_writer(Protocol_Writer *protocol_writer)
 {
     protocol_writer_ = protocol_writer;
 }
@@ -83,8 +93,6 @@ void Protocol::send_message(Message_Item message, uint32_t pos, uint32_t max_dat
     {
         return;
     }
-
-    std::cout << "send_message " << int(message.id_.value_or(0)) << ' ' << message.cmd_ << std::endl;
 
     Time_Point now = std::chrono::system_clock::now();
     if (message.end_time_ > now)
@@ -135,8 +143,6 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint3
         {
             ds << max_data_size;
         }
-
-        std::cout << "prepare fragment id: " << int(msg.id_.value_or(0)) << " cmd: " << (cmd & ~ALL_FLAGS) << " pos: " << pos << " size: " << (data.size() - 8) << std::endl;
     }
     else
     {
@@ -221,7 +227,6 @@ void Protocol::process_stream()
         {
             buffer_size = 0;
         }
-        std::cout << "process_stream " << int(msg_id) << "(" << int(next_rx_msg_id_) << ") cmd: " << (cmd & ~ALL_FLAGS) << " size: " << buffer_size << std::endl;
 
         if (!checksum_ok || buffer_size > MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
         {
@@ -294,7 +299,7 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
 
 void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 flags, const char *data_ptr, quint32 data_size)
 {
-    std::cout << "internal_process_message " << int(msg_id) << "(" << int(next_rx_msg_id_) << ") cmd: " << (cmd & ~ALL_FLAGS) << std::endl;
+//    std::cout << "internal_process_message " << int(msg_id) << "(" << int(next_rx_msg_id_) << ") cmd: " << (cmd & ~ALL_FLAGS) << std::endl;
     if (msg_id < next_rx_msg_id_)
     {
         if (!is_lost_message(msg_id))
@@ -342,7 +347,7 @@ void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 fla
 
         if (it == fragmented_messages_.end())
         {
-            int32_t max_fragment_size = pos > 0 ? pos : MAX_MESSAGE_DATA_SIZE;
+            uint32_t max_fragment_size = pos > 0 ? pos : MAX_MESSAGE_DATA_SIZE;
             it = fragmented_messages_.emplace(fragmented_messages_.end(), Fragmented_Message{ msg_id, cmd, max_fragment_size });
         }
         Fragmented_Message &msg = *it;
@@ -351,8 +356,6 @@ void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 fla
             msg.data_device_->seek(pos);
             msg.data_device_->write(data.constData() + 8, data.size() - 8);
         }
-
-        std::cout << "recv fragment id: " << int(msg_id) << " cmd: " << cmd << " pos: " << pos << " size: " << (data.size() - 8) << std::endl;
 
         if (msg.data_device_->pos() == full_size)
         {
@@ -363,7 +366,6 @@ void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 fla
         else
         {
             lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
-            std::cout << "fragment query id: " << int(msg_id) << " cmd: " << cmd << " pos: " << static_cast<uint32_t>(msg.data_device_->pos()) << " size: " << msg.max_fragment_size_ << std::endl;
             send(cmd, FRAGMENT_QUERY) << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
         }
     }
@@ -372,8 +374,6 @@ void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 fla
         uint8_t fragmanted_msg_id;
         uint32_t pos, fragmanted_size;
         parse_out(data, fragmanted_msg_id, pos, fragmanted_size);
-
-        std::cout << "recv fragment query id: " << int(fragmanted_msg_id) << " cmd: " << cmd << " pos: " << pos << " size: " << fragmanted_size << std::endl;
 
         Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
         if (msg.data_device_)

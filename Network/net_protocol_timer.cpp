@@ -32,7 +32,6 @@ void Protocol_Timer::add(Time_Point time_point, boost::asio::ip::udp::endpoint e
 
 void Protocol_Timer::run()
 {
-    std::cout << "start protocol timer" << std::endl;
     std::queue<boost::asio::ip::udp::endpoint> clients;
     auto pred_func = [this]() { return break_flag_ || items_.size(); };
     bool timeout;
@@ -82,7 +81,6 @@ void Protocol_Timer::run()
             clients.pop();
         }
     }
-    std::cout << "end protocol timer" << std::endl;
 }
 
 } // namespace Network

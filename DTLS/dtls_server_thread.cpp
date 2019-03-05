@@ -8,23 +8,21 @@
 namespace Helpz {
 namespace DTLS {
 
-Server_Thread_Config::Server_Thread_Config(Helpz::DTLS::Create_Protocol_Func_T &&create_protocol_func, uint16_t port,
-                                           const std::string &tls_police_file_name, const std::string &certificate_file_name, const std::string &certificate_key_file_name,
-                                           std::chrono::seconds cleaning_timeout, uint16_t receive_thread_count) :
-    port_(port), receive_thread_count_(receive_thread_count), cleaning_timeout_(cleaning_timeout),
-    tls_police_file_name_(tls_police_file_name), certificate_file_name_(certificate_file_name), certificate_key_file_name_(certificate_key_file_name),
-    create_protocol_func_(std::move(create_protocol_func))
+Server_Thread_Config::Server_Thread_Config(uint16_t port, const std::string &tls_police_file_name, const std::string &certificate_file_name,
+                                           const std::string &certificate_key_file_name, uint32_t cleaning_timeout_sec, uint16_t receive_thread_count) :
+    port_(port), receive_thread_count_(receive_thread_count), cleaning_timeout_(std::chrono::seconds{cleaning_timeout_sec}),
+    tls_police_file_name_(tls_police_file_name), certificate_file_name_(certificate_file_name), certificate_key_file_name_(certificate_key_file_name)
 {
 }
 
-const Create_Protocol_Func_T &Server_Thread_Config::create_protocol_func() const
+Create_Protocol_Func_T &&Server_Thread_Config::create_protocol_func()
 {
-    return create_protocol_func_;
+    return std::move(create_protocol_func_);
 }
 
-void Server_Thread_Config::set_create_protocol_func(const Create_Protocol_Func_T &create_protocol_func)
+void Server_Thread_Config::set_create_protocol_func(Create_Protocol_Func_T &&create_protocol_func)
 {
-    create_protocol_func_ = create_protocol_func;
+    create_protocol_func_ = std::move(create_protocol_func);
 }
 
 std::chrono::seconds Server_Thread_Config::cleaning_timeout() const
@@ -89,8 +87,8 @@ void Server_Thread_Config::set_receive_thread_count(const uint16_t &receive_thre
 
 // -------------------------------------------------------------------------------------------------------------------
 
-Server_Thread::Server_Thread(const Server_Thread_Config &conf) :
-    std::thread(&Server_Thread::run, this, conf)
+Server_Thread::Server_Thread(Server_Thread_Config&& conf) :
+    std::thread(&Server_Thread::run, this, std::move(conf))
 {
 }
 
@@ -111,7 +109,12 @@ void Server_Thread::stop()
     }
 }
 
-void Server_Thread::run(const Server_Thread_Config &conf)
+Server *Server_Thread::server()
+{
+    return server_.load();
+}
+
+void Server_Thread::run(Server_Thread_Config&& conf)
 {
     io_context_ = nullptr;
     std::vector<std::thread> additional_threads;
@@ -121,7 +124,8 @@ void Server_Thread::run(const Server_Thread_Config &conf)
         io_context_ = new boost::asio::io_context{};
         Tools dtls_tools{ conf.tls_police_file_name(), conf.certificate_file_name(), conf.certificate_key_file_name() };
 
-        Server server(&dtls_tools, io_context_, conf.port(), conf.create_protocol_func(), conf.cleaning_timeout());
+        Server server(&dtls_tools, io_context_, conf.port(), std::move(conf.create_protocol_func()), conf.cleaning_timeout());
+        server_.store(&server);
 
         for (uint16_t i = 1; i < conf.receive_thread_count(); ++i)
         {
@@ -133,7 +137,7 @@ void Server_Thread::run(const Server_Thread_Config &conf)
     {
         std::cerr << "DTLS Server_Thread: " << e.what() << std::endl;
     }
-    catch(...)
+    catch (...)
     {
         std::cerr << "DTLS Server_Thread exception" << std::endl;
     }

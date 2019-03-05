@@ -16,7 +16,7 @@ class Client_Thread_Config
 {
 public:
     Client_Thread_Config(std::shared_ptr<Network::Protocol> protocol, const std::string& tls_police_file_name, const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols, std::chrono::milliseconds reconnect_interval = std::chrono::milliseconds(30000));
-    Client_Thread_Config(const Client_Thread_Config&) = default;
+    Client_Thread_Config(const Client_Thread_Config&) = delete;
     Client_Thread_Config(Client_Thread_Config&&) = default;
 
     Network::Protocol *protocol() const;
@@ -47,13 +47,13 @@ private:
 class Client_Thread : public std::thread
 {
 public:
-    Client_Thread(const Client_Thread_Config &conf);
+    Client_Thread(Client_Thread_Config&& conf);
     ~Client_Thread();
 
     void stop();
 
 private:
-    void run(const Client_Thread_Config& conf);
+    void run(Client_Thread_Config&& conf);
 
     boost::asio::io_context* io_context_;
     std::atomic<bool> stop_flag_;

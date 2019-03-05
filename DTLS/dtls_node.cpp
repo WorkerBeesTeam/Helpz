@@ -14,7 +14,7 @@ Node::Node(Helpz::DTLS::Socket *socket, Network::Protocol *protocol) :
 {
     if (protocol_)
     {
-        protocol_->set_protocol_writer(this);
+        protocol_->set_writer(this);
     }
 }
 
@@ -26,7 +26,7 @@ Network::Protocol *Node::protocol()
 void Node::set_protocol(Network::Protocol *protocol)
 {
     protocol_ = protocol;
-    protocol_->set_protocol_writer(this);
+    protocol_->set_writer(this);
 }
 
 const boost::asio::ip::udp::endpoint &Node::receiver_endpoint() const { return receiver_endpoint_; }

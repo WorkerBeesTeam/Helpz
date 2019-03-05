@@ -59,7 +59,10 @@ public:
     Tuple operator ()() { return m_args; }
 
     template<typename T>
-    T* ptr() { return applyToObj<T>(m_idx); }
+    T obj() { return apply_to_obj<T>(m_idx); }
+
+    template<typename T>
+    T* ptr() { return apply_to_obj_ptr<T>(m_idx); }
 
     template<typename T>
     std::shared_ptr<T> shared_ptr() { return std::shared_ptr<T>{ ptr<T>() }; }
@@ -69,6 +72,7 @@ public:
 protected:
     template<typename T>
     const T& getValue(const T& val) const { return val; }
+//    template<typename T> T&& getValue(T&& val) const { return val; }
     template<typename _Pt>
     typename Param<_Pt>::Type getValue(const Param<_Pt>& param)
     {
@@ -102,7 +106,13 @@ protected:
     }
 
     template <typename Type, std::size_t... _Idx>
-    Type* applyToObj(const std::index_sequence<_Idx...>&)
+    Type apply_to_obj(const std::index_sequence<_Idx...>&)
+    {
+        return Type{std::get<_Idx>(std::forward<Tuple>(m_args))...};
+    }
+
+    template <typename Type, std::size_t... _Idx>
+    Type* apply_to_obj_ptr(const std::index_sequence<_Idx...>&)
     {
         return new Type{std::get<_Idx>(std::forward<Tuple>(m_args))...};
     }

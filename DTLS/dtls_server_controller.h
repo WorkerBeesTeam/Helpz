@@ -17,15 +17,15 @@ namespace DTLS {
 
 typedef std::function<Network::Protocol*(const std::vector<std::string> &, std::string*)> Create_Protocol_Func_T;
 
-class Server_Controller : public Controller
+class Server_Controller final : public Controller
 {
 public:
-    Server_Controller(Tools* dtls_tools, Socket* socket, const Create_Protocol_Func_T& create_protocol_func, int record_thread_count = 5);
+    Server_Controller(Tools* dtls_tools, Socket* socket, Create_Protocol_Func_T&& create_protocol_func, int record_thread_count = 5);
     ~Server_Controller();
 
     Socket* socket();
 
-    void process_data(const udp::endpoint &remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override final;
+    void process_data(const udp::endpoint &remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 
     void remove_copy(Network::Protocol* client);
     bool check_copy(Network::Protocol* client);

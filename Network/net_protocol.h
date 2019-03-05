@@ -116,11 +116,14 @@ public:
 public:
     Protocol();
 
+    std::string title() const;
+
     void reset_msg_id();
 
     virtual bool operator ==(const Protocol&) const { return false; }
 
-    void set_protocol_writer(Protocol_Writer* protocol_writer);
+    Protocol_Writer* writer();
+    void set_writer(Protocol_Writer* protocol_writer);
 
     typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;
 

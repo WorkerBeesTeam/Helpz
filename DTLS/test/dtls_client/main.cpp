@@ -79,7 +79,8 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Helpz::DTLS::Client_Thread client_thread{{std::make_shared<Protocol>(), (qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", "25590", {"dai/1.1"}, std::chrono::seconds(5)}};
+    Helpz::DTLS::Client_Thread_Config conf{std::make_shared<Protocol>(), (qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", "25590", {"dai/1.1"}, std::chrono::seconds(5)};
+    Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
     return a.exec();
 }

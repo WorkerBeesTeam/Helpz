@@ -5,10 +5,10 @@
 namespace Helpz {
 namespace DTLS {
 
-Server_Controller::Server_Controller(Tools *dtls_tools, Socket *socket, const Create_Protocol_Func_T &create_protocol_func, int record_thread_count) :
+Server_Controller::Server_Controller(Tools *dtls_tools, Socket *socket, Create_Protocol_Func_T &&create_protocol_func, int record_thread_count) :
     Controller{ dtls_tools },
     socket_(socket),
-    create_protocol_func_(create_protocol_func),
+    create_protocol_func_(std::move(create_protocol_func)),
     records_thread_break_flag_(false)
 {
     for (int i = 0; i < record_thread_count; ++i)

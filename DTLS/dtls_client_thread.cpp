@@ -75,8 +75,8 @@ void Client_Thread_Config::set_next_protocols(const std::vector<std::string> &ne
 
 // ---------------------------------------------------------------------------------------------
 
-Client_Thread::Client_Thread(const Client_Thread_Config& conf) :
-    std::thread(&Client_Thread::run, this, conf)
+Client_Thread::Client_Thread(Client_Thread_Config &&conf) :
+    std::thread(&Client_Thread::run, this, std::move(conf))
 {
 }
 
@@ -98,7 +98,7 @@ void Client_Thread::stop()
     }
 }
 
-void Client_Thread::run(const Client_Thread_Config &conf)
+void Client_Thread::run(Client_Thread_Config &&conf)
 {
     io_context_ = nullptr;
     try
