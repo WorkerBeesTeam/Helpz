@@ -31,7 +31,7 @@ private:
 
     void ready_write() override
     {
-        std::cout << "CONNECTED" << std::endl;
+        std::cout << title() << " CONNECTED" << std::endl;
     }
     void process_message(quint16 cmd, QIODevice* data_dev) override
     {
@@ -99,18 +99,15 @@ int main(int argc, char *argv[])
     Helpz::DTLS::Create_Protocol_Func_T create_protocol = [](const std::vector<std::string> &client_protos, std::string* choose_out) -> Helpz::Network::Protocol*
     {
         std::cout << "create_protocol" << std::endl;
-        int version;
         for (const std::string& proto: client_protos)
         {
             if (proto == "dai/1.1")
             {
-                version = 11;
                 *choose_out = proto;
                 return new Protocol_1_1{};
             }
             else if (proto == "dai/1.0")
             {
-                version = 10;
                 *choose_out = proto;
                 return new Protocol_1_1{};
             }
@@ -122,6 +119,7 @@ int main(int argc, char *argv[])
     std::string app_dir = qApp->applicationDirPath().toStdString();
     Helpz::DTLS::Server_Thread_Config conf{25590, app_dir + "/tls_policy.conf", app_dir + "/dtls.pem", app_dir + "/dtls.key", 30, 5};
     conf.set_create_protocol_func(std::move(create_protocol));
+
     Helpz::DTLS::Server_Thread server_thread{std::move(conf)};
     return a.exec();
 }

@@ -25,7 +25,6 @@ public:
     virtual void process_data(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]>&& data, std::size_t size) = 0;
 protected:
     Tools* dtls_tools_;
-//    std::unique_ptr<Botan::TLS::Channel> dtls_;
 
     Network::Protocol_Timer protocol_timer_;
 };

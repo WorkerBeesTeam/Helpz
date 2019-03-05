@@ -66,8 +66,8 @@ private:
         std::cout << "CONNECTED" << std::endl;
 
 //        test_simple_message();
-//        test_message_with_answer();
-        test_send_file();
+        test_message_with_answer();
+//        test_send_file();
     }
     void process_message(quint16 cmd, QIODevice* data_dev) override
     {
