@@ -43,6 +43,18 @@ private:
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time_;
 };
 
+struct Fragmented_Message
+{
+    Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size);
+
+    bool operator ==(uint8_t id) const;
+
+    uint8_t id_;
+    uint16_t cmd_;
+    uint32_t max_fragment_size_;
+    std::shared_ptr<QIODevice> data_device_;
+};
+
 /**
  * @brief The Protocol class
  *
@@ -60,11 +72,11 @@ public:
 #endif
 
     enum Flags {
-        REPEAT                      = 0x1000,
+        FRAGMENT_QUERY              = 0x1000,
         FRAGMENT                    = 0x2000,
         ANSWER                      = 0x4000,
         COMPRESSED                  = 0x8000,
-        ALL_FLAGS                   = REPEAT | FRAGMENT | ANSWER | COMPRESSED
+        ALL_FLAGS                   = FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
     };
 
     template<typename... Args>
@@ -104,6 +116,8 @@ public:
 public:
     Protocol();
 
+    void reset_msg_id();
+
     virtual bool operator ==(const Protocol&) const { return false; }
 
     void set_protocol_writer(Protocol_Writer* protocol_writer);
@@ -116,10 +130,10 @@ public:
     void send_cmd(quint16 cmd, quint16 flags = 0);
     void send_byte(quint16 cmd, char byte);
     void send_array(quint16 cmd, const QByteArray &buff);
-    void send_message(Message_Item message);
+    void send_message(Message_Item message, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE, std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{1500});
 
 public:
-    QByteArray prepare_packet(const Message_Item& msg);
+    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE);
     void process_bytes(const quint8 *data, size_t size);
     void process_wait_list();
 
@@ -131,29 +145,31 @@ public:
     virtual void closed() {}
 protected:
 
-    virtual void process_message(quint16 cmd, QByteArray&& data, QIODevice* data_dev) = 0;
+    virtual void process_message(quint16 cmd, QIODevice* data_dev) = 0;
 
     Protocol_Writer* protocol_writer_;
 
 //    friend class Protocol_Sender;
 private:
     void process_stream();
-    void internal_process_message(quint16 cmd, quint16 flags, const char* data_ptr, quint32 data_size);
+    bool is_lost_message(uint8_t msg_id);
+    void fill_lost_msg(uint8_t msg_id);
+    void internal_process_message(uint8_t msg_id, quint16 cmd, quint16 flags, const char* data_ptr, quint32 data_size);
 
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();
-
-    Time_Point calc_wait_for_point(const Time_Point& end_point) const;
+    Message_Item pop_waiting_message(std::function<bool(const Message_Item&)> check_func);
 
     uint8_t next_rx_msg_id_;
     std::atomic<uint8_t> next_tx_msg_id_;
-    std::vector<std::pair<uint8_t,Time_Point>> lost_msg_list_;
+    std::vector<std::pair<Time_Point,uint8_t>> lost_msg_list_;
 
     QBuffer device_;
     QDataStream msg_stream_;
 
     std::atomic<Time_Point> last_msg_send_time_;
 
+    std::vector<Fragmented_Message> fragmented_messages_;
     std::map<Time_Point,Message_Item> waiting_messages_;
     std::mutex waiting_messages_mutex_;
 };

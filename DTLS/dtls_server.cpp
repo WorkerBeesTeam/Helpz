@@ -5,11 +5,11 @@
 namespace Helpz {
 namespace DTLS {
 
-Server::Server(Tools *dtls_tools, boost::asio::io_context &io_context, uint16_t port,
+Server::Server(Tools *dtls_tools, boost::asio::io_context *io_context, uint16_t port,
                const Create_Protocol_Func_T &create_protocol_func, std::chrono::seconds cleaning_timeout) :
-    Socket{io_context, new udp::socket{io_context, udp::endpoint(udp::v4(), port)}, new Server_Controller{ dtls_tools, this, create_protocol_func }},
+    Socket{io_context, new udp::socket{*io_context, udp::endpoint(udp::v4(), port)}, new Server_Controller{ dtls_tools, this, create_protocol_func }},
     cleaning_timeout_{cleaning_timeout},
-    cleaning_timer_{io_context, cleaning_timeout_}
+    cleaning_timer_{*io_context, cleaning_timeout_}
 {
     cleaning_timer_.async_wait(std::bind(&Server::cleaning, this, std::placeholders::_1));
 }

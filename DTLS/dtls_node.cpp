@@ -76,6 +76,7 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
 //                {
 //                    std::cout << "Connected. Server choose protocol: " << dtls->application_protocol() << std::endl;
 //                }
+                protocol_->reset_msg_id();
                 protocol_->ready_write();
             }
         }

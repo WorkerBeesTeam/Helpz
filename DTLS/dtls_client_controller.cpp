@@ -53,7 +53,12 @@ void Client_Controller::process_data(const udp::endpoint &/*remote_endpoint*/, s
 
 void Client_Controller::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)
 {
-    // TODO: add timer
+    protocol_timer_.add(time_point, receiver_endpoint());
+}
+
+void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*endpoint*/)
+{
+    protocol()->process_wait_list();
 }
 
 } // namespace DTLS

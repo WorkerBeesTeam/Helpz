@@ -172,6 +172,20 @@ void Server_Controller::add_received_record(const udp::endpoint &remote_endpoint
     records_cond_.notify_one();
 }
 
+void Server_Controller::add_timeout_at(const boost::asio::ip::udp::endpoint &remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point)
+{
+    protocol_timer_.add(time_point, remote_endpoint);
+}
+
+void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint)
+{
+    auto node = find_client(remote_endpoint);
+    if (node)
+    {
+        node->protocol()->process_wait_list();
+    }
+}
+
 void Server_Controller::records_thread_run()
 {
     std::unique_lock lock(records_mutex_, std::defer_lock);

@@ -8,12 +8,20 @@
 namespace Helpz {
 namespace Network {
 
-Protocol_Sender::Protocol_Sender(Protocol *p, quint16 command, quint16 flags) :
-    protocol_(p)
+Protocol_Sender::Protocol_Sender(Protocol *p, quint16 command, quint16 flags, std::shared_ptr<QIODevice> device_ptr) :
+    protocol_(p), fragment_size_(MAX_MESSAGE_DATA_SIZE)
 {
-    auto buffer = new QBuffer{&msg_.data_};
-    buffer->open(QIODevice::ReadWrite);
-    setDevice(buffer);
+    if (device_ptr)
+    {
+        msg_.data_device_ = std::move(device_ptr);
+    }
+    else
+    {
+        msg_.data_device_.reset(new QBuffer{});
+    }
+
+    msg_.data_device_->open(QIODevice::ReadWrite);
+    setDevice(msg_.data_device_.get());
     setVersion(Protocol::DATASTREAM_VERSION);
 
     msg_.cmd_ = command;
@@ -33,19 +41,12 @@ Protocol_Sender::Protocol_Sender(Protocol *p, quint16 command, quint16 flags) :
 }
 
 Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
-    protocol_(std::move(obj.protocol_)), msg_(std::move(obj.msg_))
+    protocol_(std::move(obj.protocol_)), fragment_size_(std::move(obj.fragment_size_)), msg_(std::move(obj.msg_))
 {
-    QBuffer* buffer = static_cast<QBuffer*>(obj.device());
     obj.unsetDevice();
-    buffer->close();
-    delete buffer;
 
     std::cout << "Protocol_Sender MOVE" << std::endl;
-    buffer = new QBuffer{&msg_.data_};
-    buffer->open(QIODevice::ReadWrite);
-    setDevice(buffer);
-
-    device()->seek(obj.device()->pos());
+    setDevice(msg_.data_device_.get());
     setVersion(obj.version());
 
     obj.protocol_ = nullptr;
@@ -53,19 +54,22 @@ Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
 
 Protocol_Sender::~Protocol_Sender()
 {
-    if (protocol_)
+    if (protocol_ && msg_.data_device_)
     {
-        protocol_->send_message(std::move(msg_));
+        uint32_t start_pos = 0;
+
+        if (msg_.data_device_->size() > fragment_size_)
+        {
+            start_pos = std::numeric_limits<uint32_t>::max();
+            msg_.end_time_ = std::chrono::system_clock::now() + std::chrono::minutes(3);
+        }
+
+        protocol_->send_message(std::move(msg_), start_pos, fragment_size_);
 //        const QByteArray data = prepare_message();
 //        protocol_->write(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
     }
 
-    QBuffer* buffer = static_cast<QBuffer*>(device());
-    if (buffer)
-    {
-        unsetDevice();
-        delete buffer;
-    }
+    unsetDevice();
 }
 
 QByteArray Protocol_Sender::pop_packet()
@@ -75,13 +79,19 @@ QByteArray Protocol_Sender::pop_packet()
     return data;
 }
 
-Protocol_Sender &Protocol_Sender::data_device(std::shared_ptr<QIODevice> data_dev)
+void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size)
 {
+    if (!data_dev)
+    {
+        return;
+    }
+
+    unsetDevice();
     msg_.data_device_ = std::move(data_dev);
-    return *this;
+    setDevice(msg_.data_device_.get());
 }
 
-Protocol_Sender &Protocol_Sender::answer(std::function<void (QByteArray&&, QIODevice*)> answer_func)
+Protocol_Sender &Protocol_Sender::answer(std::function<void (QIODevice*)> answer_func)
 {
     msg_.answer_func_ = std::move(answer_func);
     auto now = std::chrono::system_clock::now();

@@ -14,7 +14,7 @@ namespace DTLS {
 class Client final : public Socket
 {
 public:
-    Client(Tools *dtls_tools, boost::asio::io_context& io_context, Network::Protocol* protocol);
+    Client(Tools *dtls_tools, boost::asio::io_context* io_context, Network::Protocol* protocol);
 
     ~Client()
     {

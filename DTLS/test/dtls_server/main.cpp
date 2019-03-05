@@ -19,47 +19,69 @@ private:
         MSG_UNKNOWN = Helpz::Network::Cmd::UserCommand,
         MSG_SIMPLE,
         MSG_ANSWERED,
+        MSG_FILE_META,
         MSG_FILE,
     };
+
+    struct {
+        uint32_t size_;
+        QString name_;
+        QByteArray hash_;
+    } file_;
 
     void ready_write() override
     {
         std::cout << "CONNECTED" << std::endl;
     }
-    void process_message(quint16 cmd, QByteArray&& data, QIODevice* data_dev) override
+    void process_message(quint16 cmd, QIODevice* data_dev) override
     {
         // TODO: after auth server->remove_copy(this);
 
         switch (cmd) {
         case MSG_SIMPLE:
-            std::cout << "MSG_SIMPLE" << std::endl;
+        {
+            data_dev->open(QIODevice::ReadOnly);
+            QDataStream msg(data_dev);
+            std::cout << "MSG_SIMPLE " << Helpz::parse<QString>(msg).toStdString() << std::endl;
             break;
+        }
 
         case MSG_ANSWERED:
         {
+            data_dev->open(QIODevice::ReadOnly);
+            QDataStream msg(data_dev);
             bool value1;
             quint32 value2;
-            parse_out(data, value1, value2);
+            Helpz::parse_out(msg, value1, value2);
+            std::cout << "MSG_ANSWERED " << value1 << " v " << value2 << std::endl;
 
-            send(cmd, ANSWER) << "OK";
-
-            std::cout << "MSG_ANSWERED" << std::endl;
+            send(cmd, ANSWER) << QString("OK");
+            break;
         }
 
+        case MSG_FILE_META:
+        {
+            data_dev->open(QIODevice::ReadOnly);
+            QDataStream msg(data_dev);
+            Helpz::parse_out(msg, file_.name_, file_.size_, file_.hash_);
+
+            std::cout << "MSG_FILE_META " << file_.name_.toStdString() << " size " << file_.size_ << " hash " << file_.hash_.toHex().toUpper().constData() << std::endl;
+            break;
+        }
         case MSG_FILE:
         {
-            QString file_name;
-            QByteArray file_hash;
-            parse_out(data, file_name, file_hash);
-
+            if (!data_dev->isOpen())
+            {
+                data_dev->open(QIODevice::ReadOnly);
+            }
+            data_dev->seek(0);
             QCryptographicHash hash(QCryptographicHash::Sha1);
             if (!hash.addData(data_dev))
             {
                 std::cerr << "Can't get file hash" << std::endl;
                 return;
             }
-
-            std::cout << "MSG_ANSWERED" << file_name.toStdString() << (file_hash == hash.result()) << data_dev->size() << std::endl;
+            std::cout << "MSG_FILE is valid hash: " << (file_.hash_ == hash.result() ? "true" : "false") << " size: " << data_dev->size() << "(" << file_.size_ << ')' << std::endl;
             break;
         }
 

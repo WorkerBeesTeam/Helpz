@@ -15,7 +15,7 @@ class Socket
 public:
     using udp = boost::asio::ip::udp;
 
-    Socket(boost::asio::io_context& io_context, udp::socket* socket, Controller* controller);
+    Socket(boost::asio::io_context *io_context, udp::socket* socket, Controller* controller);
 
     virtual void start_receive(udp::endpoint& remote_endpoint);
 

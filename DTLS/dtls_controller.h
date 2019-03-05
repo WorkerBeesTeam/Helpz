@@ -4,8 +4,8 @@
 #include <memory>
 
 #include <boost/asio/ip/udp.hpp>
-#include <boost/asio/steady_timer.hpp>
 
+#include <Helpz/net_protocol_timer.h>
 //#include <botan/tls_channel.h>
 //#include <botan/tls_callbacks.h>
 
@@ -13,7 +13,7 @@ namespace Helpz {
 namespace DTLS {
 
 class Tools;
-class Controller
+class Controller : public Network::Protocol_Timer_Emiter
 {
 public:
     using udp = boost::asio::ip::udp;
@@ -26,6 +26,8 @@ public:
 protected:
     Tools* dtls_tools_;
 //    std::unique_ptr<Botan::TLS::Channel> dtls_;
+
+    Network::Protocol_Timer protocol_timer_;
 };
 
 } // namespace DTLS

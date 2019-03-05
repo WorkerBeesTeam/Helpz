@@ -43,7 +43,9 @@ public:
     Network::Protocol* create_protocol(const std::vector<std::string> &client_protos, std::string* choose_out);
 
     void add_received_record(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]>&& buffer, std::size_t size);
+    void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point);
 private:
+    void on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint) override;
     void records_thread_run();
 
     mutable boost::shared_mutex clients_mutex_;

@@ -12,7 +12,7 @@ namespace Helpz {
 namespace DTLS {
 
 class Client;
-class Client_Controller : public Controller, public Node
+class Client_Controller final : public Controller, public Node
 {
 public:
     Client_Controller(Tools *dtls_tools, Client* client, Network::Protocol* protocol);
@@ -21,9 +21,10 @@ public:
 
     bool is_reconnect_needed();
 
-    void process_data(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override final;
+    void process_data(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 private:
-    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override final;
+    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override;
+    void on_protocol_timeout(boost::asio::ip::udp::endpoint endpoint) override;
 
     bool ping_flag_;
     Client* client_;

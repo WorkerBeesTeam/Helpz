@@ -7,8 +7,8 @@
 namespace Helpz {
 namespace DTLS {
 
-Socket::Socket(boost::asio::io_context &io_context, udp::socket *socket, Controller *controller) :
-    io_context_(&io_context), socket_(socket), controller_(controller)
+Socket::Socket(boost::asio::io_context *io_context, udp::socket *socket, Controller *controller) :
+    io_context_(io_context), socket_(socket), controller_(controller)
 {
 }
 

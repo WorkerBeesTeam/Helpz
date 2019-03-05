@@ -23,7 +23,7 @@ Server_Node::Server_Node(Server_Controller *controller, const boost::asio::ip::u
 
 void Server_Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)
 {
-    // TODO: add timer
+    controller_->add_timeout_at(receiver_endpoint(), time_point);
 }
 
 void Server_Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)

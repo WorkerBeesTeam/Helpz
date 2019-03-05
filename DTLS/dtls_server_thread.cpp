@@ -90,8 +90,7 @@ void Server_Thread_Config::set_receive_thread_count(const uint16_t &receive_thre
 // -------------------------------------------------------------------------------------------------------------------
 
 Server_Thread::Server_Thread(const Server_Thread_Config &conf) :
-    std::thread(&Server_Thread::run, this, conf),
-    io_context_(nullptr)
+    std::thread(&Server_Thread::run, this, conf)
 {
 }
 
@@ -114,6 +113,7 @@ void Server_Thread::stop()
 
 void Server_Thread::run(const Server_Thread_Config &conf)
 {
+    io_context_ = nullptr;
     std::vector<std::thread> additional_threads;
 
     try
@@ -121,7 +121,7 @@ void Server_Thread::run(const Server_Thread_Config &conf)
         io_context_ = new boost::asio::io_context{};
         Tools dtls_tools{ conf.tls_police_file_name(), conf.certificate_file_name(), conf.certificate_key_file_name() };
 
-        Server server(&dtls_tools, *io_context_, conf.port(), conf.create_protocol_func(), conf.cleaning_timeout());
+        Server server(&dtls_tools, io_context_, conf.port(), conf.create_protocol_func(), conf.cleaning_timeout());
 
         for (uint16_t i = 1; i < conf.receive_thread_count(); ++i)
         {

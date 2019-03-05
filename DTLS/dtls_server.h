@@ -12,7 +12,7 @@ namespace DTLS {
 class Server final : public Socket
 {
 public:
-    Server(Tools* dtls_tools, boost::asio::io_context& io_context, uint16_t port, const Create_Protocol_Func_T& create_protocol_func, std::chrono::seconds cleaning_timeout);
+    Server(Tools* dtls_tools, boost::asio::io_context *io_context, uint16_t port, const Create_Protocol_Func_T& create_protocol_func, std::chrono::seconds cleaning_timeout);
 private:
     void cleaning(const boost::system::error_code &err);
     constexpr Server_Controller* controller();

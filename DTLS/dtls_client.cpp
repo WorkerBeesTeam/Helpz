@@ -10,9 +10,9 @@ namespace DTLS {
 
 using boost::asio::ip::udp;
 
-Client::Client(Tools *dtls_tools, boost::asio::io_context &io_context, Network::Protocol *protocol) :
-    Socket(io_context, new udp::socket{io_context}, new Client_Controller{dtls_tools, this, protocol}),
-    deadline_(io_context)
+Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, Network::Protocol *protocol) :
+    Socket{io_context, new udp::socket{*io_context}, new Client_Controller{dtls_tools, this, protocol}},
+    deadline_{*io_context}
 {
     deadline_.expires_at(boost::posix_time::pos_infin);
     check_deadline();
