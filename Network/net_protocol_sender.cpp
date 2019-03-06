@@ -8,14 +8,17 @@
 namespace Helpz {
 namespace Network {
 
-Protocol_Sender::Protocol_Sender(Protocol *p, quint16 command, quint16 flags, std::shared_ptr<QIODevice> device_ptr) :
-    protocol_(p), fragment_size_(MAX_MESSAGE_DATA_SIZE)
+Message_Item::Message_Item(quint16 command, std::optional<uint8_t> &&answer_id, std::shared_ptr<QIODevice> &&device_ptr) :
+    answer_id_{std::move(answer_id)}, cmd_(command), data_device_{std::move(device_ptr)}
 {
-    if (device_ptr)
-    {
-        msg_.data_device_ = std::move(device_ptr);
-    }
-    else
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------
+
+Protocol_Sender::Protocol_Sender(Protocol *p, uint16_t command, std::optional<uint8_t> answer_id, std::shared_ptr<QIODevice> device_ptr) :
+    protocol_(p), fragment_size_(MAX_MESSAGE_DATA_SIZE), msg_{command, std::move(answer_id), std::move(device_ptr)}
+{
+    if (!msg_.data_device_)
     {
         msg_.data_device_.reset(new QBuffer{});
     }
@@ -24,20 +27,11 @@ Protocol_Sender::Protocol_Sender(Protocol *p, quint16 command, quint16 flags, st
     setDevice(msg_.data_device_.get());
     setVersion(Protocol::DATASTREAM_VERSION);
 
-    msg_.cmd_ = command;
     if (msg_.cmd_ & Protocol::ALL_FLAGS)
     {
         std::cerr << "ERROR: Try to send bad cmd with setted flags " << msg_.cmd_ << std::endl;
         msg_.cmd_ &= ~Protocol::ALL_FLAGS;
     }
-
-    if (flags & ~Protocol::ALL_FLAGS)
-    {
-        std::cerr << "ERROR: Try to send bad flags with cmd bits " << flags << std::endl;
-        flags &= Protocol::ALL_FLAGS;
-    }
-
-    msg_.cmd_ |= flags;
 }
 
 Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
@@ -87,6 +81,7 @@ void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint3
     }
 
     unsetDevice();
+    fragment_size_ = fragment_size;
     msg_.data_device_ = std::move(data_dev);
     setDevice(msg_.data_device_.get());
 }

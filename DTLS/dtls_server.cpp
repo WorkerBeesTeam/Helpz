@@ -6,8 +6,8 @@ namespace Helpz {
 namespace DTLS {
 
 Server::Server(Tools *dtls_tools, boost::asio::io_context *io_context, uint16_t port,
-               Create_Protocol_Func_T &&create_protocol_func, std::chrono::seconds cleaning_timeout) :
-    Socket{io_context, new udp::socket{*io_context, udp::endpoint(udp::v4(), port)}, new Server_Controller{ dtls_tools, this, std::move(create_protocol_func) }},
+               Create_Protocol_Func_T &&create_protocol_func, std::chrono::seconds cleaning_timeout, int record_thread_count) :
+    Socket{io_context, new udp::socket{*io_context, udp::endpoint(udp::v4(), port)}, new Server_Controller{ dtls_tools, this, std::move(create_protocol_func), record_thread_count }},
     cleaning_timeout_{cleaning_timeout},
     cleaning_timer_{*io_context, cleaning_timeout_}
 {

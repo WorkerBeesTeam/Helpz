@@ -129,14 +129,16 @@ public:
 
     Time_Point last_msg_send_time() const;
 
-    Protocol_Sender send(quint16 cmd, quint16 flags = 0);
-    void send_cmd(quint16 cmd, quint16 flags = 0);
-    void send_byte(quint16 cmd, char byte);
-    void send_array(quint16 cmd, const QByteArray &buff);
+    Protocol_Sender send(uint16_t cmd);
+    Protocol_Sender send_answer(uint16_t cmd, uint8_t msg_id);
+    void send_cmd(uint16_t cmd);
+    void send_byte(uint16_t cmd, char byte);
+    void send_array(uint16_t cmd, const QByteArray &buff);
     void send_message(Message_Item message, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE, std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{1500});
 
 public:
     QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE);
+    void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
     void process_bytes(const quint8 *data, size_t size);
     void process_wait_list();
 
@@ -148,7 +150,7 @@ public:
     virtual void closed() {}
 protected:
 
-    virtual void process_message(quint16 cmd, QIODevice* data_dev) = 0;
+    virtual void process_message(uint8_t msg_id, uint16_t cmd, QIODevice* data_dev) = 0;
 
     Protocol_Writer* protocol_writer_;
 
@@ -157,10 +159,11 @@ private:
     void process_stream();
     bool is_lost_message(uint8_t msg_id);
     void fill_lost_msg(uint8_t msg_id);
-    void internal_process_message(uint8_t msg_id, quint16 cmd, quint16 flags, const char* data_ptr, quint32 data_size);
+    void internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char* data_ptr, uint32_t data_size);
 
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();
+    Message_Item pop_waiting_answer(uint8_t answer_id, uint16_t cmd);
     Message_Item pop_waiting_message(std::function<bool(const Message_Item&)> check_func);
 
     uint8_t next_rx_msg_id_;

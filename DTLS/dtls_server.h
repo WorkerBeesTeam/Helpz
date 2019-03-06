@@ -12,7 +12,7 @@ namespace DTLS {
 class Server final : public Socket
 {
 public:
-    Server(Tools* dtls_tools, boost::asio::io_context *io_context, uint16_t port, Create_Protocol_Func_T&& create_protocol_func, std::chrono::seconds cleaning_timeout);
+    Server(Tools* dtls_tools, boost::asio::io_context *io_context, uint16_t port, Create_Protocol_Func_T&& create_protocol_func, std::chrono::seconds cleaning_timeout, int record_thread_count = 5);
 
     std::shared_ptr<Server_Node> find_client(std::function<bool(const Network::Protocol *)> check_protocol_func) const;
     void remove_copy(Network::Protocol *client);

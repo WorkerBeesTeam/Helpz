@@ -9,8 +9,9 @@ namespace Helpz {
 namespace DTLS {
 
 Server_Thread_Config::Server_Thread_Config(uint16_t port, const std::string &tls_police_file_name, const std::string &certificate_file_name,
-                                           const std::string &certificate_key_file_name, uint32_t cleaning_timeout_sec, uint16_t receive_thread_count) :
-    port_(port), receive_thread_count_(receive_thread_count), cleaning_timeout_(std::chrono::seconds{cleaning_timeout_sec}),
+                                           const std::string &certificate_key_file_name, uint32_t cleaning_timeout_sec, uint16_t receive_thread_count,
+                                           uint16_t record_thread_count) :
+    port_(port), receive_thread_count_(receive_thread_count), record_thread_count_(record_thread_count), cleaning_timeout_(std::chrono::seconds{cleaning_timeout_sec}),
     tls_police_file_name_(tls_police_file_name), certificate_file_name_(certificate_file_name), certificate_key_file_name_(certificate_key_file_name)
 {
 }
@@ -85,6 +86,16 @@ void Server_Thread_Config::set_receive_thread_count(const uint16_t &receive_thre
     receive_thread_count_ = receive_thread_count;
 }
 
+uint16_t Server_Thread_Config::record_thread_count() const
+{
+    return record_thread_count_;
+}
+
+void Server_Thread_Config::set_record_thread_count(const uint16_t &record_thread_count)
+{
+    record_thread_count_ = record_thread_count;
+}
+
 // -------------------------------------------------------------------------------------------------------------------
 
 Server_Thread::Server_Thread(Server_Thread_Config&& conf) :
@@ -124,7 +135,7 @@ void Server_Thread::run(Server_Thread_Config&& conf)
         io_context_ = new boost::asio::io_context{};
         Tools dtls_tools{ conf.tls_police_file_name(), conf.certificate_file_name(), conf.certificate_key_file_name() };
 
-        Server server(&dtls_tools, io_context_, conf.port(), std::move(conf.create_protocol_func()), conf.cleaning_timeout());
+        Server server(&dtls_tools, io_context_, conf.port(), std::move(conf.create_protocol_func()), conf.cleaning_timeout(), conf.record_thread_count());
         server_.store(&server);
 
         for (uint16_t i = 1; i < conf.receive_thread_count(); ++i)

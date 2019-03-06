@@ -33,7 +33,7 @@ private:
     {
         std::cout << title() << " CONNECTED" << std::endl;
     }
-    void process_message(quint16 cmd, QIODevice* data_dev) override
+    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice* data_dev) override
     {
         // TODO: after auth server->remove_copy(this);
 
@@ -55,7 +55,7 @@ private:
             Helpz::parse_out(msg, value1, value2);
             std::cout << "MSG_ANSWERED " << value1 << " v " << value2 << std::endl;
 
-            send(cmd, ANSWER) << QString("OK");
+            send_answer(cmd, msg_id) << QString("OK");
             break;
         }
 
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     };
 
     std::string app_dir = qApp->applicationDirPath().toStdString();
-    Helpz::DTLS::Server_Thread_Config conf{25590, app_dir + "/tls_policy.conf", app_dir + "/dtls.pem", app_dir + "/dtls.key", 30, 5};
+    Helpz::DTLS::Server_Thread_Config conf{25590, app_dir + "/tls_policy.conf", app_dir + "/dtls.pem", app_dir + "/dtls.key", 30, 5, 5};
     conf.set_create_protocol_func(std::move(create_protocol));
 
     Helpz::DTLS::Server_Thread server_thread{std::move(conf)};

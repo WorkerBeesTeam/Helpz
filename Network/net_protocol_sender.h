@@ -29,7 +29,11 @@ class Protocol;
 
 struct Message_Item
 {
-    std::optional<uint8_t> id_;
+    Message_Item(uint16_t command, std::optional<uint8_t>&& answer_id, std::shared_ptr<QIODevice>&& device_ptr);
+    Message_Item(Message_Item&&) = default;
+    Message_Item() = default;
+
+    std::optional<uint8_t> id_, answer_id_;
     uint16_t cmd_;
     std::chrono::time_point<std::chrono::system_clock> begin_time_, end_time_;
     std::shared_ptr<QIODevice> data_device_;
@@ -40,7 +44,8 @@ struct Message_Item
 class Protocol_Sender : public QDataStream
 {
 public:
-    Protocol_Sender(Protocol *p, quint16 command, quint16 flags = 0, std::shared_ptr<QIODevice> device_ptr = nullptr);
+    Protocol_Sender(Protocol *p, uint16_t command, std::optional<uint8_t> answer_id = {}, std::shared_ptr<QIODevice> device_ptr = nullptr);
+    Protocol_Sender(const Protocol_Sender& obj) = delete;
     Protocol_Sender(Protocol_Sender&& obj) noexcept;
     ~Protocol_Sender();
 
@@ -57,6 +62,8 @@ private:
 
     uint32_t fragment_size_;
     Message_Item msg_;
+
+    friend class Protocol;
 };
 
 } // namespace Network

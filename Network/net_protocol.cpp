@@ -69,10 +69,11 @@ Protocol::Time_Point Protocol::last_msg_send_time() const
     return last_msg_send_time_.load();
 }
 
-Protocol_Sender Protocol::send(quint16 cmd, quint16 flags) { return Protocol_Sender(this, cmd, flags); }
-void Protocol::send_cmd(quint16 cmd, quint16 flags) { send(cmd, flags); }
-void Protocol::send_byte(quint16 cmd, char byte) { send(cmd) << byte; }
-void Protocol::send_array(quint16 cmd, const QByteArray &buff) { send(cmd) << buff; }
+Protocol_Sender Protocol::send(uint16_t cmd) { return Protocol_Sender(this, cmd); }
+Protocol_Sender Protocol::send_answer(uint16_t cmd, uint8_t msg_id) { return Protocol_Sender(this, cmd, msg_id); }
+void Protocol::send_cmd(uint16_t cmd) { send(cmd); }
+void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
+void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
 void Protocol::send_message(Message_Item message, uint32_t pos, uint32_t max_data_size, std::chrono::milliseconds resend_timeout)
 {
@@ -123,31 +124,40 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint3
     QByteArray packet, data;
     uint16_t cmd = msg.cmd_;
 
-    if (msg.data_device_->size() > max_data_size || pos != 0)
+    if (msg.answer_id_ || msg.data_device_->size() > max_data_size || pos != 0)
     {
-        cmd |= FRAGMENT;
-
         QDataStream ds(&data, QIODevice::WriteOnly);
         ds.setVersion(DATASTREAM_VERSION);
-        ds << static_cast<uint32_t>(msg.data_device_->size());
 
-        if (pos != std::numeric_limits<uint32_t>::max())
+        if (msg.answer_id_)
         {
-            ds << pos;
-            uint32_t raw_size = std::min<uint32_t>(max_data_size, msg.data_device_->size() - pos);
-            data.resize(8 + raw_size);
-            msg.data_device_->seek(pos);
-            msg.data_device_->read(data.data() + 8, raw_size);
+            cmd |= ANSWER;
+            ds << *msg.answer_id_;
+        }
+
+        if (msg.data_device_->size() > max_data_size || pos != 0)
+        {
+            cmd |= FRAGMENT;
+            ds << static_cast<uint32_t>(msg.data_device_->size());
+
+            if (pos != std::numeric_limits<uint32_t>::max())
+            {
+                ds << pos;
+                add_raw_data_to_packet(data, pos, max_data_size, msg.data_device_.get());
+            }
+            else
+            {
+                ds << max_data_size;
+            }
         }
         else
         {
-            ds << max_data_size;
+            add_raw_data_to_packet(data, 0, max_data_size, msg.data_device_.get());
         }
     }
     else
     {
-        msg.data_device_->seek(pos);
-        data = msg.data_device_->read(max_data_size);
+        add_raw_data_to_packet(data, 0, max_data_size, msg.data_device_.get());
     }
 
     if (data.size() > 512)
@@ -165,6 +175,15 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint3
 
 //    qCDebug(DetailLog) << "CMD OUT" << (cmd & ~ALL_FLAGS) << "SIZE" << data.size() << "WRITE" << buffer.size();
     return packet;
+}
+
+void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device)
+{
+    uint32_t raw_size = std::min<uint32_t>(max_data_size, device->size() - pos);
+    uint8_t header_pos = data.size();
+    data.resize(header_pos + raw_size);
+    device->seek(pos);
+    device->read(data.data() + header_pos, raw_size);
 }
 
 void Protocol::process_bytes(const quint8* data, size_t size)
@@ -297,7 +316,7 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
     }
 }
 
-void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 flags, const char *data_ptr, quint32 data_size)
+void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char *data_ptr, uint32_t data_size)
 {
 //    std::cout << "internal_process_message " << int(msg_id) << "(" << int(next_rx_msg_id_) << ") cmd: " << (cmd & ~ALL_FLAGS) << std::endl;
     if (msg_id < next_rx_msg_id_)
@@ -332,41 +351,76 @@ void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 fla
                 qUncompress(reinterpret_cast<const uchar*>(data_ptr), data_size) :
                 QByteArray(data_ptr, data_size);
 
-    if (flags & FRAGMENT)
+    if (flags & (FRAGMENT | ANSWER))
     {
-        uint32_t full_size, pos;
-        parse_out(data, full_size, pos);
+        QDataStream ds(&data, QIODevice::ReadOnly);
+        ds.setVersion(DATASTREAM_VERSION);
 
-        std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
-
-        if (full_size >= MAX_MESSAGE_SIZE)
+        uint8_t answer_id;
+        if (flags & ANSWER)
         {
-            fragmented_messages_.erase(it);
-            return;
+            Helpz::parse_out(ds, answer_id);
         }
 
-        if (it == fragmented_messages_.end())
+        if (flags & FRAGMENT)
         {
-            uint32_t max_fragment_size = pos > 0 ? pos : MAX_MESSAGE_DATA_SIZE;
-            it = fragmented_messages_.emplace(fragmented_messages_.end(), Fragmented_Message{ msg_id, cmd, max_fragment_size });
-        }
-        Fragmented_Message &msg = *it;
-        if ((data.size() - 8) > 0)
-        {
-            msg.data_device_->seek(pos);
-            msg.data_device_->write(data.constData() + 8, data.size() - 8);
-        }
+            uint32_t full_size, pos;
+            Helpz::parse_out(ds, full_size, pos);
 
-        if (msg.data_device_->pos() == full_size)
-        {
-//            msg.data_device_->close();
-            process_message(cmd, msg.data_device_.get());
-            fragmented_messages_.erase(it);
+            std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
+
+            if (full_size >= MAX_MESSAGE_SIZE)
+            {
+                fragmented_messages_.erase(it);
+                return;
+            }
+
+            if (it == fragmented_messages_.end())
+            {
+                uint32_t max_fragment_size = pos > 0 ? pos : MAX_MESSAGE_DATA_SIZE;
+                it = fragmented_messages_.emplace(fragmented_messages_.end(), Fragmented_Message{ msg_id, cmd, max_fragment_size });
+            }
+            Fragmented_Message &msg = *it;
+            if ((data.size() - 8) > 0)
+            {
+                msg.data_device_->seek(pos);
+                msg.data_device_->write(data.constData() + 8, data.size() - 8);
+            }
+
+            if (msg.data_device_->pos() == full_size)
+            {
+                if (flags & ANSWER)
+                {
+                    Message_Item msg = pop_waiting_answer(answer_id, cmd);
+                    if (msg.answer_func_)
+                    {
+                        msg.answer_func_(msg.data_device_.get());
+                    }
+                }
+                else
+                {
+//                    msg.data_device_->close();
+                    process_message(msg_id, cmd, msg.data_device_.get());
+                }
+                fragmented_messages_.erase(it);
+            }
+            else
+            {
+                lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
+                auto msg_out = send(cmd);
+                msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+                msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+            }
         }
         else
         {
-            lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
-            send(cmd, FRAGMENT_QUERY) << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+            Message_Item msg = pop_waiting_answer(answer_id, cmd);
+            if (msg.answer_func_)
+            {
+                data.remove(0, 1);
+                QBuffer buffer(&data);
+                msg.answer_func_(&buffer);
+            }
         }
     }
     else if (flags & FRAGMENT_QUERY)
@@ -383,26 +437,14 @@ void Protocol::internal_process_message(uint8_t msg_id, quint16 cmd, quint16 fla
     }
     else
     {
-        if (flags & ANSWER)
+        if (cmd == Cmd::Ping)
         {
-            Message_Item msg = pop_waiting_message([cmd](const Message_Item &item){ return item.cmd_ == cmd; });
-            if (msg.answer_func_)
-            {
-                QBuffer buffer(&data);
-                msg.answer_func_(&buffer);
-            }
+            send_answer(Cmd::Ping, msg_id);
         }
         else
         {
-            if (cmd == Cmd::Ping)
-            {
-                send_cmd(Cmd::Ping, ANSWER);
-            }
-            else
-            {
-                QBuffer buffer(&data);
-                process_message(cmd, &buffer);
-            }
+            QBuffer buffer(&data);
+            process_message(msg_id, cmd, &buffer);
         }
     }
 }
@@ -430,6 +472,11 @@ std::vector<Message_Item> Protocol::pop_waiting_messages()
         it = waiting_messages_.erase(it);
     }
     return messages;
+}
+
+Message_Item Protocol::pop_waiting_answer(uint8_t answer_id, uint16_t cmd)
+{
+    return pop_waiting_message([answer_id, cmd](const Message_Item &item){ return item.id_.value_or(0) == answer_id && item.cmd_ == cmd; });
 }
 
 Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Item &)> check_func)

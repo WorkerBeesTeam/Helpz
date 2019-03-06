@@ -65,13 +65,13 @@ private:
     {
         std::cout << "CONNECTED" << std::endl;
 
-//        test_simple_message();
+        test_simple_message();
         test_message_with_answer();
-//        test_send_file();
+        test_send_file();
     }
-    void process_message(quint16 cmd, QIODevice* data_dev) override
+    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice* data_dev) override
     {
-        std::cout << "process_message " << cmd << std::endl;
+        std::cout << "process_message #" << msg_id << ' ' << cmd << std::endl;
     }
 };
 
