@@ -6,9 +6,9 @@
 namespace Helpz {
 namespace DTLS {
 
-Client_Thread_Config::Client_Thread_Config(std::shared_ptr<Network::Protocol> protocol, const std::string &tls_police_file_name, const std::string &host,
-                                           const std::string &port, const std::vector<std::string> &next_protocols, std::chrono::milliseconds reconnect_interval) :
-    protocol_(protocol), reconnect_interval_(reconnect_interval),
+Client_Thread_Config::Client_Thread_Config(const std::string &tls_police_file_name, const std::string &host,
+                                           const std::string &port, const std::vector<std::string> &next_protocols, uint32_t reconnect_interval_sec) :
+    reconnect_interval_(reconnect_interval_sec),
     tls_police_file_name_(tls_police_file_name), host_(host), port_(port), next_protocols_(next_protocols)
 {
 }
@@ -18,17 +18,17 @@ Network::Protocol *Client_Thread_Config::protocol() const
     return protocol_.get();
 }
 
-void Client_Thread_Config::set_protocol(std::shared_ptr<Network::Protocol> protocol)
+void Client_Thread_Config::set_protocol(std::shared_ptr<Network::Protocol>&& protocol)
 {
-    protocol_ = protocol;
+    protocol_ = std::move(protocol);
 }
 
-std::chrono::milliseconds Client_Thread_Config::reconnect_interval() const
+std::chrono::seconds Client_Thread_Config::reconnect_interval() const
 {
     return reconnect_interval_;
 }
 
-void Client_Thread_Config::set_reconnect_interval(const std::chrono::milliseconds &reconnect_interval)
+void Client_Thread_Config::set_reconnect_interval(const std::chrono::seconds &reconnect_interval)
 {
     reconnect_interval_ = reconnect_interval;
 }

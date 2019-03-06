@@ -21,6 +21,12 @@ Server_Controller::~Server_Controller()
 {
     records_thread_break_flag_ = true;
     records_cond_.notify_all();
+
+    {
+        std::unique_lock lock(clients_mutex_);
+        clients_.clear();
+    }
+
     for (std::thread& t: records_thread_list_)
     {
         if (t.joinable())

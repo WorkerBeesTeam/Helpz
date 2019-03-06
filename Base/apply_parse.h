@@ -12,6 +12,8 @@
 
 namespace Helpz {
 
+//template<> void parse_out(QDataStream &) {}
+
 template<typename DataStream>
 void parse_out(DataStream &) {}
 
@@ -32,8 +34,23 @@ void parse_out(int ds_version, const QByteArray &data, Args&... args)
     parse_out(ds, args...);
 }
 
-//template<>
-//void parse_out(QDataStream &) {}
+template<typename... Args>
+void parse_out(int ds_version, QIODevice &data_dev, Args&... args)
+{
+    if (!data_dev.isOpen())
+    {
+        data_dev.open(QIODevice::ReadOnly);
+    }
+    QDataStream ds(&data_dev);
+    ds.setVersion(ds_version);
+    parse_out(ds, args...);
+}
+
+template<typename T>
+T parse(int ds_version, QIODevice &data_dev)
+{
+    T obj; parse_out(ds_version, data_dev, obj); return obj;
+}
 
 template<typename T>
 T parse(QDataStream &ds)
@@ -90,6 +107,30 @@ RetType apply_parse(QDataStream &ds, RetType(FT::*__f)(FArgs...) const, T* obj, 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
 RetType apply_parse(QDataStream &ds, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
 {
+    return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
+}
+
+template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
+RetType apply_parse(QIODevice& data_dev, QDataStream::Version ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
+{
+    if (!data_dev.isOpen())
+    {
+        data_dev.open(QIODevice::ReadOnly);
+    }
+    QDataStream ds(&data_dev);
+    ds.setVersion(ds_version);
+    return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
+}
+
+template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
+RetType apply_parse(QIODevice& data_dev, QDataStream::Version ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
+{
+    if (!data_dev.isOpen())
+    {
+        data_dev.open(QIODevice::ReadOnly);
+    }
+    QDataStream ds(&data_dev);
+    ds.setVersion(ds_version);
     return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
 }
 

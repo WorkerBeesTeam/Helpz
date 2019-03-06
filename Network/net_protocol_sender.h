@@ -37,7 +37,7 @@ struct Message_Item
     uint16_t cmd_;
     std::chrono::time_point<std::chrono::system_clock> begin_time_, end_time_;
     std::shared_ptr<QIODevice> data_device_;
-    std::function<void(QIODevice*)> answer_func_;
+    std::function<void(QIODevice&)> answer_func_;
     std::function<void()> timeout_func_;
 };
 
@@ -52,7 +52,7 @@ public:
     QByteArray pop_packet();
 
     void set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size = MAX_MESSAGE_DATA_SIZE);
-    Protocol_Sender &answer(std::function<void(QIODevice *)> answer_func);
+    Protocol_Sender &answer(std::function<void(QIODevice &)> answer_func);
     Protocol_Sender &timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration);
 
     template<typename T>

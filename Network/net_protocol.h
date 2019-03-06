@@ -80,9 +80,23 @@ public:
     };
 
     template<typename... Args>
-    void parse_out(const QByteArray &data, Args&... args)
+    void parse_out(QIODevice& data_dev, Args&... args)
     {
-        Helpz::parse_out(static_cast<int>(DATASTREAM_VERSION), data, args...);
+        if (!data_dev.isOpen())
+        {
+            data_dev.open(QIODevice::ReadOnly);
+        }
+        QDataStream ds(&data_dev);
+        ds.setVersion(DATASTREAM_VERSION);
+        Helpz::parse_out(ds, args...);
+    }
+
+    template<typename... Args>
+    void parse_out(const QByteArray& data, Args&... args)
+    {
+        QDataStream ds(data);
+        ds.setVersion(DATASTREAM_VERSION);
+        Helpz::parse_out(ds, args...);
     }
 
     template<typename RetType, class T, typename... FArgs, typename... Args>
@@ -97,16 +111,40 @@ public:
         return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, static_cast<T*>(this), std::forward<Args&&>(args)...);
     }
 
-    template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
-    RetType apply_parse(const QByteArray &data, RetType(FT::*__f)(FArgs...) const, Args&&... args)
+    template<typename RetType, class T, typename... FArgs, typename... Args>
+    RetType apply_parse(QIODevice& data_dev, RetType(T::*__f)(FArgs...) const, Args&&... args)
+    {
+        if (!data_dev.isOpen())
+        {
+            data_dev.open(QIODevice::ReadOnly);
+        }
+        QDataStream ds(&data_dev);
+        ds.setVersion(DATASTREAM_VERSION);
+        return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, static_cast<T*>(this), std::forward<Args&&>(args)...);
+    }
+
+    template<typename RetType, class T, typename... FArgs, typename... Args>
+    RetType apply_parse(QIODevice& data_dev, RetType(T::*__f)(FArgs...), Args&&... args)
+    {
+        if (!data_dev.isOpen())
+        {
+            data_dev.open(QIODevice::ReadOnly);
+        }
+        QDataStream ds(&data_dev);
+        ds.setVersion(DATASTREAM_VERSION);
+        return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, static_cast<T*>(this), std::forward<Args&&>(args)...);
+    }
+
+    template<typename RetType, class T, typename... FArgs, typename... Args>
+    RetType apply_parse(const QByteArray& data, RetType(T::*__f)(FArgs...) const, Args&&... args)
     {
         QDataStream ds(data);
         ds.setVersion(DATASTREAM_VERSION);
         return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, static_cast<T*>(this), std::forward<Args&&>(args)...);
     }
 
-    template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
-    RetType apply_parse(const QByteArray &data, RetType(FT::*__f)(FArgs...), Args&&... args)
+    template<typename RetType, class T, typename... FArgs, typename... Args>
+    RetType apply_parse(const QByteArray& data, RetType(T::*__f)(FArgs...), Args&&... args)
     {
         QDataStream ds(data);
         ds.setVersion(DATASTREAM_VERSION);
@@ -150,7 +188,7 @@ public:
     virtual void closed() {}
 protected:
 
-    virtual void process_message(uint8_t msg_id, uint16_t cmd, QIODevice* data_dev) = 0;
+    virtual void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) = 0;
 
     Protocol_Writer* protocol_writer_;
 
@@ -160,6 +198,7 @@ private:
     bool is_lost_message(uint8_t msg_id);
     void fill_lost_msg(uint8_t msg_id);
     void internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char* data_ptr, uint32_t data_size);
+    void process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size);
 
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();

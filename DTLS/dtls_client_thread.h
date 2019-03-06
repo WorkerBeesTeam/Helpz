@@ -15,15 +15,16 @@ namespace DTLS {
 class Client_Thread_Config
 {
 public:
-    Client_Thread_Config(std::shared_ptr<Network::Protocol> protocol, const std::string& tls_police_file_name, const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols, std::chrono::milliseconds reconnect_interval = std::chrono::milliseconds(30000));
+    Client_Thread_Config(const std::string& tls_police_file_name, const std::string &host, const std::string &port,
+                         const std::vector<std::string> &next_protocols, uint32_t reconnect_interval_sec = 30);
     Client_Thread_Config(const Client_Thread_Config&) = delete;
     Client_Thread_Config(Client_Thread_Config&&) = default;
 
     Network::Protocol *protocol() const;
-    void set_protocol(std::shared_ptr<Network::Protocol> protocol);
+    void set_protocol(std::shared_ptr<Network::Protocol>&& protocol);
 
-    std::chrono::milliseconds reconnect_interval() const;
-    void set_reconnect_interval(const std::chrono::milliseconds &reconnect_interval);
+    std::chrono::seconds reconnect_interval() const;
+    void set_reconnect_interval(const std::chrono::seconds &reconnect_interval);
 
     std::string tls_police_file_name() const;
     void set_tls_police_file_name(const std::string &tls_police_file_name);
@@ -39,7 +40,7 @@ public:
 
 private:
     std::shared_ptr<Network::Protocol> protocol_;
-    std::chrono::milliseconds reconnect_interval_;
+    std::chrono::seconds reconnect_interval_;
     std::string tls_police_file_name_, host_, port_;
     std::vector<std::string> next_protocols_;
 };

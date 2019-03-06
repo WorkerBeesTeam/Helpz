@@ -381,35 +381,38 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                 it = fragmented_messages_.emplace(fragmented_messages_.end(), Fragmented_Message{ msg_id, cmd, max_fragment_size });
             }
             Fragmented_Message &msg = *it;
-            if ((data.size() - 8) > 0)
+            if (msg.data_device_)
             {
-                msg.data_device_->seek(pos);
-                msg.data_device_->write(data.constData() + 8, data.size() - 8);
-            }
-
-            if (msg.data_device_->pos() == full_size)
-            {
-                if (flags & ANSWER)
+                if ((data.size() - 8) > 0)
                 {
-                    Message_Item msg = pop_waiting_answer(answer_id, cmd);
-                    if (msg.answer_func_)
+                    msg.data_device_->seek(pos);
+                    msg.data_device_->write(data.constData() + 8, data.size() - 8);
+                }
+
+                if (msg.data_device_->pos() == full_size)
+                {
+                    if (flags & ANSWER)
                     {
-                        msg.answer_func_(msg.data_device_.get());
+                        Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
+                        if (waiting_msg.answer_func_ && msg.data_device_)
+                        {
+                            waiting_msg.answer_func_(*msg.data_device_);
+                        }
                     }
+                    else
+                    {
+    //                    msg.data_device_->close();
+                        process_message(msg_id, cmd, *msg.data_device_);
+                    }
+                    fragmented_messages_.erase(it);
                 }
                 else
                 {
-//                    msg.data_device_->close();
-                    process_message(msg_id, cmd, msg.data_device_.get());
+                    lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
+                    auto msg_out = send(cmd);
+                    msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+                    msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
                 }
-                fragmented_messages_.erase(it);
-            }
-            else
-            {
-                lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
-                auto msg_out = send(cmd);
-                msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
-                msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
             }
         }
         else
@@ -419,21 +422,13 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             {
                 data.remove(0, 1);
                 QBuffer buffer(&data);
-                msg.answer_func_(&buffer);
+                msg.answer_func_(buffer);
             }
         }
     }
     else if (flags & FRAGMENT_QUERY)
     {
-        uint8_t fragmanted_msg_id;
-        uint32_t pos, fragmanted_size;
-        parse_out(data, fragmanted_msg_id, pos, fragmanted_size);
-
-        Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
-        if (msg.data_device_)
-        {
-            send_message(std::move(msg), pos, fragmanted_size);
-        }
+        apply_parse(data, &Protocol::process_fragment_query);
     }
     else
     {
@@ -444,8 +439,17 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
         else
         {
             QBuffer buffer(&data);
-            process_message(msg_id, cmd, &buffer);
+            process_message(msg_id, cmd, buffer);
         }
+    }
+}
+
+void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
+{
+    Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
+    if (msg.data_device_)
+    {
+        send_message(std::move(msg), pos, fragmanted_size);
     }
 }
 

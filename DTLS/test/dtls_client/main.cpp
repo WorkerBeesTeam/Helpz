@@ -25,12 +25,10 @@ public:
 
     void test_message_with_answer()
     {
-        send(MSG_ANSWERED).answer([this](QIODevice* data_dev)
+        send(MSG_ANSWERED).answer([this](QIODevice& data_dev)
         {
-            data_dev->open(QIODevice::ReadOnly);
-            QDataStream msg(data_dev);
             QString answer_text;
-            Helpz::parse_out(msg, answer_text);
+            parse_out(data_dev, answer_text);
 
             std::cout << "Answer text: " << answer_text.toStdString() << std::endl;
         }).timeout([]() {
@@ -69,9 +67,9 @@ private:
         test_message_with_answer();
         test_send_file();
     }
-    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice* data_dev) override
+    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
     {
-        std::cout << "process_message #" << msg_id << ' ' << cmd << std::endl;
+        std::cout << "process_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
     }
 };
 
@@ -79,7 +77,8 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Helpz::DTLS::Client_Thread_Config conf{std::make_shared<Protocol>(), (qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", "25590", {"dai/1.1"}, std::chrono::seconds(5)};
+    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", "25590", {"dai/1.1"}, 5};
+    conf.set_protocol(std::make_shared<Protocol>());
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
     return a.exec();

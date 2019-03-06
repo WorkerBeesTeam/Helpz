@@ -86,7 +86,7 @@ void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint3
     setDevice(msg_.data_device_.get());
 }
 
-Protocol_Sender &Protocol_Sender::answer(std::function<void (QIODevice*)> answer_func)
+Protocol_Sender &Protocol_Sender::answer(std::function<void (QIODevice&)> answer_func)
 {
     msg_.answer_func_ = std::move(answer_func);
     auto now = std::chrono::system_clock::now();
