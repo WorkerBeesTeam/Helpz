@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <Helpz/dtls_client_thread.h>
+#include <Helpz/dtls_client_controller.h>
 #include <Helpz/net_protocol.h>
 
 #include <QCoreApplication>
@@ -61,7 +62,8 @@ private:
 
     void ready_write() override
     {
-        std::cout << "CONNECTED" << std::endl;
+        auto ctrl = dynamic_cast<Helpz::DTLS::Client_Controller*>(writer());
+        std::cout << "Connected. Server choose protocol: " << ctrl->application_protocol() << std::endl;
 
         test_simple_message();
         test_message_with_answer();

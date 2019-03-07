@@ -18,10 +18,10 @@ Q_DECLARE_LOGGING_CATEGORY(DetailLog)
 
 namespace Cmd {
 enum ReservedCommands {
-    Zero = 0,
-    Ping,
+    ZERO = 0,
+    PING,
 
-    UserCommand = 16
+    USER_COMMAND = 16
 };
 }
 
@@ -169,7 +169,6 @@ public:
 
     Protocol_Sender send(uint16_t cmd);
     Protocol_Sender send_answer(uint16_t cmd, uint8_t msg_id);
-    void send_cmd(uint16_t cmd);
     void send_byte(uint16_t cmd, char byte);
     void send_array(uint16_t cmd, const QByteArray &buff);
     void send_message(Message_Item message, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE, std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{1500});

@@ -71,7 +71,6 @@ Protocol::Time_Point Protocol::last_msg_send_time() const
 
 Protocol_Sender Protocol::send(uint16_t cmd) { return Protocol_Sender(this, cmd); }
 Protocol_Sender Protocol::send_answer(uint16_t cmd, uint8_t msg_id) { return Protocol_Sender(this, cmd, msg_id); }
-void Protocol::send_cmd(uint16_t cmd) { send(cmd); }
 void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
@@ -432,9 +431,9 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
     }
     else
     {
-        if (cmd == Cmd::Ping)
+        if (cmd == Cmd::PING)
         {
-            send_answer(Cmd::Ping, msg_id);
+            send_answer(cmd, msg_id);
         }
         else
         {

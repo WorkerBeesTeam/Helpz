@@ -34,11 +34,16 @@ bool Client_Controller::is_reconnect_needed()
         if (!ping_flag_)
         {
             ping_flag_ = true;
-            protocol()->send_cmd(Network::Cmd::Ping);
+            protocol()->send(Network::Cmd::PING);
             return false;
         }
     }
     return true;
+}
+
+std::string Client_Controller::application_protocol() const
+{
+    return static_cast<Botan::TLS::Client*>(dtls_.get())->application_protocol();
 }
 
 void Client_Controller::process_data(const udp::endpoint &/*remote_endpoint*/, std::unique_ptr<uint8_t[]> &&data, std::size_t size)

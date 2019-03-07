@@ -21,6 +21,8 @@ public:
 
     bool is_reconnect_needed();
 
+    std::string application_protocol() const;
+
     void process_data(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 private:
     void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override;

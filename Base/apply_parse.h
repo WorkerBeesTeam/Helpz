@@ -111,7 +111,7 @@ RetType apply_parse(QDataStream &ds, RetType(FT::*__f)(FArgs...), T* obj, Args&&
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
-RetType apply_parse(QIODevice& data_dev, QDataStream::Version ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
+RetType apply_parse(QIODevice& data_dev, int ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
 {
     if (!data_dev.isOpen())
     {
@@ -123,7 +123,7 @@ RetType apply_parse(QIODevice& data_dev, QDataStream::Version ds_version, RetTyp
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
-RetType apply_parse(QIODevice& data_dev, QDataStream::Version ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
+RetType apply_parse(QIODevice& data_dev, int ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
 {
     if (!data_dev.isOpen())
     {
@@ -135,7 +135,7 @@ RetType apply_parse(QIODevice& data_dev, QDataStream::Version ds_version, RetTyp
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
-RetType apply_parse(const QByteArray &data, QDataStream::Version ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
+RetType apply_parse(const QByteArray &data, int ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
 {
     QDataStream ds(data);
     ds.setVersion(ds_version);
@@ -143,7 +143,7 @@ RetType apply_parse(const QByteArray &data, QDataStream::Version ds_version, Ret
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
-RetType apply_parse(const QByteArray &data, QDataStream::Version ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
+RetType apply_parse(const QByteArray &data, int ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
 {
     QDataStream ds(data);
     ds.setVersion(ds_version);
