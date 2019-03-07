@@ -5,6 +5,7 @@
 #include <Helpz/net_protocol.h>
 
 #include <QCoreApplication>
+#include <QTimer>
 #include <QCryptographicHash>
 #include <QFile>
 
@@ -12,7 +13,7 @@ class Protocol : public Helpz::Network::Protocol
 {
 public:
     enum Message_Type {
-        MSG_UNKNOWN = Helpz::Network::Cmd::UserCommand,
+        MSG_UNKNOWN = Helpz::Network::Cmd::USER_COMMAND,
         MSG_SIMPLE,
         MSG_ANSWERED,
         MSG_FILE_META,
@@ -21,7 +22,9 @@ public:
 
     void test_simple_message()
     {
-        send(MSG_SIMPLE) << QString("Hello simple");
+        send(MSG_SIMPLE).timeout([]() {
+            std::cout << "MSG_SIMPLE timeout test" << std::endl;
+        }, std::chrono::seconds(5))  << QString("Hello simple");
     }
 
     void test_message_with_answer()
@@ -79,9 +82,15 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
+    Helpz::DTLS::Create_Client_Protocol_Func_T func = [](const std::string& app_protocol) -> std::shared_ptr<Helpz::Network::Protocol>
+    {
+        return std::shared_ptr<Helpz::Network::Protocol>(new Protocol{});
+    };
+
     Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", "25590", {"dai/1.1"}, 5};
-    conf.set_protocol(std::make_shared<Protocol>());
+    conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
+//    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(10)); qApp->quit(); }).detach();
     return a.exec();
 }

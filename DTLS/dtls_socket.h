@@ -35,7 +35,7 @@ protected:
     boost::asio::io_context* io_context_;
     std::unique_ptr<udp::socket> socket_;
 
-    Controller* controller_;
+    std::unique_ptr<Controller> controller_;
 };
 
 } // namespace DTLS

@@ -5,7 +5,7 @@
 namespace Helpz {
 namespace DTLS {
 
-Server_Controller::Server_Controller(Tools *dtls_tools, Socket *socket, Create_Protocol_Func_T &&create_protocol_func, int record_thread_count) :
+Server_Controller::Server_Controller(Tools *dtls_tools, Socket *socket, Create_Server_Protocol_Func_T &&create_protocol_func, int record_thread_count) :
     Controller{ dtls_tools },
     socket_(socket),
     create_protocol_func_(std::move(create_protocol_func)),
@@ -62,7 +62,7 @@ void Server_Controller::remove_copy(Network::Protocol *client)
         std::lock_guard lock(clients_mutex_);
         for(auto it = clients_.begin(); it != clients_.end();)
         {
-            if (it->second->protocol() && it->second->protocol() != client && *it->second->protocol() == *client)
+            if (it->second->protocol() && it->second->protocol().get() != client && *it->second->protocol() == *client)
             {
                 std::cout << it->second->title() << " same. Erase it." << std::endl;
                 it = clients_.erase(it);
@@ -78,7 +78,7 @@ bool Server_Controller::check_copy(Network::Protocol *client)
     boost::shared_lock lock(clients_mutex_);
     for (const std::pair<udp::endpoint, std::shared_ptr<Server_Node>>& it: clients_)
     {
-        if (it.second->protocol() && it.second->protocol() != client && *it.second->protocol() == *client)
+        if (it.second->protocol() && it.second->protocol().get() != client && *it.second->protocol() == *client)
         {
             return true;
         }
@@ -136,7 +136,7 @@ std::shared_ptr<Server_Node> Server_Controller::find_client(std::function<bool (
     boost::shared_lock lock(clients_mutex_);
     for (const std::pair<udp::endpoint, std::shared_ptr<Server_Node>>& it: clients_)
     {
-        if (it.second->protocol() && check_protocol_func(it.second->protocol()))
+        if (it.second->protocol() && check_protocol_func(it.second->protocol().get()))
         {
             return it.second;
         }
@@ -166,7 +166,7 @@ void Server_Controller::remove_client(const udp::endpoint &remote_endpoint)
     clients_.erase(remote_endpoint);
 }
 
-Network::Protocol *Server_Controller::create_protocol(const std::vector<std::string> &client_protos, std::string *choose_out)
+std::shared_ptr<Network::Protocol> Server_Controller::create_protocol(const std::vector<std::string> &client_protos, std::string *choose_out)
 {
     return create_protocol_func_(client_protos, choose_out);
 }

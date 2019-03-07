@@ -16,12 +16,12 @@ Server_Thread_Config::Server_Thread_Config(uint16_t port, const std::string &tls
 {
 }
 
-Create_Protocol_Func_T &&Server_Thread_Config::create_protocol_func()
+Create_Server_Protocol_Func_T &&Server_Thread_Config::create_protocol_func()
 {
     return std::move(create_protocol_func_);
 }
 
-void Server_Thread_Config::set_create_protocol_func(Create_Protocol_Func_T &&create_protocol_func)
+void Server_Thread_Config::set_create_protocol_func(Create_Server_Protocol_Func_T &&create_protocol_func)
 {
     create_protocol_func_ = std::move(create_protocol_func);
 }

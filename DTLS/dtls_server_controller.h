@@ -15,12 +15,12 @@
 namespace Helpz {
 namespace DTLS {
 
-typedef std::function<Network::Protocol*(const std::vector<std::string> &, std::string*)> Create_Protocol_Func_T;
+typedef std::function<std::shared_ptr<Network::Protocol>(const std::vector<std::string> &, std::string*)> Create_Server_Protocol_Func_T;
 
 class Server_Controller final : public Controller
 {
 public:
-    Server_Controller(Tools* dtls_tools, Socket* socket, Create_Protocol_Func_T&& create_protocol_func, int record_thread_count = 5);
+    Server_Controller(Tools* dtls_tools, Socket* socket, Create_Server_Protocol_Func_T&& create_protocol_func, int record_thread_count = 5);
     ~Server_Controller();
 
     Socket* socket();
@@ -40,7 +40,7 @@ private:
 public:
     void remove_client(const udp::endpoint& remote_endpoint);
 
-    Network::Protocol* create_protocol(const std::vector<std::string> &client_protos, std::string* choose_out);
+    std::shared_ptr<Network::Protocol> create_protocol(const std::vector<std::string> &client_protos, std::string* choose_out);
 
     void add_received_record(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]>&& buffer, std::size_t size);
     void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point);
@@ -52,7 +52,7 @@ private:
     std::map<udp::endpoint, std::shared_ptr<Server_Node>> clients_;
 
     Socket* socket_;
-    Create_Protocol_Func_T create_protocol_func_;
+    Create_Server_Protocol_Func_T create_protocol_func_;
 
     struct Record_Item
     {

@@ -16,10 +16,13 @@ namespace DTLS {
 class Node : public Botan::TLS::Callbacks, public Network::Protocol_Writer
 {
 public:
-    Node(Socket* socket, Network::Protocol *protocol = nullptr);
+    Node(Socket* socket);
+    ~Node();
 
-    Network::Protocol *protocol();
-    void set_protocol(Network::Protocol *protocol);
+    void close();
+
+    std::shared_ptr<Network::Protocol> protocol();
+    void set_protocol(std::shared_ptr<Network::Protocol>&& protocol);
 
     const boost::asio::ip::udp::endpoint& receiver_endpoint() const;
     void set_receiver_endpoint(const boost::asio::ip::udp::endpoint& endpoint);
@@ -30,6 +33,7 @@ public:
 
     void process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size);
 protected:
+    virtual std::shared_ptr<Network::Protocol> create_protocol();
     virtual void tls_record_received(Botan::u64bit, const uint8_t data[], size_t size) override;
     virtual void tls_alert(Botan::TLS::Alert alert) override;
     void tls_emit_data(const uint8_t data[], size_t size) override;
@@ -45,7 +49,7 @@ protected:
     std::unique_ptr<Botan::TLS::Channel> dtls_;
 private:
     Socket* socket_;
-    Network::Protocol* protocol_;
+    std::shared_ptr<Network::Protocol> protocol_;
     boost::asio::ip::udp::endpoint receiver_endpoint_;
 };
 

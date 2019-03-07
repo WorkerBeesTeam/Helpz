@@ -9,24 +9,40 @@
 namespace Helpz {
 namespace DTLS {
 
-Node::Node(Helpz::DTLS::Socket *socket, Network::Protocol *protocol) :
-    socket_(socket), protocol_(protocol)
+Node::Node(Helpz::DTLS::Socket *socket) :
+    socket_(socket)
+{
+}
+
+Node::~Node()
+{
+    close();
+}
+
+void Node::close()
 {
     if (protocol_)
     {
-        protocol_->set_writer(this);
+        protocol_.reset();
+    }
+    if (dtls_)
+    {
+        dtls_.reset();
     }
 }
 
-Network::Protocol *Node::protocol()
+std::shared_ptr<Network::Protocol> Node::protocol()
 {
     return protocol_;
 }
 
-void Node::set_protocol(Network::Protocol *protocol)
+void Node::set_protocol(std::shared_ptr<Network::Protocol>&& protocol)
 {
-    protocol_ = protocol;
-    protocol_->set_writer(this);
+    protocol_ = std::move(protocol);
+    if (protocol_)
+    {
+        protocol_->set_writer(this);
+    }
 }
 
 const boost::asio::ip::udp::endpoint &Node::receiver_endpoint() const { return receiver_endpoint_; }
@@ -48,7 +64,7 @@ std::string Node::address() const
 
 void Node::write(const uint8_t *data, std::size_t size)
 {
-    if (dtls_->is_active())
+    if (dtls_ && dtls_->is_active())
     {
         dtls_->send(data, size);
     }
@@ -58,6 +74,11 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
 {
     try
     {
+        if (!dtls_)
+        {
+            return;
+        }
+
         bool first_active = !dtls_->is_active();
 
         dtls_->received_data(data.get(), size);
@@ -69,15 +90,17 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
                 std::cerr << title() << " Handshake timeout detected" << std::endl;
             }
 
-            if (protocol_ && dtls_->is_active())
+            if (dtls_->is_active())
             {
-//                auto client = dynamic_cast<Botan::TLS::Client*>(dtls_.get());
-//                if (client)
-//                {
-//                    std::cout << "Connected. Server choose protocol: " << dtls->application_protocol() << std::endl;
-//                }
-                protocol_->reset_msg_id();
-                protocol_->ready_write();
+                if (!protocol_)
+                {
+                    set_protocol(create_protocol());
+                }
+
+                if (protocol_)
+                {
+                    protocol_->ready_write();
+                }
             }
         }
     }
@@ -95,6 +118,8 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
         std::cerr << title() << " Error in receided data Server::procData" << std::endl;
     }
 }
+
+std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }
 
 void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {
@@ -114,6 +139,7 @@ void Node::tls_alert(Botan::TLS::Alert alert)
     if (protocol_ && alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
     {
         protocol_->closed();
+        close();
     }
 }
 

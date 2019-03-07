@@ -14,15 +14,18 @@ namespace DTLS {
 class Client final : public Socket
 {
 public:
-    Client(Tools *dtls_tools, boost::asio::io_context* io_context, Network::Protocol* protocol);
+    Client(Tools *dtls_tools, boost::asio::io_context* io_context, Create_Client_Protocol_Func_T &&create_protocol_func);
 
     ~Client()
     {
     }
 
+    std::shared_ptr<Network::Protocol> protocol();
+
     void start_connection(const std::string& host, const std::string& port, const std::vector<std::string> &next_protocols = {});
+    void close();
 private:
-    constexpr Client_Controller* controller();
+    Client_Controller* controller();
     void check_deadline();
 
     void start_receive(udp::endpoint& remote_endpoint) override;

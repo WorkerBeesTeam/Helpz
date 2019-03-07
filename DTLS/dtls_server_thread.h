@@ -19,8 +19,8 @@ public:
     Server_Thread_Config(Server_Thread_Config&&) = default;
     Server_Thread_Config(const Server_Thread_Config&) = delete;
 
-    Create_Protocol_Func_T&& create_protocol_func();
-    void set_create_protocol_func(Create_Protocol_Func_T &&create_protocol_func);
+    Create_Server_Protocol_Func_T&& create_protocol_func();
+    void set_create_protocol_func(Create_Server_Protocol_Func_T &&create_protocol_func);
 
     std::chrono::seconds cleaning_timeout() const;
     void set_cleaning_timeout(const std::chrono::seconds &cleaning_timeout);
@@ -47,7 +47,7 @@ private:
     uint16_t port_, receive_thread_count_, record_thread_count_;
     std::chrono::seconds cleaning_timeout_;
     std::string tls_police_file_name_, certificate_file_name_, certificate_key_file_name_;
-    Create_Protocol_Func_T create_protocol_func_;
+    Create_Server_Protocol_Func_T create_protocol_func_;
 };
 
 class Server;

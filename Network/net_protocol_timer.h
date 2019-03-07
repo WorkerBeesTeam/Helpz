@@ -31,7 +31,7 @@ private:
 
     Protocol_Timer_Emiter *emiter_;
 
-    bool break_flag_;
+    bool break_flag_, new_timeout_flag_;
     std::thread thread_;
     std::mutex mutex_;
     std::condition_variable cond_;

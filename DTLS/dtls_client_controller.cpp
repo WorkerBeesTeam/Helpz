@@ -6,10 +6,11 @@
 namespace Helpz {
 namespace DTLS {
 
-Client_Controller::Client_Controller(Tools *dtls_tools, Client *client, Network::Protocol *protocol) :
+Client_Controller::Client_Controller(Tools *dtls_tools, Client *client, Create_Client_Protocol_Func_T &&create_protocol_func) :
     Controller{ dtls_tools },
-    Node{ client, protocol },
-    client_(client)
+    Node{ client },
+    client_(client),
+    create_protocol_func_(std::move(create_protocol_func))
 {
 }
 
@@ -23,7 +24,7 @@ void Client_Controller::start(const std::string &host, const udp::endpoint& rece
 
 bool Client_Controller::is_reconnect_needed()
 {
-    if (dtls_->is_active())
+    if (dtls_ && dtls_->is_active())
     {
         auto last_recv_delta = std::chrono::system_clock::now() - last_msg_recv_time();
         if (last_recv_delta < std::chrono::seconds(30))
@@ -43,7 +44,7 @@ bool Client_Controller::is_reconnect_needed()
 
 std::string Client_Controller::application_protocol() const
 {
-    return static_cast<Botan::TLS::Client*>(dtls_.get())->application_protocol();
+    return dtls_ ? static_cast<Botan::TLS::Client*>(dtls_.get())->application_protocol() : std::string{};
 }
 
 void Client_Controller::process_data(const udp::endpoint &/*remote_endpoint*/, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
@@ -54,6 +55,15 @@ void Client_Controller::process_data(const udp::endpoint &/*remote_endpoint*/, s
     }
 
     process_received_data(std::move(data), size);
+}
+
+std::shared_ptr<Network::Protocol> Client_Controller::create_protocol()
+{
+    if (create_protocol_func_)
+    {
+        return create_protocol_func_(application_protocol());
+    }
+    return {};
 }
 
 void Client_Controller::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)

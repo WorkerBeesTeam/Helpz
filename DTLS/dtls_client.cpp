@@ -10,12 +10,17 @@ namespace DTLS {
 
 using boost::asio::ip::udp;
 
-Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, Network::Protocol *protocol) :
-    Socket{io_context, new udp::socket{*io_context}, new Client_Controller{dtls_tools, this, protocol}},
+Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, Create_Client_Protocol_Func_T &&create_protocol_func) :
+    Socket{io_context, new udp::socket{*io_context}, new Client_Controller{dtls_tools, this, std::move(create_protocol_func)}},
     deadline_{*io_context}
 {
     deadline_.expires_at(boost::posix_time::pos_infin);
     check_deadline();
+}
+
+std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
+{
+    return controller()->protocol();
 }
 
 void Client::start_connection(const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols)
@@ -36,9 +41,14 @@ void Client::start_connection(const std::string &host, const std::string &port, 
     start_receive(remote_endpoint_);
 }
 
-constexpr Client_Controller *Client::controller()
+void Client::close()
 {
-    return static_cast<Client_Controller*>(controller_);
+    controller()->close();
+}
+
+Client_Controller *Client::controller()
+{
+    return static_cast<Client_Controller*>(controller_.get());
 }
 
 void Client::check_deadline()

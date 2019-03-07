@@ -13,14 +13,14 @@ Client_Thread_Config::Client_Thread_Config(const std::string &tls_police_file_na
 {
 }
 
-Network::Protocol *Client_Thread_Config::protocol() const
+Create_Client_Protocol_Func_T &&Client_Thread_Config::create_protocol_func()
 {
-    return protocol_.get();
+    return std::move(create_protocol_func_);
 }
 
-void Client_Thread_Config::set_protocol(std::shared_ptr<Network::Protocol>&& protocol)
+void Client_Thread_Config::set_create_protocol_func(Create_Client_Protocol_Func_T &&create_protocol_func)
 {
-    protocol_ = std::move(protocol);
+    create_protocol_func_ = std::move(create_protocol_func);
 }
 
 std::chrono::seconds Client_Thread_Config::reconnect_interval() const
@@ -98,6 +98,11 @@ void Client_Thread::stop()
     }
 }
 
+Client *Client_Thread::client()
+{
+    return client_.load();
+}
+
 void Client_Thread::run(Client_Thread_Config &&conf)
 {
     io_context_ = nullptr;
@@ -107,7 +112,8 @@ void Client_Thread::run(Client_Thread_Config &&conf)
         io_context_ = new boost::asio::io_context{};
         Tools dtls_tools{ conf.tls_police_file_name() };
 
-        Client client(&dtls_tools, io_context_, conf.protocol());
+        Client client(&dtls_tools, io_context_, std::move(conf.create_protocol_func()));
+        client_.store(&client);
 
         while(!stop_flag_.load())
         {
@@ -126,6 +132,8 @@ void Client_Thread::run(Client_Thread_Config &&conf)
                 std::cerr << "DTLS Client exception" << std::endl;
                 std::this_thread::sleep_for(conf.reconnect_interval());
             }
+
+            client.close();
         }
     }
     catch (std::exception& e)

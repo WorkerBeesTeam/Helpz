@@ -28,7 +28,7 @@ public:
     }
 private:
     enum Message_Type {
-        MSG_UNKNOWN = Helpz::Network::Cmd::UserCommand,
+        MSG_UNKNOWN = Helpz::Network::Cmd::USER_COMMAND,
         MSG_SIMPLE,
         MSG_ANSWERED,
         MSG_FILE_META,
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Helpz::DTLS::Create_Protocol_Func_T create_protocol = [](const std::vector<std::string> &client_protos, std::string* choose_out) -> Helpz::Network::Protocol*
+    Helpz::DTLS::Create_Server_Protocol_Func_T create_protocol = [](const std::vector<std::string> &client_protos, std::string* choose_out) -> std::shared_ptr<Helpz::Network::Protocol>
     {
         std::cout << "create_protocol" << std::endl;
         for (const std::string& proto: client_protos)
@@ -101,16 +101,16 @@ int main(int argc, char *argv[])
             if (proto == "dai/1.1")
             {
                 *choose_out = proto;
-                return new Protocol_1_1{};
+                return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});
             }
             else if (proto == "dai/1.0")
             {
                 *choose_out = proto;
-                return new Protocol_1_1{};
+                return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});
             }
         }
         std::cerr << "Unsuported protocol" << std::endl;
-        return nullptr;
+        return std::shared_ptr<Helpz::Network::Protocol>{};
     };
 
     std::string app_dir = qApp->applicationDirPath().toStdString();

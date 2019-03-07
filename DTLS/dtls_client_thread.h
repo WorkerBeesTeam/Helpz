@@ -1,10 +1,13 @@
 #ifndef HELPZ_DTLS_CLIENT_THREAD_H
 #define HELPZ_DTLS_CLIENT_THREAD_H
 
-#include <thread>
 #include <vector>
+#include <thread>
+#include <atomic>
 
 #include <boost/asio/io_context.hpp>
+
+#include <Helpz/dtls_client_controller.h>
 
 namespace Helpz {
 namespace Network {
@@ -20,8 +23,8 @@ public:
     Client_Thread_Config(const Client_Thread_Config&) = delete;
     Client_Thread_Config(Client_Thread_Config&&) = default;
 
-    Network::Protocol *protocol() const;
-    void set_protocol(std::shared_ptr<Network::Protocol>&& protocol);
+    Create_Client_Protocol_Func_T&& create_protocol_func();
+    void set_create_protocol_func(Create_Client_Protocol_Func_T &&create_protocol_func);
 
     std::chrono::seconds reconnect_interval() const;
     void set_reconnect_interval(const std::chrono::seconds &reconnect_interval);
@@ -39,12 +42,13 @@ public:
     void set_next_protocols(const std::vector<std::string> &next_protocols);
 
 private:
-    std::shared_ptr<Network::Protocol> protocol_;
     std::chrono::seconds reconnect_interval_;
     std::string tls_police_file_name_, host_, port_;
     std::vector<std::string> next_protocols_;
+    Create_Client_Protocol_Func_T create_protocol_func_;
 };
 
+class Client;
 class Client_Thread : public std::thread
 {
 public:
@@ -53,11 +57,14 @@ public:
 
     void stop();
 
+    Client* client();
+
 private:
     void run(Client_Thread_Config&& conf);
 
     boost::asio::io_context* io_context_;
     std::atomic<bool> stop_flag_;
+    std::atomic<Client*> client_;
 };
 
 } // namespace DTLS
