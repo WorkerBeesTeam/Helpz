@@ -171,13 +171,12 @@ public:
     Protocol_Sender send_answer(uint16_t cmd, uint8_t msg_id);
     void send_byte(uint16_t cmd, char byte);
     void send_array(uint16_t cmd, const QByteArray &buff);
-    void send_message(Message_Item message, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE, std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{1500});
+    void send_message(Message_Item message, uint32_t pos = 0, std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000});
 
 public:
-    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0, uint32_t max_data_size = MAX_MESSAGE_DATA_SIZE);
+    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
     void process_bytes(const quint8 *data, size_t size);
-    void process_wait_list();
 
     /**
      * @brief ready_write
@@ -199,6 +198,9 @@ private:
     void internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char* data_ptr, uint32_t data_size);
     void process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size);
 
+public:
+    void process_wait_list();
+private:
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();
     Message_Item pop_waiting_answer(uint8_t answer_id, uint16_t cmd);

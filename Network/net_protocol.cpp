@@ -74,7 +74,7 @@ Protocol_Sender Protocol::send_answer(uint16_t cmd, uint8_t msg_id) { return Pro
 void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
-void Protocol::send_message(Message_Item message, uint32_t pos, uint32_t max_data_size, std::chrono::milliseconds resend_timeout)
+void Protocol::send_message(Message_Item message, uint32_t pos, std::chrono::milliseconds resend_timeout)
 {
     if (!protocol_writer_)
     {
@@ -88,7 +88,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos, uint32_t max_dat
         message.id_ = next_tx_msg_id_++;
     }
 
-    const QByteArray packet = prepare_packet(message, pos, max_data_size);
+    const QByteArray packet = prepare_packet(message, pos);
     if (!packet.size())
     {
         return;
@@ -113,7 +113,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos, uint32_t max_dat
     protocol_writer_->write(reinterpret_cast<const uint8_t*>(packet.constData()), packet.size());
 }
 
-QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint32_t max_data_size)
+QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos)
 {
     if (!msg.data_device_ || (pos > msg.data_device_->size() && pos != std::numeric_limits<uint32_t>::max()))
     {
@@ -123,7 +123,7 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint3
     QByteArray packet, data;
     uint16_t cmd = msg.cmd_;
 
-    if (msg.answer_id_ || msg.data_device_->size() > max_data_size || pos != 0)
+    if (msg.answer_id_ || msg.data_device_->size() > msg.fragment_size_ || pos != 0)
     {
         QDataStream ds(&data, QIODevice::WriteOnly);
         ds.setVersion(DATASTREAM_VERSION);
@@ -134,7 +134,7 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint3
             ds << *msg.answer_id_;
         }
 
-        if (msg.data_device_->size() > max_data_size || pos != 0)
+        if (msg.data_device_->size() > msg.fragment_size_ || pos != 0)
         {
             cmd |= FRAGMENT;
             ds << static_cast<uint32_t>(msg.data_device_->size());
@@ -142,21 +142,21 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, uint3
             if (pos != std::numeric_limits<uint32_t>::max())
             {
                 ds << pos;
-                add_raw_data_to_packet(data, pos, max_data_size, msg.data_device_.get());
+                add_raw_data_to_packet(data, pos, msg.fragment_size_, msg.data_device_.get());
             }
             else
             {
-                ds << max_data_size;
+                ds << msg.fragment_size_;
             }
         }
         else
         {
-            add_raw_data_to_packet(data, 0, max_data_size, msg.data_device_.get());
+            add_raw_data_to_packet(data, 0, msg.fragment_size_, msg.data_device_.get());
         }
     }
     else
     {
-        add_raw_data_to_packet(data, 0, max_data_size, msg.data_device_.get());
+        add_raw_data_to_packet(data, 0, msg.fragment_size_, msg.data_device_.get());
     }
 
     if (data.size() > 512)
@@ -202,27 +202,6 @@ void Protocol::process_bytes(const quint8* data, size_t size)
     else
         device_.buffer().clear();
     device_.seek(next_start_pos);
-}
-
-void Protocol::process_wait_list()
-{
-    std::vector<Message_Item> messages = pop_waiting_messages();
-
-    Time_Point now = std::chrono::system_clock::now();
-    for (Message_Item& msg: messages)
-    {
-        if (msg.end_time_ > now)
-        {
-            send_message(std::move(msg));
-        }
-        else
-        {
-            if (msg.timeout_func_)
-            {
-                msg.timeout_func_();
-            }
-        }
-    }
 }
 
 void Protocol::process_stream()
@@ -388,8 +367,14 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                     msg.data_device_->write(data.constData() + 8, data.size() - 8);
                 }
 
+                lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
+                auto msg_out = send(cmd);
+                msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+                msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+
                 if (msg.data_device_->pos() == full_size)
                 {
+                    msg.data_device_->seek(0);
                     if (flags & ANSWER)
                     {
                         Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
@@ -404,13 +389,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                         process_message(msg_id, cmd, *msg.data_device_);
                     }
                     fragmented_messages_.erase(it);
-                }
-                else
-                {
-                    lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
-                    auto msg_out = send(cmd);
-                    msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
-                    msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
                 }
             }
         }
@@ -446,9 +424,37 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
 {
     Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
-    if (msg.data_device_)
+    if (msg.data_device_ && pos < msg.data_device_->size())
     {
-        send_message(std::move(msg), pos, fragmanted_size);
+        msg.fragment_size_ = fragmanted_size;
+        send_message(std::move(msg), pos);
+    }
+}
+
+void Protocol::process_wait_list()
+{
+    std::vector<Message_Item> messages = pop_waiting_messages();
+
+    Time_Point now = std::chrono::system_clock::now();
+    for (Message_Item& msg: messages)
+    {
+        if (msg.end_time_ > now)
+        {
+            uint32_t pos = msg.data_device_ ? msg.data_device_->pos() : 0;
+            msg.fragment_size_ /= 2;
+            if (msg.fragment_size_ < 32)
+            {
+                msg.fragment_size_ = 32;
+            }
+            send_message(std::move(msg), pos);
+        }
+        else
+        {
+            if (msg.timeout_func_)
+            {
+                msg.timeout_func_();
+            }
+        }
     }
 }
 

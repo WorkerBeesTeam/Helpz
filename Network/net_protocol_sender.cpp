@@ -8,15 +8,15 @@
 namespace Helpz {
 namespace Network {
 
-Message_Item::Message_Item(quint16 command, std::optional<uint8_t> &&answer_id, std::shared_ptr<QIODevice> &&device_ptr) :
-    answer_id_{std::move(answer_id)}, cmd_(command), data_device_{std::move(device_ptr)}
+Message_Item::Message_Item(quint16 command, std::optional<uint8_t> &&answer_id, std::shared_ptr<QIODevice> &&device_ptr, uint32_t fragment_size) :
+    answer_id_{std::move(answer_id)}, cmd_(command), fragment_size_(fragment_size), data_device_{std::move(device_ptr)}
 {
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------
 
 Protocol_Sender::Protocol_Sender(Protocol *p, uint16_t command, std::optional<uint8_t> answer_id, std::shared_ptr<QIODevice> device_ptr) :
-    protocol_(p), fragment_size_(MAX_MESSAGE_DATA_SIZE), msg_{command, std::move(answer_id), std::move(device_ptr)}
+    protocol_(p), msg_{command, std::move(answer_id), std::move(device_ptr)}
 {
     if (!msg_.data_device_)
     {
@@ -35,7 +35,7 @@ Protocol_Sender::Protocol_Sender(Protocol *p, uint16_t command, std::optional<ui
 }
 
 Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
-    protocol_(std::move(obj.protocol_)), fragment_size_(std::move(obj.fragment_size_)), msg_(std::move(obj.msg_))
+    protocol_(std::move(obj.protocol_)), msg_(std::move(obj.msg_))
 {
     obj.unsetDevice();
 
@@ -52,15 +52,13 @@ Protocol_Sender::~Protocol_Sender()
     {
         uint32_t start_pos = 0;
 
-        if (msg_.data_device_->size() > fragment_size_)
+        if (msg_.data_device_->size() > msg_.fragment_size_)
         {
             start_pos = std::numeric_limits<uint32_t>::max();
             msg_.end_time_ = std::chrono::system_clock::now() + std::chrono::minutes(3);
         }
 
-        protocol_->send_message(std::move(msg_), start_pos, fragment_size_);
-//        const QByteArray data = prepare_message();
-//        protocol_->write(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+        protocol_->send_message(std::move(msg_), start_pos);
     }
 
     unsetDevice();
@@ -81,7 +79,7 @@ void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint3
     }
 
     unsetDevice();
-    fragment_size_ = fragment_size;
+    msg_.fragment_size_ = fragment_size;
     msg_.data_device_ = std::move(data_dev);
     setDevice(msg_.data_device_.get());
 }
@@ -92,7 +90,7 @@ Protocol_Sender &Protocol_Sender::answer(std::function<void (QIODevice&)> answer
     auto now = std::chrono::system_clock::now();
     if (msg_.end_time_ < now)
     {
-        msg_.end_time_ = now + std::chrono::seconds(3);
+        msg_.end_time_ = now + std::chrono::seconds(10);
     }
     return *this;
 }

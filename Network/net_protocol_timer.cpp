@@ -37,7 +37,6 @@ void Protocol_Timer::run()
     auto pred_func = [this]() { return break_flag_ || new_timeout_flag_; };
     bool timeout;
 
-    static int i = 0;
     std::unique_lock lock(mutex_, std::defer_lock);
     while (true)
     {
@@ -66,7 +65,6 @@ void Protocol_Timer::run()
         if (timeout && items_.size())
         {
             auto expires_close = std::chrono::system_clock::now() + std::chrono::milliseconds(10);
-            int j = 0;
             for (auto it = items_.begin(); it != items_.end(); )
             {
                 if (expires_close >= it->first)

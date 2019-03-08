@@ -29,12 +29,13 @@ class Protocol;
 
 struct Message_Item
 {
-    Message_Item(uint16_t command, std::optional<uint8_t>&& answer_id, std::shared_ptr<QIODevice>&& device_ptr);
+    Message_Item(uint16_t command, std::optional<uint8_t>&& answer_id, std::shared_ptr<QIODevice>&& device_ptr, uint32_t fragment_size = MAX_MESSAGE_DATA_SIZE);
     Message_Item(Message_Item&&) = default;
     Message_Item() = default;
 
     std::optional<uint8_t> id_, answer_id_;
     uint16_t cmd_;
+    uint32_t fragment_size_;
     std::chrono::time_point<std::chrono::system_clock> begin_time_, end_time_;
     std::shared_ptr<QIODevice> data_device_;
     std::function<void(QIODevice&)> answer_func_;
@@ -59,8 +60,6 @@ public:
     QDataStream& operator <<(const T& item) { return static_cast<QDataStream&>(*this) << item; }
 private:
     Protocol* protocol_;
-
-    uint32_t fragment_size_;
     Message_Item msg_;
 
     friend class Protocol;
