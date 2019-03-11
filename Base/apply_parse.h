@@ -12,6 +12,21 @@
 
 namespace Helpz {
 
+inline QDataStream&& parse_open_device(QIODevice &data_dev, int ds_version)
+{
+    if (!data_dev.isOpen())
+    {
+        if (!data_dev.open(QIODevice::ReadOnly))
+        {
+            throw std::runtime_error(("Can't open msg device:" + data_dev.errorString()).toStdString());
+        }
+    }
+
+    QDataStream ds(&data_dev);
+    ds.setVersion(ds_version);
+    return std::move(ds);
+}
+
 //template<> void parse_out(QDataStream &) {}
 
 template<typename DataStream>
@@ -22,7 +37,9 @@ void parse_out(QDataStream &ds, T& out, Args&... args)
 {
     ds >> out;
     if (ds.status() != QDataStream::Ok)
+    {
         throw std::runtime_error(std::string("QDataStream parse failed for type: ") + typeid(T).name());
+    }
     parse_out(ds, args...);
 }
 
@@ -37,12 +54,7 @@ void parse_out(int ds_version, const QByteArray &data, Args&... args)
 template<typename... Args>
 void parse_out(int ds_version, QIODevice &data_dev, Args&... args)
 {
-    if (!data_dev.isOpen())
-    {
-        data_dev.open(QIODevice::ReadOnly);
-    }
-    QDataStream ds(&data_dev);
-    ds.setVersion(ds_version);
+    QDataStream&& ds = parse_open_device(data_dev, ds_version);
     parse_out(ds, args...);
 }
 
@@ -113,24 +125,14 @@ RetType apply_parse(QDataStream &ds, RetType(FT::*__f)(FArgs...), T* obj, Args&&
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
 RetType apply_parse(QIODevice& data_dev, int ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
 {
-    if (!data_dev.isOpen())
-    {
-        data_dev.open(QIODevice::ReadOnly);
-    }
-    QDataStream ds(&data_dev);
-    ds.setVersion(ds_version);
+    QDataStream&& ds = parse_open_device(data_dev, ds_version);
     return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
 RetType apply_parse(QIODevice& data_dev, int ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
 {
-    if (!data_dev.isOpen())
-    {
-        data_dev.open(QIODevice::ReadOnly);
-    }
-    QDataStream ds(&data_dev);
-    ds.setVersion(ds_version);
+    QDataStream&& ds = parse_open_device(data_dev, ds_version);
     return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
 }
 

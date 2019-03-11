@@ -64,6 +64,11 @@ Protocol_Sender::~Protocol_Sender()
     unsetDevice();
 }
 
+void Protocol_Sender::release()
+{
+    protocol_ = nullptr;
+}
+
 QByteArray Protocol_Sender::pop_packet()
 {
     QByteArray data = protocol_->prepare_packet(msg_);

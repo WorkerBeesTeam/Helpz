@@ -50,6 +50,8 @@ public:
     Protocol_Sender(Protocol_Sender&& obj) noexcept;
     ~Protocol_Sender();
 
+    void release();
+
     QByteArray pop_packet();
 
     void set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size = MAX_MESSAGE_DATA_SIZE);

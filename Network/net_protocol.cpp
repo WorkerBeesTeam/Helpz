@@ -70,7 +70,7 @@ Protocol::Time_Point Protocol::last_msg_send_time() const
 }
 
 Protocol_Sender Protocol::send(uint16_t cmd) { return Protocol_Sender(this, cmd); }
-Protocol_Sender Protocol::send_answer(uint16_t cmd, uint8_t msg_id) { return Protocol_Sender(this, cmd, msg_id); }
+Protocol_Sender Protocol::send_answer(uint16_t cmd, std::optional<uint8_t> msg_id) { return Protocol_Sender(this, cmd, msg_id); }
 void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
@@ -378,9 +378,13 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                     if (flags & ANSWER)
                     {
                         Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
-                        if (waiting_msg.answer_func_ && msg.data_device_)
+                        if (waiting_msg.answer_func_)
                         {
                             waiting_msg.answer_func_(*msg.data_device_);
+                        }
+                        else
+                        {
+                            process_message(msg_id, cmd, *msg.data_device_);
                         }
                     }
                     else

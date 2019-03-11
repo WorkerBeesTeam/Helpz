@@ -11,7 +11,7 @@
 
 #include <QObject>
 
-#include <Helpz/db_connectioninfo.h>
+#include <Helpz/db_connection_info.h>
 #include <Helpz/dtls_credentials_manager.h>
 
 namespace Helpz {
@@ -40,7 +40,7 @@ public:
       */
       Session_Manager_SQL(const std::string& passphrase,
                           Botan::RandomNumberGenerator& rng,
-                          const Database::ConnectionInfo &info = {":memory:", {}, {}, {}, -1, "QSQLITE"},
+                          const Database::Connection_Info &info = {":memory:", {}, {}, {}, -1, "QSQLITE"},
                           size_t max_sessions = 1000,
                           std::chrono::seconds session_lifetime = std::chrono::seconds(7200));
 

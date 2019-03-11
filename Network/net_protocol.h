@@ -82,12 +82,7 @@ public:
     template<typename... Args>
     void parse_out(QIODevice& data_dev, Args&... args)
     {
-        if (!data_dev.isOpen())
-        {
-            data_dev.open(QIODevice::ReadOnly);
-        }
-        QDataStream ds(&data_dev);
-        ds.setVersion(DATASTREAM_VERSION);
+        QDataStream&& ds = parse_open_device(data_dev, DATASTREAM_VERSION);
         Helpz::parse_out(ds, args...);
     }
 
@@ -114,24 +109,14 @@ public:
     template<typename RetType, class T, typename... FArgs, typename... Args>
     RetType apply_parse(QIODevice& data_dev, RetType(T::*__f)(FArgs...) const, Args&&... args)
     {
-        if (!data_dev.isOpen())
-        {
-            data_dev.open(QIODevice::ReadOnly);
-        }
-        QDataStream ds(&data_dev);
-        ds.setVersion(DATASTREAM_VERSION);
+        QDataStream&& ds = parse_open_device(data_dev, DATASTREAM_VERSION);
         return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, static_cast<T*>(this), std::forward<Args&&>(args)...);
     }
 
     template<typename RetType, class T, typename... FArgs, typename... Args>
     RetType apply_parse(QIODevice& data_dev, RetType(T::*__f)(FArgs...), Args&&... args)
     {
-        if (!data_dev.isOpen())
-        {
-            data_dev.open(QIODevice::ReadOnly);
-        }
-        QDataStream ds(&data_dev);
-        ds.setVersion(DATASTREAM_VERSION);
+        QDataStream&& ds = parse_open_device(data_dev, DATASTREAM_VERSION);
         return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, static_cast<T*>(this), std::forward<Args&&>(args)...);
     }
 
@@ -168,7 +153,7 @@ public:
     Time_Point last_msg_send_time() const;
 
     Protocol_Sender send(uint16_t cmd);
-    Protocol_Sender send_answer(uint16_t cmd, uint8_t msg_id);
+    Protocol_Sender send_answer(uint16_t cmd, std::optional<uint8_t> msg_id);
     void send_byte(uint16_t cmd, char byte);
     void send_array(uint16_t cmd, const QByteArray &buff);
     void send_message(Message_Item message, uint32_t pos = 0, std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000});
