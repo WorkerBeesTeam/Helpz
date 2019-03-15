@@ -1,8 +1,7 @@
 #include <iostream>
 
+#include <Helpz/net_defs.h>
 #include "dtls_socket.h"
-
-#define MAX_UDP_PACKET_SIZE 65507
 
 namespace Helpz {
 namespace DTLS {

@@ -17,7 +17,8 @@ HEADERS += \
     net_version.h \
     net_protocol.h \
     net_protocol_sender.h \
-    net_protocol_timer.h
+    net_protocol_timer.h \
+    net_defs.h
 
 LIBS += -lHelpzBase
 

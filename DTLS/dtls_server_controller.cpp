@@ -206,17 +206,16 @@ void Server_Controller::records_thread_run()
 
         Record_Item record{std::move(records_queue_.front())};
         records_queue_.pop();
+        lock.unlock();
 
+        // Possible violation the order, another thread can lock node->record_mutex_ first.
         auto node = find_client(record.remote_endpoint_);
         if (!node || !node->protocol())
         {
-            lock.unlock();
             continue;
         }
 
         std::lock_guard node_lock(node->record_mutex_);
-        lock.unlock();
-
         node->protocol()->process_bytes(record.buffer_.get(), record.size_);
     }
 }

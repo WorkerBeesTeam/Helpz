@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <tuple>
+#include <memory>
 #include <functional>
 #include <type_traits>
 
@@ -12,7 +13,7 @@
 
 namespace Helpz {
 
-inline QDataStream&& parse_open_device(QIODevice &data_dev, int ds_version)
+inline std::unique_ptr<QDataStream> parse_open_device(QIODevice &data_dev, int ds_version)
 {
     if (!data_dev.isOpen())
     {
@@ -22,8 +23,8 @@ inline QDataStream&& parse_open_device(QIODevice &data_dev, int ds_version)
         }
     }
 
-    QDataStream ds(&data_dev);
-    ds.setVersion(ds_version);
+    std::unique_ptr<QDataStream> ds(new QDataStream{&data_dev});
+    ds->setVersion(ds_version);
     return std::move(ds);
 }
 
@@ -54,8 +55,8 @@ void parse_out(int ds_version, const QByteArray &data, Args&... args)
 template<typename... Args>
 void parse_out(int ds_version, QIODevice &data_dev, Args&... args)
 {
-    QDataStream&& ds = parse_open_device(data_dev, ds_version);
-    parse_out(ds, args...);
+    std::unique_ptr<QDataStream> ds = parse_open_device(data_dev, ds_version);
+    parse_out(*ds, args...);
 }
 
 template<typename T>
@@ -125,15 +126,15 @@ RetType apply_parse(QDataStream &ds, RetType(FT::*__f)(FArgs...), T* obj, Args&&
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
 RetType apply_parse(QIODevice& data_dev, int ds_version, RetType(FT::*__f)(FArgs...) const, T* obj, Args&&... args)
 {
-    QDataStream&& ds = parse_open_device(data_dev, ds_version);
-    return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
+    std::unique_ptr<QDataStream> ds = parse_open_device(data_dev, ds_version);
+    return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(*ds, __f, obj, std::forward<Args&&>(args)...);
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>
 RetType apply_parse(QIODevice& data_dev, int ds_version, RetType(FT::*__f)(FArgs...), T* obj, Args&&... args)
 {
-    QDataStream&& ds = parse_open_device(data_dev, ds_version);
-    return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(ds, __f, obj, std::forward<Args&&>(args)...);
+    std::unique_ptr<QDataStream> ds = parse_open_device(data_dev, ds_version);
+    return apply_parse_impl<RetType, decltype(__f), T, FArgs...>(*ds, __f, obj, std::forward<Args&&>(args)...);
 }
 
 template<class FT, class T, typename RetType, typename... FArgs, typename... Args>

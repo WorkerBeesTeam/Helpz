@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <Helpz/dtls_client.h>
 #include <Helpz/dtls_client_thread.h>
 #include <Helpz/dtls_client_controller.h>
 #include <Helpz/net_protocol.h>
@@ -27,7 +28,7 @@ public:
         }, std::chrono::seconds(5))  << QString("Hello simple");
     }
 
-    void test_message_with_answer()
+    void test_message_with_answer(quint32 value2 = 777)
     {
         send(MSG_ANSWERED).answer([this](QIODevice& data_dev)
         {
@@ -37,7 +38,7 @@ public:
             std::cout << "Answer text: " << answer_text.toStdString() << std::endl;
         }).timeout([]() {
             std::cout << "MSG_ANSWERED timeout" << std::endl;
-        }, std::chrono::seconds(5)) << bool(true) << quint32(777);
+        }, std::chrono::seconds(5)) << bool(true) << value2;
     }
 
     void test_send_file()
@@ -76,7 +77,30 @@ private:
     {
         std::cout << "process_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
     }
+    void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
+    {
+        std::cout << "process_answer_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
+    }
 };
+
+void periodic_send_thread_func(Helpz::DTLS::Client_Thread* client_thread)
+{
+    std::shared_ptr<Helpz::Network::Protocol> protocol_ptr;
+    for(int i = 0; i < 100; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        protocol_ptr = client_thread->client()->protocol();
+        if (protocol_ptr)
+        {
+            std::static_pointer_cast<Protocol>(protocol_ptr)->test_message_with_answer(i);
+        }
+        else
+        {
+            i = 0;
+        }
+    }
+    qApp->quit();
+}
 
 int main(int argc, char *argv[])
 {
@@ -91,6 +115,7 @@ int main(int argc, char *argv[])
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
+    std::thread(periodic_send_thread_func, &client_thread).detach();;
 //    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(10)); qApp->quit(); }).detach();
     return a.exec();
 }

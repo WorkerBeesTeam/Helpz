@@ -51,23 +51,27 @@ private:
         case MSG_FILE:      process_file(data_dev);                                                 break;
 
         default:
-            std::cout << "process_message " << cmd << std::endl;
+            std::cout << title() << " process_message " << cmd << std::endl;
             break;
         }
+    }
+    void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
+    {
+        std::cout << title() << " process_answer_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
     }
 
     void process_simple(QString value1)
     {
-        std::cout << "MSG_SIMPLE " << value1.toStdString() << std::endl;
+        std::cout << title() << " MSG_SIMPLE " << value1.toStdString() << std::endl;
     }
     void process_answered(bool value1, quint32 value2, uint16_t cmd, uint8_t msg_id)
     {
-        std::cout << "MSG_ANSWERED " << value1 << " v " << value2 << std::endl;
+        std::cout << title() << " MSG_ANSWERED " << value1 << " v " << value2 << std::endl;
         send_answer(cmd, msg_id) << QString("OK");
     }
     void process_file_meta(FileMetaInfo info)
     {
-        std::cout << "MSG_FILE_META " << info.name_.toStdString() << " size " << info.size_
+        std::cout << title() << " MSG_FILE_META " << info.name_.toStdString() << " size " << info.size_
                   << " hash " << info.hash_.toHex().constData() << std::endl;
         file_info_ = std::move(info);
     }
@@ -81,10 +85,10 @@ private:
         QCryptographicHash hash(QCryptographicHash::Sha1);
         if (!hash.addData(&data_dev))
         {
-            std::cerr << "Can't get file hash" << std::endl;
+            std::cerr << title() << " Can't get file hash" << std::endl;
             return;
         }
-        std::cout << "MSG_FILE is valid hash: " << (file_info_.hash_ == hash.result() ? "true" : "false")
+        std::cout << title() << " MSG_FILE is valid hash: " << (file_info_.hash_ == hash.result() ? "true" : "false")
                   << " size: " << data_dev.size() << "(" << file_info_.size_ << ')' << std::endl;
     }
 };

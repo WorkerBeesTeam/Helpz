@@ -74,7 +74,7 @@ Protocol_Sender Protocol::send_answer(uint16_t cmd, std::optional<uint8_t> msg_i
 void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
-void Protocol::send_message(Message_Item message, uint32_t pos, std::chrono::milliseconds resend_timeout)
+void Protocol::send_message(Message_Item message, uint32_t pos)
 {
     if (!protocol_writer_)
     {
@@ -88,6 +88,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos, std::chrono::mil
         message.id_ = next_tx_msg_id_++;
     }
 
+//    std::cout << title() << " > msg #" << int(*message.id_) << " " << message.cmd_ << " size: " << message.data_device_->size() << std::endl;
     const QByteArray packet = prepare_packet(message, pos);
     if (!packet.size())
     {
@@ -98,9 +99,9 @@ void Protocol::send_message(Message_Item message, uint32_t pos, std::chrono::mil
     if (message.end_time_ > now)
     {
         Time_Point time_point;
-        if ((message.end_time_ - now) > resend_timeout)
+        if ((message.end_time_ - now) > message.resend_timeout_)
         {
-            time_point = now + resend_timeout;
+            time_point = now + message.resend_timeout_;
         }
         else
         {
@@ -242,6 +243,8 @@ void Protocol::process_stream()
         flags = cmd & ALL_FLAGS;
         cmd &= ~ALL_FLAGS;
 
+//        std::cout << title() << " < msg #" << int(msg_id) << " " << cmd << " size: " << buffer_size << std::endl;
+
         try
         {
             internal_process_message(msg_id, cmd, flags, device_.buffer().constData() + pos + 9, buffer_size);
@@ -338,6 +341,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
         if (flags & ANSWER)
         {
             Helpz::parse_out(ds, answer_id);
+//            std::cout << title() << " < msg #" << int(msg_id) << " is ANSWER: " << int(answer_id) << std::endl;
         }
 
         if (flags & FRAGMENT)
@@ -345,10 +349,13 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
+//            std::cout << title() << " < msg #" << int(msg_id) << " is FRAGMENT pos: " << pos << " size: " << full_size<< std::endl;
+
             std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
 
             if (full_size >= MAX_MESSAGE_SIZE)
             {
+                std::cerr << title() << " try to receive too big message: " << full_size << " max: " << MAX_MESSAGE_SIZE << std::endl;
                 fragmented_messages_.erase(it);
                 return;
             }
@@ -361,10 +368,11 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             Fragmented_Message &msg = *it;
             if (msg.data_device_)
             {
-                if ((data.size() - 8) > 0)
+                if (!ds.atEnd())
                 {
+                    uint32_t data_pos = ds.device()->pos();
                     msg.data_device_->seek(pos);
-                    msg.data_device_->write(data.constData() + 8, data.size() - 8);
+                    msg.data_device_->write(data.constData() + data_pos, data.size() - data_pos);
                 }
 
                 lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
@@ -374,6 +382,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 
                 if (msg.data_device_->pos() == full_size)
                 {
+//                    std::cout << title() << " fragmented message receive complite. #" << int(msg_id) << " cmd: " << cmd << std::endl;
                     msg.data_device_->seek(0);
                     if (flags & ANSWER)
                     {
@@ -384,12 +393,12 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                         }
                         else
                         {
-                            process_message(msg_id, cmd, *msg.data_device_);
+                            process_answer_message(msg_id, cmd, *msg.data_device_);
                         }
                     }
                     else
                     {
-    //                    msg.data_device_->close();
+//                    msg.data_device_->close(); // most process_message call with closed devices
                         process_message(msg_id, cmd, *msg.data_device_);
                     }
                     fragmented_messages_.erase(it);
@@ -428,6 +437,8 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
 {
     Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
+//    std::cout << title() << " frgm query " << int(fragmanted_msg_id) << " pos " << pos
+//              << " finded: " << (msg.data_device_ && pos < msg.data_device_->size() ? "true" : "false") << std::endl;
     if (msg.data_device_ && pos < msg.data_device_->size())
     {
         msg.fragment_size_ = fragmanted_size;

@@ -119,17 +119,18 @@ void Client_Thread::run(Client_Thread_Config &&conf)
         {
             try
             {
+                std::cout << "try connect to " << conf.host() << ':' << conf.port() << std::endl;
                 client.start_connection(conf.host(), conf.port(), conf.next_protocols());
                 io_context_->run();
             }
             catch (std::exception& e)
             {
-                std::cerr << "DTLS Client: " << e.what() << std::endl;
+                std::cerr << "DTLS Client: " << e.what() << " reconnect in: " << conf.reconnect_interval().count() << "s" << std::endl;
                 std::this_thread::sleep_for(conf.reconnect_interval());
             }
             catch(...)
             {
-                std::cerr << "DTLS Client exception" << std::endl;
+                std::cerr << "DTLS Client exception. reconnect in: " << conf.reconnect_interval().count() << "s" << std::endl;
                 std::this_thread::sleep_for(conf.reconnect_interval());
             }
 

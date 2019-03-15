@@ -20,6 +20,7 @@ public:
                    const QString &host = "localhost", int port = -1,
                    const QString &driver_name = "QMYSQL", const QString& connect_options = QString());
     Connection_Info(const QSqlDatabase &db);
+    Connection_Info(Connection_Info&&) = default;
     Connection_Info(const Connection_Info&) = default;
     Connection_Info();
 

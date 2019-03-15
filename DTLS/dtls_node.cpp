@@ -111,11 +111,11 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     }
     catch(std::exception& e)
     {
-        std::cerr << title() << e.what() << std::endl;
+        std::cerr << title() << ' ' << e.what() << std::endl;
     }
     catch(...)
     {
-        std::cerr << title() << " Error in receided data Server::procData" << std::endl;
+        std::cerr << title() << " Error in receided data process_received_data" << std::endl;
     }
 }
 
