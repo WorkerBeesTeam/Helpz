@@ -33,7 +33,8 @@ void Thread::stop()
     cond_.notify_one();
 }
 
-void Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values)
+void Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values,
+                               std::function<void(QSqlQuery&, const QVariantList&)> call_back)
 {
     if (sql.isEmpty() || values.empty())
     {
@@ -42,7 +43,7 @@ void Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values
     }
 
     std::lock_guard lock(mutex_);
-    data_queue_.push(query_pack{std::move(sql), std::move(values)});
+    data_queue_.push(Query_Item{std::move(sql), std::move(values), std::move(call_back)});
     cond_.notify_one();
 }
 
@@ -63,6 +64,7 @@ void Thread::store_and_run(std::shared_ptr<Base> db)
 void Thread::run()
 {
     break_flag_ = false;
+    QSqlQuery query;
     std::unique_lock lock(mutex_, std::defer_lock);
     while (true)
     {
@@ -72,19 +74,18 @@ void Thread::run()
         {
             break;
         }
-
-        std::queue<query_pack> data_queue = std::move(data_queue_);
+        Query_Item item{std::move(data_queue_.front())};
+        data_queue_.pop();
         lock.unlock();
 
-        while (data_queue.size())
+        for (const QVariantList& values: item.values_)
         {
-            query_pack data{std::move(data_queue.front())};
-            data_queue.pop();
-
-            for (const QVariantList& values: data.values)
+            query = db_->exec(item.sql_, values);
+            if (item.call_back_)
             {
-                db_->exec(data.sql, values);
+                item.call_back_(query, values);
             }
+            query.clear();
         }
     }
     db_.reset();
