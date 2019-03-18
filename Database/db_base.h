@@ -9,7 +9,7 @@
 #include <QtSql/QSqlQuery>
 #include <QLoggingCategory>
 
-#include "db_connection_info.h"
+#include <Helpz/db_connection_info.h>
 
 namespace Helpz {
 
