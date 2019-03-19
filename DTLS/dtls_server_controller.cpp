@@ -59,10 +59,12 @@ void Server_Controller::remove_copy(Network::Protocol *client)
 {
     if (check_copy(client))
     {
+        std::shared_ptr<Network::Protocol> proto;
         std::lock_guard lock(clients_mutex_);
         for(auto it = clients_.begin(); it != clients_.end();)
         {
-            if (it->second->protocol() && it->second->protocol().get() != client && *it->second->protocol() == *client)
+            proto = it->second->protocol();
+            if (proto && proto.get() != client && *proto == *client)
             {
                 std::cout << it->second->title() << " same. Erase it." << std::endl;
                 it = clients_.erase(it);
@@ -75,10 +77,12 @@ void Server_Controller::remove_copy(Network::Protocol *client)
 
 bool Server_Controller::check_copy(Network::Protocol *client)
 {
+    std::shared_ptr<Network::Protocol> proto;
     boost::shared_lock lock(clients_mutex_);
     for (const std::pair<udp::endpoint, std::shared_ptr<Server_Node>>& it: clients_)
     {
-        if (it.second->protocol() && it.second->protocol().get() != client && *it.second->protocol() == *client)
+        proto = it.second->protocol();
+        if (proto && proto.get() != client && *proto == *client)
         {
             return true;
         }
@@ -133,10 +137,12 @@ std::shared_ptr<Server_Node> Server_Controller::find_client(const udp::endpoint 
 
 std::shared_ptr<Server_Node> Server_Controller::find_client(std::function<bool (const Network::Protocol *)> check_protocol_func) const
 {
+    std::shared_ptr<Network::Protocol> proto;
     boost::shared_lock lock(clients_mutex_);
     for (const std::pair<udp::endpoint, std::shared_ptr<Server_Node>>& it: clients_)
     {
-        if (it.second->protocol() && check_protocol_func(it.second->protocol().get()))
+        proto = it.second->protocol();
+        if (proto && check_protocol_func(proto.get()))
         {
             return it.second;
         }
@@ -188,7 +194,11 @@ void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remot
     auto node = find_client(remote_endpoint);
     if (node)
     {
-        node->protocol()->process_wait_list();
+        std::shared_ptr<Network::Protocol> proto = node->protocol();
+        if (proto)
+        {
+            proto->process_wait_list();
+        }
     }
 }
 
@@ -210,13 +220,15 @@ void Server_Controller::records_thread_run()
 
         // Possible violation the order, another thread can lock node->record_mutex_ first.
         auto node = find_client(record.remote_endpoint_);
-        if (!node || !node->protocol())
+        if (node)
         {
-            continue;
+            auto proto = node->protocol();
+            if (proto)
+            {
+                std::lock_guard node_lock(node->record_mutex_);
+                proto->process_bytes(record.buffer_.get(), record.size_);
+            }
         }
-
-        std::lock_guard node_lock(node->record_mutex_);
-        node->protocol()->process_bytes(record.buffer_.get(), record.size_);
     }
 }
 

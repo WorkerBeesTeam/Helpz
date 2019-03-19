@@ -32,11 +32,15 @@ bool Client_Controller::is_reconnect_needed()
             return false;
         }
 
-        if (!ping_flag_)
+        auto proto = protocol();
+        if (proto)
         {
-            ping_flag_ = true;
-            protocol()->send(Network::Cmd::PING);
-            return false;
+            if (!ping_flag_)
+            {
+                ping_flag_ = true;
+                proto->send(Network::Cmd::PING);
+                return false;
+            }
         }
     }
     return true;
@@ -73,7 +77,11 @@ void Client_Controller::add_timeout_at(std::chrono::time_point<std::chrono::syst
 
 void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*endpoint*/)
 {
-    protocol()->process_wait_list();
+    auto proto = protocol();
+    if (proto)
+    {
+        proto->process_wait_list();
+    }
 }
 
 } // namespace DTLS
