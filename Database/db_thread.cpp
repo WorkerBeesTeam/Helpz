@@ -33,17 +33,27 @@ void Thread::stop()
     cond_.notify_one();
 }
 
-void Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values,
-                               std::function<void(QSqlQuery&, const QVariantList&)> call_back)
+void Thread::add_query(std::function<void (Base *)> callback)
 {
-    if (sql.isEmpty() || values.empty())
+    std::lock_guard lock(mutex_);
+    data_queue_.push(std::move(callback));
+    cond_.notify_one();
+}
+
+void Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values_list,
+                               std::function<void(QSqlQuery&, const QVariantList&)> callback)
+{
+    if (sql.isEmpty() || values_list.empty())
     {
         qCritical(DBLog) << "Attempt to add bad pending query";
         return;
     }
 
+    std::function<void (Base *)> item =
+            std::bind(process_query, std::placeholders::_1, std::move(sql), std::move(values_list), std::move(callback));
+
     std::lock_guard lock(mutex_);
-    data_queue_.push(Query_Item{std::move(sql), std::move(values), std::move(call_back)});
+    data_queue_.push(std::move(item));
     cond_.notify_one();
 }
 
@@ -64,7 +74,6 @@ void Thread::store_and_run(std::shared_ptr<Base> db)
 void Thread::run()
 {
     break_flag_ = false;
-    QSqlQuery query;
     std::unique_lock lock(mutex_, std::defer_lock);
     while (true)
     {
@@ -74,21 +83,35 @@ void Thread::run()
         {
             break;
         }
-        Query_Item item{std::move(data_queue_.front())};
+        std::function<void (Base *)> item{std::move(data_queue_.front())};
         data_queue_.pop();
         lock.unlock();
 
-        for (const QVariantList& values: item.values_)
+        if (item)
         {
-            query = db_->exec(item.sql_, values);
-            if (item.call_back_)
+            try
             {
-                item.call_back_(query, values);
+                item(db_.get());
             }
-            query.clear();
+            catch (...) {}
         }
     }
     db_.reset();
+}
+
+/*static*/ void Thread::process_query(Base* db, QString &sql, std::vector<QVariantList> &values_list,
+                                      std::function<void (QSqlQuery &, const QVariantList &)>& callback)
+{
+    QSqlQuery query;
+    for (const QVariantList& values: values_list)
+    {
+        query = db->exec(sql, values);
+        if (callback)
+        {
+            callback(query, values);
+        }
+        query.clear();
+    }
 }
 
 } // namespace Database

@@ -14,13 +14,6 @@
 namespace Helpz {
 namespace Database {
 
-struct Query_Item
-{
-    QString sql_;
-    std::vector<QVariantList> values_;
-    std::function<void(QSqlQuery&, const QVariantList&)> call_back_;
-};
-
 class Base;
 class Thread : public std::thread
 {
@@ -31,15 +24,20 @@ public:
 
     void stop();
 
-    void add_pending_query(QString&& sql, std::vector<QVariantList>&& values,
-                           std::function<void(QSqlQuery&, const QVariantList&)> call_back = nullptr);
+    void add_query(std::function<void(Base*)> callback);
+
+    void add_pending_query(QString&& sql, std::vector<QVariantList>&& values_list,
+                           std::function<void(QSqlQuery&, const QVariantList&)> callback = nullptr);
 private:
     void open_and_run(Connection_Info&& info);
     void store_and_run(std::shared_ptr<Base> db);
     void run();
 
+    static void process_query(Base* db, QString& sql, std::vector<QVariantList>& values_list,
+                       std::function<void(QSqlQuery&, const QVariantList&)>& callback);
+
     bool break_flag_;
-    std::queue<Query_Item> data_queue_;
+    std::queue<std::function<void(Base*)>> data_queue_;
     std::mutex mutex_;
     std::condition_variable cond_;
 
