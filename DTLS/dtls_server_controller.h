@@ -25,7 +25,8 @@ public:
 
     Socket* socket();
 
-    void process_data(const udp::endpoint &remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
+    std::shared_ptr<Node> get_node(const udp::endpoint& remote_endpoint) override;
+    void process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 
     void remove_copy(Network::Protocol* client);
     bool check_copy(Network::Protocol* client);
@@ -36,16 +37,14 @@ public:
     std::shared_ptr<Server_Node> find_client(const udp::endpoint& remote_endpoint) const;
     std::shared_ptr<Server_Node> find_client(std::function<bool(const Network::Protocol *)> check_protocol_func) const;
 private:
-    std::shared_ptr<Server_Node> get_or_create_client(const udp::endpoint& remote_endpoint);
+    std::shared_ptr<Server_Node> create_client(const udp::endpoint& remote_endpoint);
 public:
     void remove_client(const udp::endpoint& remote_endpoint);
 
     std::shared_ptr<Network::Protocol> create_protocol(const std::vector<std::string> &client_protos, std::string* choose_out);
 
     void add_received_record(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]>&& buffer, std::size_t size);
-    void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point);
 private:
-    void on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint) override;
     void records_thread_run();
 
     mutable boost::shared_mutex clients_mutex_;

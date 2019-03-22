@@ -22,7 +22,8 @@ SOURCES += \
     dtls_server.cpp \
     dtls_server_controller.cpp \
     dtls_server_node.cpp \
-    dtls_node.cpp
+    dtls_node.cpp \
+    dtls_client_node.cpp
 #    OpenSSL/dtlsclient.cpp \
 #    OpenSSL/dtlscookie.cpp \
 #    OpenSSL/dtlsserver.cpp \
@@ -42,7 +43,8 @@ HEADERS += \
     dtls_server.h \
     dtls_server_controller.h \
     dtls_server_node.h \
-    dtls_node.h
+    dtls_node.h \
+    dtls_client_node.h
 #    OpenSSL/dtlssocket.h \
 #    OpenSSL/dtlsserver.h \
 #    OpenSSL/dtlscookie.h \

@@ -20,7 +20,7 @@ public:
     bool set_null_;
 };
 
-typedef std::vector<Delete_Row_Info> Delete_Rows_Info;
+typedef std::vector<Delete_Row_Info> Delete_Row_Info_List;
 
 class Base;
 class Delete_Row_Helper

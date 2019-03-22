@@ -16,8 +16,10 @@ namespace DTLS {
 class Node : public Botan::TLS::Callbacks, public Network::Protocol_Writer
 {
 public:
-    Node(Socket* socket);
+    Node(Controller* controller, Socket* socket);
     ~Node();
+
+    std::mutex mutex_;
 
     void close();
 
@@ -33,6 +35,8 @@ public:
 
     void process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size);
 protected:
+    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override;
+
     virtual std::shared_ptr<Network::Protocol> create_protocol();
     virtual void tls_record_received(Botan::u64bit, const uint8_t data[], size_t size) override;
     virtual void tls_alert(Botan::TLS::Alert alert) override;
@@ -47,6 +51,7 @@ protected:
     bool tls_session_established(const Botan::TLS::Session &session) override;
 
     std::unique_ptr<Botan::TLS::Channel> dtls_;
+    Controller* controller_;
 private:
     Socket* socket_;
     std::shared_ptr<Network::Protocol> protocol_;

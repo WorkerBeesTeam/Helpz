@@ -1,8 +1,6 @@
 #ifndef HTLPZ_DTLS_CLIENT_CONTROLLER_H
 #define HTLPZ_DTLS_CLIENT_CONTROLLER_H
 
-#include <botan/tls_client.h>
-
 #include <Helpz/dtls_tools.h>
 
 #include <Helpz/dtls_controller.h>
@@ -14,25 +12,19 @@ namespace DTLS {
 typedef std::function<std::shared_ptr<Network::Protocol>(const std::string &)> Create_Client_Protocol_Func_T;
 
 class Client;
-class Client_Controller final : public Controller, public Node
+class Client_Node;
+class Client_Controller final : public Controller
 {
 public:
     Client_Controller(Tools *dtls_tools, Client* client, Create_Client_Protocol_Func_T&& create_protocol_func);
 
-    void start(const std::string& host, const udp::endpoint& receiver_endpoint, const std::vector<std::string> &next_protocols = {});
+    std::shared_ptr<Network::Protocol> create_protocol(const std::string& app_proto);
 
-    bool is_reconnect_needed();
-
-    std::string application_protocol() const;
-
-    void process_data(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
+    std::shared_ptr<Node> get_node(const udp::endpoint& remote_endpoint = udp::endpoint()) override;
+    void process_data(std::shared_ptr<Node> &, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 private:
-    std::shared_ptr<Network::Protocol> create_protocol() override;
-    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override;
-    void on_protocol_timeout(boost::asio::ip::udp::endpoint endpoint) override;
-
-    bool ping_flag_;
-    Client* client_;
+//    Client* client_;
+    std::shared_ptr<Client_Node> node_;
     Create_Client_Protocol_Func_T create_protocol_func_;
 };
 

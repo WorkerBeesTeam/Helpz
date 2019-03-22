@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <Helpz/net_defs.h>
+#include "dtls_node.h"
 #include "dtls_socket.h"
 
 namespace Helpz {
@@ -45,9 +46,19 @@ void Socket::handle_receive(udp::endpoint& remote_endpoint, std::unique_ptr<uint
         return;
     }
 
-    controller_->process_data(remote_endpoint, std::move(data), size);
+    std::shared_ptr<Node> node = controller_->get_node(remote_endpoint);
     remote_endpoint = udp::endpoint();
-    start_receive(remote_endpoint);
+    if (node)
+    {
+        std::lock_guard lock(node->mutex_);
+        start_receive(remote_endpoint);
+
+        controller_->process_data(node, std::move(data), size);
+    }
+    else
+    {
+        start_receive(remote_endpoint);
+    }
 }
 
 void Socket::handle_send(const boost::asio::ip::udp::endpoint &remote_endpoint, std::unique_ptr<uint8_t[]> &data, std::size_t size, const boost::system::error_code &error, const std::size_t &bytes_transferred)

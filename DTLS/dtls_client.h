@@ -25,6 +25,7 @@ public:
     void start_connection(const std::string& host, const std::string& port, const std::vector<std::string> &next_protocols = {});
     void close();
 private:
+    Client_Node* node();
     Client_Controller* controller();
     void check_deadline();
 

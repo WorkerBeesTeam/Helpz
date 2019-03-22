@@ -138,6 +138,9 @@ void Server_Thread::run(Server_Thread_Config&& conf)
         Server server(&dtls_tools, io_context_, conf.port(), std::move(conf.create_protocol_func()), conf.cleaning_timeout(), conf.record_thread_count());
         server_.store(&server);
 
+        boost::asio::ip::udp::endpoint remote_endpoint;
+        server.start_receive(remote_endpoint);
+
         for (uint16_t i = 1; i < conf.receive_thread_count(); ++i)
         {
             additional_threads.emplace_back(std::thread{&Server_Thread::run_context, this, &server, i});
@@ -173,9 +176,6 @@ void Server_Thread::run_context(Server* server, uint16_t thread_number)
 {
     try
     {
-        boost::asio::ip::udp::endpoint remote_endpoint;
-        server->start_receive(remote_endpoint);
-
         io_context_->run();
     }
     catch (std::exception& e)

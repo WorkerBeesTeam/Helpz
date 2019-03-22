@@ -9,8 +9,8 @@
 namespace Helpz {
 namespace DTLS {
 
-Node::Node(Helpz::DTLS::Socket *socket) :
-    socket_(socket)
+Node::Node(Controller *controller, Helpz::DTLS::Socket *socket) :
+    controller_(controller), socket_(socket)
 {
 }
 
@@ -117,6 +117,11 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     {
         std::cerr << title() << " Error in receided data process_received_data" << std::endl;
     }
+}
+
+void Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)
+{
+    controller_->add_timeout_at(receiver_endpoint(), time_point);
 }
 
 std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }

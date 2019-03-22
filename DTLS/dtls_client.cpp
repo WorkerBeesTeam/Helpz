@@ -3,6 +3,7 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/bind.hpp>
 
+#include "dtls_client_node.h"
 #include "dtls_client.h"
 
 namespace Helpz {
@@ -20,7 +21,7 @@ Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, Create_Cl
 
 std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
 {
-    return controller()->protocol();
+    return controller()->get_node()->protocol();
 }
 
 void Client::start_connection(const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols)
@@ -36,14 +37,19 @@ void Client::start_connection(const std::string &host, const std::string &port, 
 
     socket_->open(udp::v4());
 
-    controller()->start(host, receiver_endpoint, next_protocols);
+    node()->start(host, receiver_endpoint, next_protocols);
 
     start_receive(remote_endpoint_);
 }
 
 void Client::close()
 {
-    controller()->close();
+    node()->close();
+}
+
+Client_Node *Client::node()
+{
+    return std::static_pointer_cast<Client_Node>(controller()->get_node()).get();
 }
 
 Client_Controller *Client::controller()
@@ -58,7 +64,7 @@ void Client::check_deadline()
     // deadline before this actor had a chance to run.
     if (deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
     {
-        if (controller()->is_reconnect_needed())
+        if (node()->is_reconnect_needed())
         {
             // The deadline has passed. The outstanding asynchronous operation needs
             // to be cancelled so that the blocked receive() function will return.

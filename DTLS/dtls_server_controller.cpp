@@ -41,17 +41,20 @@ Socket *Server_Controller::socket()
     return socket_;
 }
 
-void Server_Controller::process_data(const udp::endpoint &remote_endpoint, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
+std::shared_ptr<Node> Server_Controller::get_node(const boost::asio::ip::udp::endpoint &remote_endpoint)
 {
-    std::unique_lock lock(clients_mutex_);
-    auto node = get_or_create_client(remote_endpoint);
+    std::shared_ptr<Node> node = find_client(remote_endpoint);
     if (!node)
     {
-        return;
+        node = create_client(remote_endpoint);
+//        return get_or_create_client(remote_endpoint);
     }
+    return node;
+}
 
-    std::lock_guard node_lock(node->mutex_);
-    lock.unlock();
+void Server_Controller::process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
+{
+    // node already locked
     node->process_received_data(std::move(data), size);
 }
 
@@ -150,8 +153,9 @@ std::shared_ptr<Server_Node> Server_Controller::find_client(std::function<bool (
     return {};
 }
 
-std::shared_ptr<Server_Node> Server_Controller::get_or_create_client(const udp::endpoint &remote_endpoint)
+std::shared_ptr<Server_Node> Server_Controller::create_client(const udp::endpoint &remote_endpoint)
 {
+    std::lock_guard lock(clients_mutex_);
     auto it = clients_.find(remote_endpoint);
     if (it != clients_.cend())
     {
@@ -184,23 +188,7 @@ void Server_Controller::add_received_record(const udp::endpoint &remote_endpoint
     records_cond_.notify_one();
 }
 
-void Server_Controller::add_timeout_at(const boost::asio::ip::udp::endpoint &remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point)
-{
-    protocol_timer_.add(time_point, remote_endpoint);
-}
 
-void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint)
-{
-    auto node = find_client(remote_endpoint);
-    if (node)
-    {
-        std::shared_ptr<Network::Protocol> proto = node->protocol();
-        if (proto)
-        {
-            proto->process_wait_list();
-        }
-    }
-}
 
 void Server_Controller::records_thread_run()
 {
