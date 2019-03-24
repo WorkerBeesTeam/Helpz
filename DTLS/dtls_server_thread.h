@@ -64,7 +64,7 @@ public:
 private:
     void run(Server_Thread_Config&& conf);
 
-    void run_context(Server *server, uint16_t thread_number);
+    void run_context(uint16_t thread_number);
 
     boost::asio::io_context* io_context_;
     std::atomic<Server*> server_;

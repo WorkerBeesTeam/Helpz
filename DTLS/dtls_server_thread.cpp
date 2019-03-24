@@ -143,9 +143,9 @@ void Server_Thread::run(Server_Thread_Config&& conf)
 
         for (uint16_t i = 1; i < conf.receive_thread_count(); ++i)
         {
-            additional_threads.emplace_back(std::thread{&Server_Thread::run_context, this, &server, i});
+            additional_threads.emplace_back(std::thread{&Server_Thread::run_context, this, i});
         }
-        run_context(&server, 0);
+        run_context(0);
     }
     catch (std::exception& e)
     {
@@ -172,7 +172,7 @@ void Server_Thread::run(Server_Thread_Config&& conf)
     delete io_context_;
 }
 
-void Server_Thread::run_context(Server* server, uint16_t thread_number)
+void Server_Thread::run_context(uint16_t thread_number)
 {
     try
     {

@@ -24,10 +24,6 @@ SOURCES += \
     dtls_server_node.cpp \
     dtls_node.cpp \
     dtls_client_node.cpp
-#    OpenSSL/dtlsclient.cpp \
-#    OpenSSL/dtlscookie.cpp \
-#    OpenSSL/dtlsserver.cpp \
-#    OpenSSL/dtlssocket.cpp
 
 HEADERS += \
     dtls_version.h \
@@ -45,14 +41,6 @@ HEADERS += \
     dtls_server_node.h \
     dtls_node.h \
     dtls_client_node.h
-#    OpenSSL/dtlssocket.h \
-#    OpenSSL/dtlsserver.h \
-#    OpenSSL/dtlscookie.h \
-#    OpenSSL/dtlsclient.h
-
-linux-rasp-pi2-g++ {
-#    INCLUDEPATH += /mnt/second_drive/build/botan_build/include/botan-1.11
-}
 
 win32 {
     QMAKE_CXXFLAGS += -fstack-protector
