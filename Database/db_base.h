@@ -70,7 +70,7 @@ public:
 
     QSqlQuery select(uint idx, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint> &field_ids = {});
     QSqlQuery select(const Table &table, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint>& field_ids = {});
-    QString select_query(const Table& table, const QString &suffix = {}, int values_size = 0, const std::vector<uint> &field_ids = {}) const;
+    QString select_query(const Table& table, const QString &suffix = {}, const std::vector<uint> &field_ids = {}) const;
 
     bool insert(uint idx, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
     bool insert(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {}, const QString &method = "INSERT");

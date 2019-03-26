@@ -222,7 +222,7 @@ QSqlQuery Base::select(uint idx, const QString& suffix, const QVariantList &valu
 
 QSqlQuery Base::select(const Table& table, const QString &suffix, const QVariantList &values, const std::vector<uint> &field_ids)
 {
-    QString sql = select_query(table, suffix, values.size(), field_ids);
+    QString sql = select_query(table, suffix, field_ids);
     if (sql.isEmpty())
     {
         return QSqlQuery{};
@@ -230,14 +230,13 @@ QSqlQuery Base::select(const Table& table, const QString &suffix, const QVariant
     return exec(sql, values);
 }
 
-QString Base::select_query(const Table& table, const QString &suffix, int values_size, const std::vector<uint> &field_ids) const
+QString Base::select_query(const Table& table, const QString &suffix, const std::vector<uint> &field_ids) const
 {
-    auto escaped_fields = escape_fields(table, field_ids);
-    if (!table || escaped_fields.isEmpty() || escaped_fields.size() != values_size)
+    if (!table)
     {
         return {};
     }
-    return QString("SELECT %1 FROM %2 %3;").arg(escaped_fields.join(',')).arg(table.name_).arg(suffix);
+    return QString("SELECT %1 FROM %2 %3;").arg(escape_fields(table, field_ids).join(',')).arg(table.name_).arg(suffix);
 }
 
 bool Base::insert(uint idx, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids)

@@ -88,7 +88,6 @@ void Protocol::send_message(Message_Item message, uint32_t pos)
         message.id_ = next_tx_msg_id_++;
     }
 
-//    std::cout << title() << " > msg #" << int(*message.id_) << " " << message.cmd_ << " size: " << message.data_device_->size() << std::endl;
     const QByteArray packet = prepare_packet(message, pos);
     if (!packet.size())
     {
@@ -173,7 +172,6 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos)
     ds.device()->seek(0);
     ds << qChecksum(packet.constData() + 2, 7);
 
-//    qCDebug(DetailLog) << "CMD OUT" << (cmd & ~ALL_FLAGS) << "SIZE" << data.size() << "WRITE" << buffer.size();
     return packet;
 }
 
@@ -243,8 +241,6 @@ void Protocol::process_stream()
         flags = cmd & ALL_FLAGS;
         cmd &= ~ALL_FLAGS;
 
-//        std::cout << title() << " < msg #" << int(msg_id) << " " << cmd << " size: " << buffer_size << std::endl;
-
         try
         {
             internal_process_message(msg_id, cmd, flags, device_.buffer().constData() + pos + 9, buffer_size);
@@ -299,7 +295,6 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
 
 void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char *data_ptr, uint32_t data_size)
 {
-//    std::cout << "internal_process_message " << int(msg_id) << "(" << int(next_rx_msg_id_) << ") cmd: " << (cmd & ~ALL_FLAGS) << std::endl;
     if (msg_id < next_rx_msg_id_)
     {
         if (!is_lost_message(msg_id))
@@ -341,15 +336,12 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
         if (flags & ANSWER)
         {
             Helpz::parse_out(ds, answer_id);
-//            std::cout << title() << " < msg #" << int(msg_id) << " is ANSWER: " << int(answer_id) << std::endl;
         }
 
         if (flags & FRAGMENT)
         {
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
-
-//            std::cout << title() << " < msg #" << int(msg_id) << " is FRAGMENT pos: " << pos << " size: " << full_size<< std::endl;
 
             std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
 
@@ -382,7 +374,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 
                 if (msg.data_device_->pos() == full_size)
                 {
-//                    std::cout << title() << " fragmented message receive complite. #" << int(msg_id) << " cmd: " << cmd << std::endl;
                     msg.data_device_->seek(0);
                     if (flags & ANSWER)
                     {
@@ -411,6 +402,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             if (msg.answer_func_)
             {
                 data.remove(0, 1);
+
                 QBuffer buffer(&data);
                 msg.answer_func_(buffer);
             }
@@ -437,8 +429,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
 {
     Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
-//    std::cout << title() << " frgm query " << int(fragmanted_msg_id) << " pos " << pos
-//              << " finded: " << (msg.data_device_ && pos < msg.data_device_->size() ? "true" : "false") << std::endl;
     if (msg.data_device_ && pos < msg.data_device_->size())
     {
         msg.fragment_size_ = fragmanted_size;
