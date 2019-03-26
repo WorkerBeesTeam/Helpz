@@ -3,12 +3,6 @@
 namespace Helpz {
 namespace Database {
 
-bool Table::operator !() const {
-    return name_.isEmpty() || field_names_.empty();
-}
-
-// ------------------------------------------------------------------------------------------------
-
 Connection_Info::Connection_Info(const QString &db_name, const QString &login, const QString &password, const QString &host, int port, const QString &driver_name, const QString &connect_options) :
     port_(port), driver_name_(driver_name), connect_options_(connect_options), host_(host), db_name_(db_name), login_(login), password_(password) {}
 

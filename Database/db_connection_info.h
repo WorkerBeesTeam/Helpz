@@ -7,13 +7,6 @@
 namespace Helpz {
 namespace Database {
 
-struct Table {
-    QString name_;
-    QStringList field_names_;
-
-    bool operator !() const;
-};
-
 class Connection_Info {
 public:
     Connection_Info(const QString &db_name, const QString &login, const QString &password,

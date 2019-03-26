@@ -33,6 +33,11 @@ void Thread::stop()
     cond_.notify_one();
 }
 
+const Base* Thread::db() const
+{
+    return db_.get();
+}
+
 void Thread::add_query(std::function<void (Base *)> callback)
 {
     std::lock_guard lock(mutex_);

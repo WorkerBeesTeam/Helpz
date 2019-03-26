@@ -24,6 +24,8 @@ public:
 
     void stop();
 
+    const Base* db() const;
+
     void add_query(std::function<void(Base*)> callback);
 
     void add_pending_query(QString&& sql, std::vector<QVariantList>&& values_list,

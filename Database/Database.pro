@@ -13,6 +13,8 @@ HEADERS += db_base.h \
     db_delete_row.h \
     db_thread.h
 
+LIBS += -lHelpzDBMeta
+
 VER_MAJ = 1
 VER_MIN = 4
 include(../helpz_install.pri)
