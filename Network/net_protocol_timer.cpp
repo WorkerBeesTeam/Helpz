@@ -15,10 +15,11 @@ Protocol_Timer::Protocol_Timer(Protocol_Timer_Emiter *emiter) :
 
 Protocol_Timer::~Protocol_Timer()
 {
+    break_flag_ = true;
+    cond_.notify_one();
+
     if (thread_.joinable())
     {
-        break_flag_ = true;
-        cond_.notify_one();
         thread_.join();
     }
 }
