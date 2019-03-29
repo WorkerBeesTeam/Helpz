@@ -17,8 +17,6 @@ Q_LOGGING_CATEGORY(DBLog, "database")
 
 namespace Database {
 
-/*static*/ Table Base::s_empty_table_;
-
 /*static*/ QString Base::odbc_driver()
 {
 #ifdef Q_OS_LINUX
@@ -177,28 +175,6 @@ QSqlDatabase Base::database() const
 bool Base::is_silent() const { return silent_; }
 void Base::set_silent(bool sailent) { silent_ = sailent; }
 
-void Base::add_table(uint idx, Table&& table)
-{
-    tables_.emplace(idx, std::move(table));
-}
-
-const Table& Base::table(uint idx) const
-{
-    auto it = tables_.find(idx);
-    if (it != tables_.cend())
-    {
-        return it->second;
-    }
-    return s_empty_table_;
-}
-
-const std::map<uint, Table> &Base::tables() const { return tables_; }
-
-bool Base::create_table(uint idx, const QStringList &types)
-{
-    return Base::create_table(table(idx), types);
-}
-
 bool Base::create_table(const Helpz::Database::Table &table, const QStringList &types)
 {
     if (!table || table.field_names_.size() != types.size())
@@ -213,11 +189,6 @@ bool Base::create_table(const Helpz::Database::Table &table, const QStringList &
     }
 
     return exec(QString("create table if not exists %1 (%2)").arg(table.name_).arg(columns_info.join(','))).isActive();
-}
-
-QSqlQuery Base::select(uint idx, const QString& suffix, const QVariantList &values, const std::vector<uint> &field_ids)
-{
-    return select(table(idx), suffix, values, field_ids);
 }
 
 QSqlQuery Base::select(const Table& table, const QString &suffix, const QVariantList &values, const std::vector<uint> &field_ids)
@@ -237,11 +208,6 @@ QString Base::select_query(const Table& table, const QString &suffix, const std:
         return {};
     }
     return QString("SELECT %1 FROM %2 %3;").arg(escape_fields(table, field_ids).join(',')).arg(table.name_).arg(suffix);
-}
-
-bool Base::insert(uint idx, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids)
-{
-    return Base::insert(table(idx), values, id_out, field_ids);
 }
 
 bool Base::insert(const Table &table, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids, const QString& method)
@@ -273,19 +239,9 @@ QString Base::insert_query(const Table &table, int values_size, const std::vecto
     return QString(method + " INTO %1(%2) VALUES(%3);").arg(table.name_).arg(escapedFields.join(',')).arg(q_str);
 }
 
-bool Base::replace(uint idx, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids)
-{
-    return replace(table(idx), values, id_out, field_ids);
-}
-
 bool Base::replace(const Table &table, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids)
 {
     return insert(table, values, id_out, field_ids, "REPLACE");
-}
-
-bool Base::update(uint idx, const QVariantList &values, const QString &where, const std::vector<uint> &field_ids)
-{
-    return update(table(idx), values, where, field_ids);
 }
 
 bool Base::update(const Table &table, const QVariantList &values, const QString &where, const std::vector<uint> &field_ids)
@@ -317,11 +273,6 @@ QString Base::update_query(const Table &table, int values_size, const QString &w
     return sql;
 }
 
-QSqlQuery Base::del(uint idx, const QString &where, const QVariantList &values)
-{
-    return Base::del(table(idx).name_, where, values);
-}
-
 QSqlQuery Base::del(const QString &table_name, const QString &where, const QVariantList &values)
 {
     QString sql = del_query(table_name, where);
@@ -346,11 +297,6 @@ QString Base::del_query(const QString &table_name, const QString &where) const
         sql += " WHERE " + where;
     }
     return sql;
-}
-
-quint32 Base::row_count(uint idx, const QString &where, const QVariantList &values)
-{
-    return row_count(table(idx).name_, where, values);
 }
 
 quint32 Base::row_count(const QString &table_name, const QString &where, const QVariantList &values)

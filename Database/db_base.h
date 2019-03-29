@@ -52,7 +52,8 @@ public:
 
     QSqlDatabase database() const;
 
-    struct SilentExec {
+    struct SilentExec
+    {
         SilentExec(Base* db) : db(db) { db->set_silent(true); }
         ~SilentExec() { db->set_silent(false); }
         Base* db;
@@ -61,32 +62,21 @@ public:
     bool is_silent() const;
     void set_silent(bool sailent);
 
-    void add_table(uint idx, Table&& table);
-    const Table& table(uint idx) const;
-    const std::map<uint, Table>& tables() const;
-
-    bool create_table(uint idx, const QStringList& types);
     bool create_table(const Table& table, const QStringList& types);
 
-    QSqlQuery select(uint idx, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint> &field_ids = {});
     QSqlQuery select(const Table &table, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint>& field_ids = {});
     QString select_query(const Table& table, const QString &suffix = {}, const std::vector<uint> &field_ids = {}) const;
 
-    bool insert(uint idx, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
     bool insert(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {}, const QString &method = "INSERT");
     QString insert_query(const Table& table, int values_size, const std::vector<uint>& field_ids = {}, const QString& method = "INSERT") const;
-    bool replace(uint idx, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
     bool replace(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
 
-    bool update(uint idx, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
     bool update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
     QString update_query(const Table& table, int values_size, const QString& where, const std::vector<uint>& field_ids = {}) const;
 
-    QSqlQuery del(uint idx, const QString& where = QString(), const QVariantList &values = QVariantList());
     QSqlQuery del(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
     QString del_query(const QString& table_name, const QString& where = QString()) const;
 
-    quint32 row_count(uint idx, const QString& where = QString(), const QVariantList &values = QVariantList());
     quint32 row_count(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
 
     QSqlQuery exec(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
@@ -95,9 +85,6 @@ private:
 
     bool silent_ = false;
     QString connection_name_;
-
-    std::map<uint, Table> tables_;
-    static Table s_empty_table_;
 
     std::unique_ptr<Connection_Info> last_connection_;
 };

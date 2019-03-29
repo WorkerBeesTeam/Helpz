@@ -80,7 +80,7 @@ void Thread::run()
 {
     break_flag_ = false;
     std::unique_lock lock(mutex_, std::defer_lock);
-    while (true)
+    while (!break_flag_)
     {
         lock.lock();
         cond_.wait(lock, [this](){ return data_queue_.size() || break_flag_; });

@@ -38,7 +38,7 @@ void Protocol_Timer::run()
     bool timeout;
 
     std::unique_lock lock(mutex_, std::defer_lock);
-    while (true)
+    while (!break_flag_)
     {
         timeout = false;
 
