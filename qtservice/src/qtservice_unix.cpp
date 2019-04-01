@@ -352,7 +352,8 @@ void QtServiceSysPrivate::slotReady()
             retValue = true;
         } else if (cmd.length() > 5 && cmd.left(5) == QLatin1String("list:")) {
             cmd = cmd.mid(5);
-            QStringList args = cmd.split('|');
+            QStringList args(qApp->applicationFilePath());
+            args << cmd.split('|');
             QtServiceBase::instance()->processCommands(args);
             retValue = true;
         } else if (cmd.length() > 4 && cmd.left(4) == QLatin1String("num:")) {
