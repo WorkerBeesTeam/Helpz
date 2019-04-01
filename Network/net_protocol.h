@@ -146,6 +146,7 @@ public:
     virtual bool operator ==(const Protocol&) const { return false; }
 
     Protocol_Writer* writer();
+    const Protocol_Writer* writer() const;
     void set_writer(Protocol_Writer* protocol_writer);
 
     typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;

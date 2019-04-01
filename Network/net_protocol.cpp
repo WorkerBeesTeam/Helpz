@@ -59,6 +59,11 @@ Protocol_Writer *Protocol::writer()
     return protocol_writer_;
 }
 
+const Protocol_Writer* Protocol::writer() const
+{
+    return protocol_writer_;
+}
+
 void Protocol::set_writer(Protocol_Writer *protocol_writer)
 {
     protocol_writer_ = protocol_writer;
