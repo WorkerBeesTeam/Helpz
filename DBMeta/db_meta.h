@@ -30,6 +30,7 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define DB_AMN(A) A, A ? obj.A : QVariant(), A
 #define DB_AN(A) A, A() ? obj.A() : QVariant(), set_##A
 #define DB_AT(A) A, A##_to_db(), set_##A##_from_db
+#define DB_ANS(A) A, A().isEmpty() ? "" : obj.A(), set_##A
 
 #define HELPZ_DB_META(T, t_name, N, ...)                          \
     public:                                                     \
