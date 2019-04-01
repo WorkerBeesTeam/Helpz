@@ -43,7 +43,7 @@ class Base : public QtService<QCoreApplication>
 public:
     static const QLoggingCategory &Log();
 
-    Base(int argc, char **argv);
+    Base(int argc, char **argv, const QString &name = QString());
 #ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
     bool isImmediately() const;
 #endif
@@ -91,9 +91,9 @@ class Impl : public Base
 public:
     using Base::Base;
 
-    static Impl<T>& instance(int argc = 0, char **argv = nullptr)
+    static Impl<T>& instance(int argc = 0, char **argv = nullptr, const QString &name = QString())
     {
-        static Impl<T> service(argc, argv);
+        static Impl<T> service(argc, argv, name);
         return service;
     }
 private:

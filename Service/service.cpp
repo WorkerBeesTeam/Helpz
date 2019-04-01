@@ -85,12 +85,12 @@ void Object::restart()
     th_[1]->start();
 }
 
-Base::Base(int argc, char **argv) :
-    QtService( argc, argv, QCoreApplication::applicationName() )
+Base::Base(int argc, char **argv, const QString& name) :
+    QtService( argc, argv, name.isEmpty() ? QCoreApplication::applicationName() : name )
 {
     g_obj = this;
 
-    assert( !QCoreApplication::applicationName().isEmpty() );
+    assert( !serviceName().isEmpty() );
 
 #ifdef Q_OS_WIN32
     setStartupType(QtServiceController::AutoStartup);
