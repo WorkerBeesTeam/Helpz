@@ -19,4 +19,4 @@ SOURCES += main.cpp
 INCLUDEPATH += $${OUT_PWD}/../helpz/include
 LIBS += -L$${OUT_PWD}/../helpz
 
-LIBS += -lHelpzBase -lHelpzService -lHelpzNetwork -lHelpzDB -lHelpzDTLS -lbotan-2 -lboost_system
+LIBS += -lHelpzBase -lHelpzService -lHelpzNetwork -lHelpzDB -lHelpzDBMeta -lHelpzDTLS -lbotan-2 -lboost_system

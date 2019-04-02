@@ -66,8 +66,7 @@ private:
 
     void ready_write() override
     {
-        auto ctrl = dynamic_cast<Helpz::DTLS::Client_Controller*>(writer());
-        std::cout << "Connected. Server choose protocol: " << ctrl->application_protocol() << std::endl;
+        std::cout << "Connected" << std::endl;
 
         test_simple_message();
         test_message_with_answer();
