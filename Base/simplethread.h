@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <tuple>
+#include <atomic>
 
 #include <QThread>
 
@@ -17,11 +18,11 @@ public:
     typedef std::tuple<Args...> Tuple;
 
     ParamThread(Args... __args) :
-        m_args(new Tuple{__args...}), m_ptr(nullptr) { }
+        m_args(new Tuple{__args...}), ptr_(nullptr) { }
     ~ParamThread() { if (m_args) delete m_args; }
 
-    T* ptr() { return m_ptr; }
-    const T* ptr() const { return m_ptr; }
+    T* ptr() { return ptr_.load(); }
+    const T* ptr() const { return ptr_.load(); }
 
     virtual void started() {}
 
@@ -42,8 +43,9 @@ protected:
     {
         try {
             using Indexes = std::make_index_sequence<std::tuple_size<Tuple>::value>;
-            std::unique_ptr<T> objPtr(m_ptr = allocateImpl(Indexes{}));
-            SafePtrWatcher watch(&m_ptr);
+            std::unique_ptr<T> objPtr(allocateImpl(Indexes{}));
+            ptr_.store(objPtr.get());
+            SafePtrWatcher watch(&ptr_);
 
             started();
             delete m_args; m_args = nullptr;
@@ -58,13 +60,13 @@ protected:
 
 private:
     struct SafePtrWatcher {
-        SafePtrWatcher(T** obj) : m_obj(obj) {}
-        ~SafePtrWatcher() { *m_obj = nullptr; }
-        T** m_obj;
+        SafePtrWatcher(std::atomic<T*>* ptr) : ptr_(ptr) {}
+        ~SafePtrWatcher() { ptr_->store(nullptr); }
+        std::atomic<T*>* ptr_;
     };
 
     Tuple* m_args;
-    T* m_ptr;
+    std::atomic<T*> ptr_;
 };
 
 } // namespace Helpz
