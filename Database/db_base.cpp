@@ -210,13 +210,13 @@ QString Base::select_query(const Table& table, const QString &suffix, const std:
     return QString("SELECT %1 FROM %2 %3;").arg(escape_fields(table, field_ids).join(',')).arg(table.name_).arg(suffix);
 }
 
-bool Base::insert(const Table &table, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids, const QString& method)
+bool Base::insert(const Table &table, const QVariantList &values, QVariant *id_out, const QString& suffix, const std::vector<uint> &field_ids, const QString& method)
 {
-    QString sql = insert_query(table, values.size(), field_ids, method);
+    QString sql = insert_query(table, values.size(), suffix, field_ids, method);
     return !sql.isEmpty() && exec(sql, values, id_out).isActive();
 }
 
-QString Base::insert_query(const Table &table, int values_size, const std::vector<uint> &field_ids, const QString& method) const
+QString Base::insert_query(const Table &table, int values_size, const QString& suffix, const std::vector<uint> &field_ids, const QString& method) const
 {
     auto escapedFields = escape_fields(table, field_ids);
     if (!table || escapedFields.isEmpty() || escapedFields.size() != values_size)
@@ -236,12 +236,18 @@ QString Base::insert_query(const Table &table, int values_size, const std::vecto
         }
     }
 
-    return QString(method + " INTO %1(%2) VALUES(%3);").arg(table.name_).arg(escapedFields.join(',')).arg(q_str);
+    QString sql = QString(method + " INTO %1(%2) VALUES(%3)").arg(table.name_).arg(escapedFields.join(',')).arg(q_str);
+    if (!suffix.isEmpty())
+    {
+        sql += ' ' + suffix;
+    }
+    sql += ';';
+    return sql;
 }
 
 bool Base::replace(const Table &table, const QVariantList &values, QVariant *id_out, const std::vector<uint> &field_ids)
 {
-    return insert(table, values, id_out, field_ids, "REPLACE");
+    return insert(table, values, id_out, QString(), field_ids, "REPLACE");
 }
 
 bool Base::update(const Table &table, const QVariantList &values, const QString &where, const std::vector<uint> &field_ids)

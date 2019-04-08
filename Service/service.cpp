@@ -19,7 +19,8 @@ Base* g_obj = nullptr;
 
 void term_handler(int)
 {
-    g_obj->stop();
+    if (g_obj)
+        g_obj->stop();
     qApp->quit();
     std::cerr << "Termination complete.\n";
     std::exit(0);
@@ -85,37 +86,14 @@ void Object::restart()
     th_[1]->start();
 }
 
-Base::Base(int argc, char **argv, const QString& name) :
-    QtService( argc, argv, name.isEmpty() ? QCoreApplication::applicationName() : name )
+Base::Base()
 {
     g_obj = this;
-
-    assert( !serviceName().isEmpty() );
-
-#ifdef Q_OS_WIN32
-    setStartupType(QtServiceController::AutoStartup);
-#endif
-
-#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-    for(int i = 1; i < argc; ++i)
-    {
-        QString a(argv[i]);
-        if (a == QLatin1String("-e") || a == QLatin1String("-exec"))
-        {
-            isImmediately_ = true;
-            break;
-        }
-    }
-#endif
 }
-
-#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-bool Base::isImmediately() const { return isImmediately_; }
-#endif
 
 void Base::start()
 {
-    service_ = std::make_shared<Object>(getWorkerThread(), isImmediately());
+    service_ = std::make_shared<Object>(getWorkerThread(), is_immediately());
 
     std::signal(SIGTERM, term_handler);
     std::signal(SIGINT, term_handler);

@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <memory>
-#include <assert.h>
+#include <cassert>
 
 #include <QThread>
 #include <QMetaMethod>
@@ -38,30 +38,68 @@ private:
     std::vector<QThread*> th_;
 };
 
-class Base : public QtService<QCoreApplication>
+class Base
 {
 public:
     static const QLoggingCategory &Log();
 
+    Base();
+
     Base(int argc, char **argv, const QString &name = QString());
-#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-    bool isImmediately() const;
-#endif
+
 protected:
     virtual OneObjectThread* getWorkerThread() = 0;
+    virtual bool is_immediately() const = 0;
+    void start();
+    void stop();
+    void processCommands(const QStringList &cmdList);
 private:
-    void start() override;
-    void stop() override;
-
-    void processCommands(const QStringList &cmdList) override;
 
     friend void term_handler(int);
+
+    std::shared_ptr<Object> service_;
+};
+
+template<typename Application>
+class Base_Template : public QtService<Application>, public Base
+{
+public:
+    Base_Template(int argc, char **argv, const QString& name) :
+        QtService<Application>( argc, argv, name.isEmpty() ? QCoreApplication::applicationName() : name ),
+        Base()
+    {
+        assert( !QtService<Application>::serviceName().isEmpty() );
+
+    #ifdef Q_OS_WIN32
+        setStartupType(QtServiceController::AutoStartup);
+    #endif
+
+    #ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
+        for(int i = 1; i < argc; ++i)
+        {
+            QString a(argv[i]);
+            if (a == QLatin1String("-e") || a == QLatin1String("-exec"))
+            {
+                isImmediately_ = true;
+                break;
+            }
+        }
+    #endif
+    }
+
+#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
+    bool isImmediately() const { return isImmediately_; }
+#endif
+
+    bool is_immediately() const override { return Base_Template<Application>::isImmediately(); }
+private:
+    void start() override { Base::start(); }
+    void stop() override { Base::stop(); }
+    void processCommands(const QStringList &cmdList) override { Base::processCommands(cmdList); }
 
 #ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
     bool isImmediately_ = false;
 #endif
-
-    std::shared_ptr<Object> service_;
 };
 
 template<class T>
@@ -85,15 +123,15 @@ class WorkerThread : public OneObjectThread {
     }
 };
 
-template<class T>
-class Impl : public Base
+template<class T, typename Application = QCoreApplication>
+class Impl : public Base_Template<Application>
 {
 public:
-    using Base::Base;
+    using Base_Template<Application>::Base_Template;
 
-    static Impl<T>& instance(int argc = 0, char **argv = nullptr, const QString &name = QString())
+    static Impl<T, Application>& instance(int argc = 0, char **argv = nullptr, const QString &name = QString())
     {
-        static Impl<T> service(argc, argv, name);
+        static Impl<T, Application> service(argc, argv, name);
         return service;
     }
 private:
