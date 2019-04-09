@@ -218,12 +218,12 @@ bool Base::insert(const Table &table, const QVariantList &values, QVariant *id_o
 QString Base::insert_query(const Table &table, int values_size, const QString& suffix, const std::vector<uint> &field_ids, const QString& method) const
 {
     auto escapedFields = escape_fields(table, field_ids);
-    if (!table || escapedFields.isEmpty() || escapedFields.size() != values_size)
+    if (!table || escapedFields.isEmpty() || (suffix.count('?') + escapedFields.size()) != values_size)
     {
         return {};
     }
 
-    int q_size = values_size + (values_size - 1);
+    int q_size = escapedFields.size() + (escapedFields.size() - 1);
     QString q_str(q_size, '?');
     ushort* data = reinterpret_cast<ushort*>(q_str.data()) + 1;
     for (int i = 1; i < q_size; i += 2)
