@@ -8,9 +8,9 @@ namespace Network {
 
 Protocol_Timer::Protocol_Timer(Protocol_Timer_Emiter *emiter) :
     emiter_(emiter),
-    break_flag_(false), new_timeout_flag_(false),
-    thread_(&Protocol_Timer::run, this)
+    break_flag_(false), new_timeout_flag_(false)
 {
+    thread_ = new std::thread(&Protocol_Timer::run, this);
 }
 
 Protocol_Timer::~Protocol_Timer()
@@ -18,10 +18,11 @@ Protocol_Timer::~Protocol_Timer()
     break_flag_ = true;
     cond_.notify_one();
 
-    if (thread_.joinable())
+    if (thread_->joinable())
     {
-        thread_.join();
+        thread_->join();
     }
+    delete thread_;
 }
 
 void Protocol_Timer::add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint)

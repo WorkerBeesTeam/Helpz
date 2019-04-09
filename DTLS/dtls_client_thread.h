@@ -49,7 +49,7 @@ private:
 };
 
 class Client;
-class Client_Thread : public std::thread
+class Client_Thread
 {
 public:
     Client_Thread(Client_Thread_Config&& conf);
@@ -60,11 +60,12 @@ public:
     Client* client();
 
 private:
-    void run(Client_Thread_Config&& conf);
+    void run(Client_Thread_Config conf);
 
     boost::asio::io_context* io_context_;
     std::atomic<bool> stop_flag_;
     std::atomic<Client*> client_;
+    std::thread* thread_;
 };
 
 } // namespace DTLS

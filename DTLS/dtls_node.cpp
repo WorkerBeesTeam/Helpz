@@ -66,6 +66,7 @@ void Node::write(const uint8_t *data, std::size_t size)
 {
     if (dtls_ && dtls_->is_active())
     {
+        std::lock_guard lock(mutex_);
         dtls_->send(data, size);
     }
 }

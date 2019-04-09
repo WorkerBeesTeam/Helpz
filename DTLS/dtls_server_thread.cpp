@@ -98,18 +98,19 @@ void Server_Thread_Config::set_record_thread_count(const uint16_t &record_thread
 
 // -------------------------------------------------------------------------------------------------------------------
 
-Server_Thread::Server_Thread(Server_Thread_Config&& conf) :
-    std::thread(&Server_Thread::run, this, std::move(conf))
+Server_Thread::Server_Thread(Server_Thread_Config&& conf)
 {
+    thread_ = new std::thread(&Server_Thread::run, this, std::move(conf));
 }
 
 Server_Thread::~Server_Thread()
 {
-    if (joinable())
+    if (thread_->joinable())
     {
         stop();
-        join();
+        thread_->join();
     }
+    delete thread_;
 }
 
 void Server_Thread::stop()
@@ -125,7 +126,7 @@ Server *Server_Thread::server()
     return server_.load();
 }
 
-void Server_Thread::run(Server_Thread_Config&& conf)
+void Server_Thread::run(Server_Thread_Config conf)
 {
     io_context_ = nullptr;
     std::vector<std::thread> additional_threads;

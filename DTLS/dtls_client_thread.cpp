@@ -75,18 +75,20 @@ void Client_Thread_Config::set_next_protocols(const std::vector<std::string> &ne
 
 // ---------------------------------------------------------------------------------------------
 
-Client_Thread::Client_Thread(Client_Thread_Config &&conf) :
-    std::thread(&Client_Thread::run, this, std::move(conf))
+Client_Thread::Client_Thread(Client_Thread_Config &&conf)
 {
+    thread_ = new std::thread(&Client_Thread::run, this, std::move(conf));
 }
 
 Client_Thread::~Client_Thread()
 {
-    if (joinable())
+    if (thread_->joinable())
     {
         stop();
-        join();
+        thread_->join();
     }
+
+    delete thread_;
 }
 
 void Client_Thread::stop()
@@ -103,7 +105,7 @@ Client *Client_Thread::client()
     return client_.load();
 }
 
-void Client_Thread::run(Client_Thread_Config &&conf)
+void Client_Thread::run(Client_Thread_Config conf)
 {
     io_context_ = nullptr;
     try

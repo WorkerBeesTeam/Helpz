@@ -25,7 +25,7 @@ public:
     {
         send(MSG_SIMPLE).timeout([]() {
             std::cout << "MSG_SIMPLE timeout test" << std::endl;
-        }, std::chrono::seconds(5))  << QString("Hello simple");
+        }, std::chrono::seconds(1))  << QString("Hello simple");
     }
 
     void test_message_with_answer(quint32 value2 = 777)
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
-    std::thread(periodic_send_thread_func, &client_thread).detach();;
-//    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(10)); qApp->quit(); }).detach();
+//    std::thread(periodic_send_thread_func, &client_thread).detach();;
+    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(2)); qApp->quit(); }).detach();
     return a.exec();
 }

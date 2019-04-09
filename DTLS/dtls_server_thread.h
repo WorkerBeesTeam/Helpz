@@ -51,7 +51,7 @@ private:
 };
 
 class Server;
-class Server_Thread : public std::thread
+class Server_Thread
 {
 public:
     Server_Thread(Server_Thread_Config&& conf);
@@ -62,12 +62,13 @@ public:
 
     Server* server();
 private:
-    void run(Server_Thread_Config&& conf);
+    void run(Server_Thread_Config conf);
 
     void run_context(uint16_t thread_number);
 
     boost::asio::io_context* io_context_;
     std::atomic<Server*> server_;
+    std::thread* thread_;
 };
 
 } // namespace DTLS

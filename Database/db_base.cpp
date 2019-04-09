@@ -79,7 +79,6 @@ QSqlDatabase Base::db_from_info(const Connection_Info &info)
         close();
     }
 
-    qCCritical(DBLog) << "DB INFO: " << connection_name_ << (qintptr)this;
     return info.to_db(connection_name_);
 }
 

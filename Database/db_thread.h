@@ -15,7 +15,7 @@ namespace Helpz {
 namespace Database {
 
 class Base;
-class Thread : public std::thread
+class Thread
 {
 public:
     Thread(Connection_Info&& info);
@@ -44,6 +44,8 @@ private:
     std::condition_variable cond_;
 
     std::shared_ptr<Base> db_;
+
+    std::thread* thread_;
 };
 
 } // namespace Database

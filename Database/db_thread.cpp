@@ -10,21 +10,24 @@ Q_DECLARE_LOGGING_CATEGORY(DBLog)
 namespace Helpz {
 namespace Database {
 
-Thread::Thread(Connection_Info&& info) :
-    std::thread(&Thread::open_and_run, this, std::move(info))
-{}
+Thread::Thread(Connection_Info&& info)
+{
+    thread_ = new std::thread(&Thread::open_and_run, this, std::move(info));
+}
 
-Thread::Thread(std::shared_ptr<Base> db) :
-    std::thread(&Thread::store_and_run, this, std::move(db))
-{}
+Thread::Thread(std::shared_ptr<Base> db)
+{
+    thread_ = new std::thread(&Thread::store_and_run, this, std::move(db));
+}
 
 Thread::~Thread()
 {
     stop();
-    if (joinable())
+    if (thread_->joinable())
     {
-        join();
+        thread_->join();
     }
+    delete thread_;
 }
 
 void Thread::stop()
