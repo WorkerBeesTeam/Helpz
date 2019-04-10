@@ -12,10 +12,11 @@ class Delete_Row_Info
 {
 public:
     Delete_Row_Info(const QString& table_name, const QString& field_name = QString(),
-                 const std::vector<Delete_Row_Info>& childs = {}, bool set_null = false);
+                 const std::vector<Delete_Row_Info>& childs = {}, bool set_null = false, const QString& pk_name = "id");
 
     QString table_name_;
     QString field_name_;
+    QString pk_name_;
     std::vector<Delete_Row_Info> childs_;
     bool set_null_;
 };
@@ -27,7 +28,7 @@ class Delete_Row_Helper
 {
 public:
     Delete_Row_Helper(Base* obj, const QString& id);
-    bool del(const QString& table_name, const std::vector<Delete_Row_Info>& delete_rows_info);
+    bool del(const QString& table_name, const std::vector<Delete_Row_Info>& delete_rows_info, const QString& pk_name = "id");
 
 private:
     void del_impl(const Delete_Row_Info& del_parent);

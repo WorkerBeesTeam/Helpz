@@ -366,6 +366,7 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
                 }
             }
 
+            std::cerr << errString.toStdString() << std::endl;
             if (is_silent())
                 std::cerr << errString.toStdString() << std::endl;
             else if (attempts_count == 1) // if no more attempts
