@@ -27,6 +27,7 @@ void Node::close()
     }
     if (dtls_)
     {
+        dtls_->close();
         dtls_.reset();
     }
 }
