@@ -7,7 +7,7 @@ namespace Helpz {
 namespace Network {
 
 Q_LOGGING_CATEGORY(Log, "net")
-Q_LOGGING_CATEGORY(DetailLog, "net.detail")
+Q_LOGGING_CATEGORY(DetailLog, "net.detail", QtWarningMsg)
 
 const std::string &Protocol_Writer::title() const { return title_; }
 void Protocol_Writer::set_title(const std::string &title) { title_ = title; }
