@@ -13,7 +13,7 @@
 
 namespace Helpz {
 
-Q_LOGGING_CATEGORY(DBLog, "database", QtWarningMsg)
+Q_LOGGING_CATEGORY(DBLog, "database", QtInfoMsg)
 
 namespace Database {
 
