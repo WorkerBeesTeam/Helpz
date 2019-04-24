@@ -60,10 +60,10 @@ private:
 class Thread_Promises
 {
 public:
-    Thread_Promises()
+    Thread_Promises() :
+        promise_(),
+        shared_future_(promise_.get_future())
     {
-        future_ = promise_.get_future();
-        shared_future_ = future_.share();
     }
 
     void set_value(bool value)
@@ -83,7 +83,6 @@ public:
 
 private:
     std::promise<bool> promise_;
-    std::future<bool> future_;
     std::shared_future<bool> shared_future_;
 };
 
@@ -104,6 +103,7 @@ public:
 
     T* ptr()
     {
+        assert(QThread::isRunning());
         T* obj = ptr_.load();
         if (!obj && promises_)
         {
