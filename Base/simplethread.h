@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <atomic>
 #include <future>
+#include <cassert>
 
 #include <QThread>
 
