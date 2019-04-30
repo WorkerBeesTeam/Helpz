@@ -80,6 +80,11 @@ QByteArray Protocol_Sender::pop_packet()
     return data;
 }
 
+void Protocol_Sender::set_fragment_size(uint32_t fragment_size)
+{
+    msg_.fragment_size_ = fragment_size;
+}
+
 void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size)
 {
     if (!data_dev)

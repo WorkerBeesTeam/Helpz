@@ -57,6 +57,8 @@ public:
 
     QByteArray pop_packet();
 
+    void set_fragment_size(uint32_t fragment_size);
+
     void set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size = MAX_MESSAGE_DATA_SIZE);
     Protocol_Sender &answer(std::function<void(QIODevice &)> answer_func);
     Protocol_Sender &timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration,
