@@ -67,7 +67,7 @@ public:
     const quint32 MAX_MESSAGE_SIZE = 2147483648;
 
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
-#if (QT_VERSION > QT_VERSION_CHECK(5, 12, 2))
+#if (QT_VERSION > QT_VERSION_CHECK(5, 12, 3))
 #pragma GCC warning "Think about raise used version or if it the same, then raise qt version in this condition."
 #endif
 
