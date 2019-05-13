@@ -4,6 +4,8 @@ TARGET = Service
 
 INCLUDEPATH += ../qtservice/src/
 
+include(../qtservice/src/qtservice.pri)
+
 SOURCES += \
     service.cpp \
     srv_version.cpp
@@ -13,8 +15,6 @@ HEADERS += \
     srv_version.h
 
 LIBS += -lHelpzBase
-
-include(../qtservice/src/qtservice.pri)
 
 VER_MAJ = 1
 VER_MIN = 2

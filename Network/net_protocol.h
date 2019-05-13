@@ -30,8 +30,8 @@ class Protocol;
 class Protocol_Writer
 {
 public:
-    const std::string& title() const;
-    void set_title(const std::string& title);
+    const QString& title() const;
+    void set_title(const QString& title);
 
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time() const;
     void set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value);
@@ -39,7 +39,7 @@ public:
     virtual void write(const quint8* data, std::size_t size) = 0;
     virtual void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) = 0;
 private:
-    std::string title_;
+    QString title_;
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time_;
 };
 
@@ -139,7 +139,7 @@ public:
 public:
     Protocol();
 
-    std::string title() const;
+    QString title() const;
 
     void reset_msg_id();
 

@@ -51,9 +51,9 @@ const boost::asio::ip::udp::endpoint &Node::receiver_endpoint() const { return r
 void Node::set_receiver_endpoint(const boost::asio::ip::udp::endpoint &endpoint)
 {
     receiver_endpoint_ = endpoint;
-    if (title().empty())
+    if (title().isEmpty())
     {
-        set_title(address());
+        set_title(QString::fromStdString(address()));
     }
 }
 
@@ -89,7 +89,7 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
         {
             if (dtls_->timeout_check())
             {
-                std::cerr << title() << " Handshake timeout detected" << std::endl;
+                qCWarning(Log).noquote() << title() << "Handshake timeout detected";
             }
 
             if (dtls_->is_active())
@@ -109,15 +109,15 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     catch(Botan::TLS::TLS_Exception& e)
     {
         std::string type_str = Botan::TLS::Alert(e.type()).type_string();
-        std::cerr << title() << ' ' << type_str << e.what() << std::endl;
+        qCWarning(Log).noquote() << title() << ' ' << type_str.c_str() << e.what();
     }
     catch(std::exception& e)
     {
-        std::cerr << title() << ' ' << e.what() << std::endl;
+        qCWarning(Log).noquote() << title() << e.what();
     }
     catch(...)
     {
-        std::cerr << title() << " Error in receided data process_received_data" << std::endl;
+        qCWarning(Log).noquote() << title() << "Error in receided data process_received_data";
     }
 }
 
@@ -141,7 +141,7 @@ void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 
 void Node::tls_alert(Botan::TLS::Alert alert)
 {
-    std::cout << title() << " tls_alert " << alert.type_string() << std::endl;
+    qCWarning(Log).noquote() << title() << "tls_alert" << alert.type_string().c_str();
 
     if (protocol_ && alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
     {
@@ -159,7 +159,7 @@ void Node::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cer
 {
     if (cert_chain.empty())
     {
-        throw std::invalid_argument(title() + " Certificate chain was empty");
+        throw std::invalid_argument(title().toStdString() + " Certificate chain was empty");
     }
 
     Botan::Path_Validation_Restrictions restrictions(policy.require_cert_revocation_info(),
@@ -177,36 +177,36 @@ void Node::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cer
                                       ocsp_timeout,
                                       ocsp);
 
-    std::string status_string = title() + " Certificate validation status: " + result.result_string();
+    QString status_string = title() + " Certificate validation status: " + result.result_string().c_str();
     if (result.successful_validation())
     {
-        std::cout << status_string << std::endl;
+        qCDebug(Log).noquote() << status_string;
 
         auto status = result.all_statuses();
         if (status.size() > 0 && status[0].count(Botan::Certificate_Status_Code::OCSP_RESPONSE_GOOD))
         {
-            std::cout << title() + " Valid OCSP response for this server" << std::endl;
+            qCDebug(Log).noquote() << title() << "Valid OCSP response for this server";
         }
     }
     else
     {
-        std::cerr << status_string << std::endl;
+        qCWarning(Log).noquote() << status_string;
     }
 }
 
 bool Node::tls_session_established(const Botan::TLS::Session &session)
 {
-    std::cout << title() << " Handshake complete, " << session.version().to_string()
-              << " using " << session.ciphersuite().to_string() << std::endl;
+    qCDebug(Log).noquote() << title() << "Handshake complete," << session.version().to_string().c_str()
+              << "using" << session.ciphersuite().to_string().c_str();
 
     if (!session.session_id().empty())
     {
-        std::cout << title() << " Session ID " << Botan::hex_encode(session.session_id()) << std::endl;
+        qCDebug(Log).noquote() << title() << "Session ID" << Botan::hex_encode(session.session_id()).c_str();
     }
 
     if (!session.session_ticket().empty())
     {
-        std::cout << title() << " Session ticket " << Botan::hex_encode(session.session_ticket()) << std::endl;
+        qCDebug(Log).noquote() << title() << "Session ticket" << Botan::hex_encode(session.session_ticket()).c_str();
     }
 
     return true;

@@ -5,10 +5,14 @@
 
 #include <boost/asio/ip/udp.hpp>
 
+#include <QLoggingCategory>
+
 #include <Helpz/net_protocol_timer.h>
 
 namespace Helpz {
 namespace DTLS {
+
+Q_DECLARE_LOGGING_CATEGORY(Log)
 
 class Tools;
 class Node;

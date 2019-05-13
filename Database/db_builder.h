@@ -26,12 +26,9 @@ QVector<T> db_build_list(Base& db, const QString& suffix = QString(), const QStr
     QVector<T> result_vector;
     QSqlQuery q;
     q = db.select(db_table<T>(db_name), suffix);
-    if (q.isActive())
+    while (q.next())
     {
-        while (q.next())
-        {
-            result_vector.push_back(db_build<T>(q));
-        }
+        result_vector.push_back(db_build<T>(q));
     }
     return result_vector;
 }

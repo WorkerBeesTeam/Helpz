@@ -6,6 +6,8 @@
 namespace Helpz {
 namespace DTLS {
 
+Q_LOGGING_CATEGORY(Log, "DTLS")
+
 Controller::Controller(Tools* dtls_tools) :
     dtls_tools_(dtls_tools),
     protocol_timer_(this)

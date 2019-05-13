@@ -50,7 +50,7 @@ std::string Server_Node::tls_server_choose_app_protocol(const std::vector<std::s
         std::thread(&Server_Controller::remove_client, controller(), receiver_endpoint()).detach();
     }
 
-    std::cout << title() << " protocol is " << app_protocol << " (" << boost::algorithm::join(client_protos, ", ") << ')' << std::endl;
+    qCDebug(Log).noquote() << title() << "protocol is" << app_protocol.c_str() << '(' << boost::algorithm::join(client_protos, ", ").c_str() << ')';
     return app_protocol;
 }
 

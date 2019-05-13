@@ -69,7 +69,7 @@ void Server_Controller::remove_copy(Network::Protocol *client)
             proto = it->second->protocol();
             if (proto && proto.get() != client && *proto == *client)
             {
-                std::cout << it->second->title() << " same. Erase it." << std::endl;
+                qCDebug(Log) << it->second->title() << "same. Erase it.";
                 it = clients_.erase(it);
             }
             else
@@ -104,7 +104,7 @@ void Server_Controller::remove_frozen_clients(std::chrono::seconds frozen_timeou
         {
             if ((now - it->second->last_msg_recv_time()) > frozen_timeout)
             {
-                std::cout << it->second->title() << " timeout. Erase it." << std::endl;
+                qCDebug(Log) << it->second->title() << "timeout. Erase it.";
                 it = clients_.erase(it);
             }
             else

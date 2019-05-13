@@ -9,8 +9,8 @@ namespace Network {
 Q_LOGGING_CATEGORY(Log, "net")
 Q_LOGGING_CATEGORY(DetailLog, "net.detail", QtInfoMsg)
 
-const std::string &Protocol_Writer::title() const { return title_; }
-void Protocol_Writer::set_title(const std::string &title) { title_ = title; }
+const QString &Protocol_Writer::title() const { return title_; }
+void Protocol_Writer::set_title(const QString &title) { title_ = title; }
 
 std::chrono::time_point<std::chrono::system_clock> Protocol_Writer::last_msg_recv_time() const { return last_msg_recv_time_; }
 void Protocol_Writer::set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value) { last_msg_recv_time_ = value; }
@@ -43,9 +43,9 @@ Protocol::Protocol() :
     msg_stream_.setVersion(DATASTREAM_VERSION);
 }
 
-std::string Protocol::title() const
+QString Protocol::title() const
 {
-    return protocol_writer_ ? protocol_writer_->title() : std::string{};
+    return protocol_writer_ ? protocol_writer_->title() : QString{};
 }
 
 void Protocol::reset_msg_id()
@@ -252,11 +252,11 @@ void Protocol::process_stream()
         }
         catch(const std::exception& e)
         {
-            qCCritical(Log) << "EXCEPTION: process_stream" << cmd << e.what();
+            qCCritical(Log) << title() << "EXCEPTION: process_stream" << cmd << e.what();
         }
         catch(...)
         {
-            qCCritical(Log) << "EXCEPTION Unknown: process_stream" << cmd;
+            qCCritical(Log) << title() << "EXCEPTION Unknown: process_stream" << cmd;
         }
 
         device_.seek(pos + 9 + buffer_size);
@@ -352,7 +352,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 
             if (full_size >= MAX_MESSAGE_SIZE)
             {
-                std::cerr << title() << " try to receive too big message: " << full_size << " max: " << MAX_MESSAGE_SIZE << std::endl;
+                qCCritical(Log) << title() << "try to receive too big message:" << full_size << "max:" << MAX_MESSAGE_SIZE;
                 fragmented_messages_.erase(it);
                 return;
             }

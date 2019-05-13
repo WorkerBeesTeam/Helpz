@@ -10,7 +10,7 @@
 #include <QLoggingCategory>
 
 #include <Helpz/logging.h>
-#include "qtservice.h"
+#include <Helpz/qtservice.h>
 
 namespace Helpz {
 namespace Service {
