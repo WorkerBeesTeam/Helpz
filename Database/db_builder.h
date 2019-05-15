@@ -33,6 +33,38 @@ QVector<T> db_build_list(Base& db, const QString& suffix = QString(), const QStr
     return result_vector;
 }
 
+template<typename T>
+QString get_items_list_suffix(const QVector<uint32_t>& id_vect)
+{
+    if (id_vect.isEmpty())
+    {
+        return {};
+    }
+
+    QString suffix = "WHERE ";
+    if (!T::table_short_name().isEmpty())
+    {
+        suffix += T::table_short_name() + '.';
+    }
+
+    suffix += T::table_column_names().first() + " IN (";
+    for (uint32_t id: id_vect)
+        suffix += QString::number(id) + ',';
+    suffix[suffix.size() - 1] = ')';
+    return suffix;
+}
+
+template<typename T>
+QVector<T> db_build_list(Base& db, const QVector<uint32_t>& id_vect, const QString& db_name = QString())
+{
+    QString suffix = get_items_list_suffix<T>(id_vect);
+    if (suffix.isEmpty())
+    {
+        return {};
+    }
+    return db_build_list<T>(db, suffix, db_name);
+}
+
 } // namespace Database
 } // namespace Helpz
 

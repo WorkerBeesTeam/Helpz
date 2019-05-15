@@ -176,7 +176,7 @@ void Base::set_silent(bool sailent) { silent_ = sailent; }
 
 bool Base::create_table(const Helpz::Database::Table &table, const QStringList &types)
 {
-    if (!table || table.field_names_.size() != types.size())
+    if (!table || table.field_names().size() != types.size())
     {
         return false;
     }
@@ -184,10 +184,10 @@ bool Base::create_table(const Helpz::Database::Table &table, const QStringList &
     QStringList columns_info;
     for (int i = 0; i < types.size(); ++i)
     {
-        columns_info.push_back(table.field_names_.at(i) + ' ' + types.at(i));
+        columns_info.push_back(table.field_names().at(i) + ' ' + types.at(i));
     }
 
-    return exec(QString("create table if not exists %1 (%2)").arg(table.name_).arg(columns_info.join(','))).isActive();
+    return exec(QString("create table if not exists %1 (%2)").arg(table.name()).arg(columns_info.join(','))).isActive();
 }
 
 QSqlQuery Base::select(const Table& table, const QString &suffix, const QVariantList &values, const std::vector<uint> &field_ids)
@@ -206,7 +206,14 @@ QString Base::select_query(const Table& table, const QString &suffix, const std:
     {
         return {};
     }
-    return QString("SELECT %1 FROM %2 %3;").arg(escape_fields(table, field_ids).join(',')).arg(table.name_).arg(suffix);
+
+    QString table_name = table.name();
+    if (!table.short_name().isEmpty())
+    {
+        table_name += ' ' + table.short_name();
+    }
+
+    return QString("SELECT %1 FROM %2 %3;").arg(escape_fields(table, field_ids, true).join(',')).arg(table_name).arg(suffix);
 }
 
 bool Base::insert(const Table &table, const QVariantList &values, QVariant *id_out, const QString& suffix, const std::vector<uint> &field_ids, const QString& method)
@@ -235,7 +242,7 @@ QString Base::insert_query(const Table &table, int values_size, const QString& s
         }
     }
 
-    QString sql = QString(method + " INTO %1(%2) VALUES(%3)").arg(table.name_).arg(escapedFields.join(',')).arg(q_str);
+    QString sql = QString(method + " INTO %1(%2) VALUES(%3)").arg(table.name()).arg(escapedFields.join(',')).arg(q_str);
     if (!suffix.isEmpty())
     {
         sql += ' ' + suffix;
@@ -270,7 +277,7 @@ QString Base::update_query(const Table &table, int values_size, const QString &w
         params.push_back(escapedFields.at(i) + "=?");
     }
 
-    QString sql = QString("UPDATE %1 SET %2").arg(table.name_).arg(params.join(','));
+    QString sql = QString("UPDATE %1 SET %2").arg(table.name()).arg(params.join(','));
     if (!where.isEmpty())
     {
         sql += " WHERE " + where;
@@ -390,17 +397,34 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
     return QSqlQuery();
 }
 
-QStringList Base::escape_fields(const Table &table, const std::vector<uint> &field_ids, QSqlDriver* driver) const
+QStringList Base::escape_fields(const Table &table, const std::vector<uint> &field_ids, bool use_short_name, QSqlDriver* driver) const
 {
     if (!driver)
     {
         driver = database().driver();
     }
 
+    QString table_short_name;
+    if (use_short_name && !table.short_name().isEmpty())
+    {
+        table_short_name = table.short_name() + '.';
+    }
+
     QStringList escapedFields;
-    for (uint i = 0; i < (uint)table.field_names_.size(); ++i)
+    for (int i = 0; i < table.field_names().size(); ++i)
+    {
         if (field_ids.empty() || std::find(field_ids.cbegin(), field_ids.cend(), i) != field_ids.cend())
-            escapedFields.push_back( driver->escapeIdentifier(table.field_names_.at(i), QSqlDriver::FieldName) );
+        {
+            if (table_short_name.isEmpty())
+            {
+                escapedFields.push_back( driver->escapeIdentifier(table.field_names().at(i), QSqlDriver::FieldName) );
+            }
+            else
+            {
+                escapedFields.push_back( driver->escapeIdentifier(table_short_name + table.field_names().at(i), QSqlDriver::FieldName) );
+            }
+        }
+    }
     return escapedFields;
 }
 

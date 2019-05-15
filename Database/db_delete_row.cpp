@@ -22,7 +22,7 @@ bool Delete_Row_Helper::del(const QString &table_name, const std::vector<Delete_
             where = del.field_name_ + '=' + id_;
 
             if (del.set_null_)
-                exec_ok_ = obj_->update({del.table_name_, { del.field_name_ }}, { QVariant() }, where);
+                exec_ok_ = obj_->update({del.table_name_, {}, { del.field_name_ }}, { QVariant() }, where);
             else
             {
                 del_impl(del);
@@ -58,7 +58,7 @@ void Delete_Row_Helper::del_impl(const Delete_Row_Info& del_parent)
                     .arg(del_parent.pk_name_).arg(del_parent.table_name_).arg(del_parent.field_name_).arg(id_);
 
         if (del.set_null_)
-            exec_ok_ = obj_->update({del.table_name_, { del.field_name_ }}, { QVariant() }, where);
+            exec_ok_ = obj_->update({del.table_name_, {}, { del.field_name_ }}, { QVariant() }, where);
         else
             exec_ok_ = obj_->del(del.table_name_, where).isActive();
 

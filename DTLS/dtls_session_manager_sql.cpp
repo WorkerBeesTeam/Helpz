@@ -52,17 +52,17 @@ Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
                                          const Database::Connection_Info& info,
                                          size_t max_sessions,
                                          std::chrono::seconds session_lifetime) :
-    db_(new Helpz::Database::Base(info, "DTLSSessions_SQL" + QString::number((quintptr)this))),
+    db_(new Database::Base(info, "DTLSSessions_SQL" + QString::number((quintptr)this))),
     m_rng(rng), m_max_sessions(max_sessions), m_session_lifetime(session_lifetime)
 {
     if (!sessionsTable)
-        sessionsTable.reset( new Database::Table{"tls_sessions", {"session_id", "session_start", "hostname", "hostport", "session"}} );
+        sessionsTable.reset( new Database::Table{"tls_sessions", "ts", {"session_id", "session_start", "hostname", "hostport", "session"}} );
     db_->create_table(*sessionsTable, {"VARCHAR(128) PRIMARY KEY", "INTEGER", "TEXT", "INTEGER", "BLOB"});
 
-    Database::Table tableMetadata = {"tls_sessions_metadata", {"passphrase_salt", "passphrase_iterations", "passphrase_check"}};
+    Database::Table tableMetadata = {"tls_sessions_metadata", "tsm", {"passphrase_salt", "passphrase_iterations", "passphrase_check"}};
     db_->create_table(tableMetadata, {"BLOB", "INTEGER", "INTEGER"});
 
-    const size_t salts = db_->row_count(tableMetadata.name_);
+    const size_t salts = db_->row_count(tableMetadata.name());
     std::unique_ptr<Botan::PBKDF> pbkdf(Botan::get_pbkdf("PBKDF2(SHA-512)"));
 
     if(salts == 1)
@@ -183,11 +183,11 @@ bool Session_Manager_SQL::load_session_slot(const QString &sql, Botan::TLS::Sess
 }
 
 void Session_Manager_SQL::remove_entry_slot(const QString &session_id) {
-    db_->del(sessionsTable->name_, "session_id = '" + session_id + '\'');
+    db_->del(sessionsTable->name(), "session_id = '" + session_id + '\'');
 }
 
 int Session_Manager_SQL::remove_all_slot() {
-    return db_->del(sessionsTable->name_).numRowsAffected();
+    return db_->del(sessionsTable->name()).numRowsAffected();
 }
 
 void Session_Manager_SQL::save_slot(const QVariantList &values) {
@@ -198,14 +198,14 @@ void Session_Manager_SQL::save_slot(const QVariantList &values) {
 void Session_Manager_SQL::prune_session_cache() {
     // First expire old sessions
     const int timeval = std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - m_session_lifetime).time_since_epoch()).count();
-    db_->del(sessionsTable->name_, "session_start <= " + QString::number(timeval));
+    db_->del(sessionsTable->name(), "session_start <= " + QString::number(timeval));
 
     const size_t sessions = db_->row_count("tls_sessions");
 
     // Then if needed expire some more sessions at random
     if(m_max_sessions > 0 && sessions > m_max_sessions)
     {
-        db_->del(sessionsTable->name_,
+        db_->del(sessionsTable->name(),
                  "session_id in (select session_id from tls_sessions limit " +
                  QString::number(quint32(sessions - m_max_sessions)) + ")");
     }

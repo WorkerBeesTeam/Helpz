@@ -81,7 +81,7 @@ public:
 
     QSqlQuery exec(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
 private:
-    QStringList escape_fields(const Table& table, const std::vector<uint> &field_ids, QSqlDriver *driver = nullptr) const;
+    QStringList escape_fields(const Table& table, const std::vector<uint> &field_ids, bool use_short_name = false, QSqlDriver *driver = nullptr) const;
 
     bool silent_ = false;
     QString connection_name_;

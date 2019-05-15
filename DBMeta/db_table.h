@@ -9,9 +9,27 @@ namespace Database {
 class Table
 {
 public:
+    Table(const QString& name, const QString& short_name, const QStringList& field_names);
+    Table() = default;
+    Table(Table&&) = default;
+    Table(const Table&) = default;
+    Table& operator=(Table&&) = default;
+    Table& operator=(const Table&) = default;
+
     bool operator !() const;
 
-    QString name_;
+    const QString& name() const;
+    void set_name(const QString& name);
+
+    const QString& short_name() const;
+    void set_short_name(const QString& short_name);
+
+    QStringList& field_names();
+    const QStringList& field_names() const;
+    void set_field_names(const QStringList& field_names);
+
+private:
+    QString name_, short_name_;
     QStringList field_names_;
 };
 
@@ -24,7 +42,7 @@ QString db_table_name(const QString& db_name = QString())
 template<typename T>
 Helpz::Database::Table db_table(const QString& db_name = QString())
 {
-    return { db_table_name<T>(db_name), T::table_column_names() };
+    return { db_table_name<T>(db_name), T::table_short_name(), T::table_column_names() };
 }
 
 } // namespace Database

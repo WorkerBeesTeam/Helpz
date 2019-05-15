@@ -32,25 +32,29 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define DB_AT(A) A, A##_to_db(), set_##A##_from_db
 #define DB_ANS(A) A, A().isEmpty() ? "" : obj.A(), set_##A
 
-#define HELPZ_DB_META(T, t_name, N, ...)                          \
+#define HELPZ_DB_META(T, t_name, t_short_name, N, ...)          \
     public:                                                     \
     enum Database_Columns {                                     \
-        HELPZ_DB_COL_NAME_##N (__VA_ARGS__), COL_COUNT            \
+        HELPZ_DB_COL_NAME_##N (__VA_ARGS__), COL_COUNT          \
     };                                                          \
     static QString table_name()                                 \
     {                                                           \
         return t_name;                                          \
     }                                                           \
+    static QString table_short_name()                           \
+    {                                                           \
+        return t_short_name;                                    \
+    }                                                           \
     static QStringList table_column_names()                     \
     {                                                           \
-        return { HELPZ_DB_QUOTE_##N (__VA_ARGS__) };              \
+        return { HELPZ_DB_QUOTE_##N (__VA_ARGS__) };            \
     }                                                           \
     static QVariant value_getter(const T& obj,                  \
                                  uint32_t pos)                  \
     {                                                           \
         switch (pos)                                            \
         {                                                       \
-        HELPZ_DB_GETTER_CASE_##N (obj, __VA_ARGS__)               \
+        HELPZ_DB_GETTER_CASE_##N (obj, __VA_ARGS__)             \
         default: break;                                         \
         }                                                       \
         return {};                                              \
@@ -59,7 +63,7 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
                              const QVariant& value)             \
     {                                                           \
         switch (col) {                                          \
-        HELPZ_DB_SETTER_CASE_##N (T, obj, value, __VA_ARGS__)     \
+        HELPZ_DB_SETTER_CASE_##N (T, obj, value, __VA_ARGS__)   \
         default: break;                                         \
         }                                                       \
     }                                                           \
