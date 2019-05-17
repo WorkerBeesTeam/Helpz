@@ -85,7 +85,7 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
 
         dtls_->received_data(data.get(), size);
 
-        if (first_active)
+        if (first_active && dtls_)
         {
             if (dtls_->timeout_check())
             {
