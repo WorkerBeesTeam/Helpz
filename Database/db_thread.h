@@ -6,6 +6,7 @@
 #include <mutex>
 #include <queue>
 #include <functional>
+#include <future>
 
 #include <QVariantList>
 
@@ -26,11 +27,19 @@ public:
 
     const Base* db() const;
 
-    void add_query(std::function<void(Base*)> callback);
+    template<typename Func>
+    std::future<void> add(Func f)
+    {
+        std::packaged_task<void(Base*)> task(f);
+        return add_task(std::move(task));
+    }
 
-    void add_pending_query(QString&& sql, std::vector<QVariantList>&& values_list,
+    std::future<void> add_query(std::function<void(Base*)> callback);
+
+    std::future<void> add_pending_query(QString&& sql, std::vector<QVariantList>&& values_list,
                            std::function<void(QSqlQuery&, const QVariantList&)> callback = nullptr);
 private:
+    std::future<void> add_task(std::packaged_task<void(Base*)>&& task);
     void open_and_run(Connection_Info&& info);
     void store_and_run(std::shared_ptr<Base> db);
     void run();
@@ -39,7 +48,7 @@ private:
                        std::function<void(QSqlQuery&, const QVariantList&)>& callback);
 
     bool break_flag_;
-    std::queue<std::function<void(Base*)>> data_queue_;
+    std::queue<std::packaged_task<void(Base*)>> data_queue_;
     std::mutex mutex_;
     std::condition_variable cond_;
 

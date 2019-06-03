@@ -41,28 +41,35 @@ const Base* Thread::db() const
     return db_.get();
 }
 
-void Thread::add_query(std::function<void (Base *)> callback)
+std::future<void> Thread::add_query(std::function<void (Base *)> callback)
 {
-    std::lock_guard lock(mutex_);
-    data_queue_.push(std::move(callback));
-    cond_.notify_one();
+    std::packaged_task<void(Base*)> task(callback);
+    return add_task(std::move(task));
 }
 
-void Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values_list,
+std::future<void> Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values_list,
                                std::function<void(QSqlQuery&, const QVariantList&)> callback)
 {
     if (sql.isEmpty() || values_list.empty())
     {
         qCritical(DBLog) << "Attempt to add bad pending query";
-        return;
+        return {};
     }
 
     std::function<void (Base *)> item =
             std::bind(process_query, std::placeholders::_1, std::move(sql), std::move(values_list), std::move(callback));
 
+    std::packaged_task<void(Base*)> task(item);
+    return add_task(std::move(task));
+}
+
+std::future<void> Thread::add_task(std::packaged_task<void (Base*)>&& task)
+{
+    std::future<void> res = task.get_future();
     std::lock_guard lock(mutex_);
-    data_queue_.push(std::move(item));
+    data_queue_.push(std::move(task));
     cond_.notify_one();
+    return res;
 }
 
 void Thread::open_and_run(Connection_Info&& info)
@@ -91,18 +98,15 @@ void Thread::run()
         {
             break;
         }
-        std::function<void (Base *)> item{std::move(data_queue_.front())};
+        std::packaged_task<void(Base*)> task{std::move(data_queue_.front())};
         data_queue_.pop();
         lock.unlock();
 
-        if (item)
+        try
         {
-            try
-            {
-                item(db_.get());
-            }
-            catch (...) {}
+            task(db_.get());
         }
+        catch (...) {}
     }
     db_.reset();
 }

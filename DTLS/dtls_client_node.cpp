@@ -49,7 +49,7 @@ bool Client_Node::is_reconnect_needed()
             if (!ping_flag_)
             {
                 ping_flag_ = true;
-                proto->send(Network::Cmd::PING);
+                proto->send(Network::Cmd::PING).timeout(nullptr, std::chrono::seconds(15), std::chrono::milliseconds(1500));
                 return false;
             }
         }

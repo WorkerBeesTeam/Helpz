@@ -188,8 +188,6 @@ void Server_Controller::add_received_record(const udp::endpoint &remote_endpoint
     records_cond_.notify_one();
 }
 
-
-
 void Server_Controller::records_thread_run()
 {
     std::unique_lock lock(records_mutex_, std::defer_lock);

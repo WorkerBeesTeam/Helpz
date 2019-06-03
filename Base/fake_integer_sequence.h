@@ -3,7 +3,7 @@
 
 #include <utility>
 
-#if __cplusplus < 201402L
+#if (__cplusplus < 201402L) && !defined(__cpp_lib_integer_sequence)
 
 namespace fake_std {
 
