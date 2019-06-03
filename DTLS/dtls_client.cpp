@@ -12,11 +12,16 @@ namespace DTLS {
 using boost::asio::ip::udp;
 
 Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, Create_Client_Protocol_Func_T &&create_protocol_func) :
-    Socket{io_context, new udp::socket{*io_context}, new Client_Controller{dtls_tools, this, std::move(create_protocol_func)}},
+    Socket{io_context, nullptr, new Client_Controller{dtls_tools, this, std::move(create_protocol_func)}},
     deadline_{*io_context}
 {
     deadline_.expires_at(boost::posix_time::pos_infin);
     check_deadline();
+}
+
+Client::~Client()
+{
+    close();
 }
 
 std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
@@ -26,10 +31,11 @@ std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
 
 void Client::start_connection(const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols)
 {
-    if (socket_->is_open())
+    if (socket_ && socket_->is_open())
     {
         socket_->close();
     }
+    socket_.reset(new udp::socket{*io_context_});
 
     udp::resolver resolver(*io_context_);
     udp::resolver::query query(udp::v4(), host, port);

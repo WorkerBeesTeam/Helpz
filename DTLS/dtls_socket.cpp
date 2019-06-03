@@ -14,28 +14,34 @@ Socket::Socket(boost::asio::io_context *io_context, udp::socket *socket, Control
 
 void Socket::start_receive(udp::endpoint& remote_endpoint)
 {
-    std::unique_ptr<uint8_t[]> recv_buffer(new uint8_t[ MAX_UDP_PACKET_SIZE ]);
-    auto buffer = boost::asio::buffer(recv_buffer.get(), MAX_UDP_PACKET_SIZE);
+    if (socket_)
+    {
+        std::unique_ptr<uint8_t[]> recv_buffer(new uint8_t[ MAX_UDP_PACKET_SIZE ]);
+        auto buffer = boost::asio::buffer(recv_buffer.get(), MAX_UDP_PACKET_SIZE);
 
-    socket_->async_receive_from(
-                std::move(buffer), remote_endpoint,
-                std::bind(&Socket::handle_receive, this,
-                          std::ref(remote_endpoint), std::move(recv_buffer),
-                          std::placeholders::_1,   // boost::asio::placeholders::error,
-                          std::placeholders::_2)); // boost::asio::placeholders::bytes_transferred
+        socket_->async_receive_from(
+                    std::move(buffer), remote_endpoint,
+                    std::bind(&Socket::handle_receive, this,
+                              std::ref(remote_endpoint), std::move(recv_buffer),
+                              std::placeholders::_1,   // boost::asio::placeholders::error,
+                              std::placeholders::_2)); // boost::asio::placeholders::bytes_transferred
+    }
 }
 
 void Socket::send(const udp::endpoint &remote_endpoint, const uint8_t *data, std::size_t size)
 {
-    std::unique_ptr<uint8_t[]> send_buffer(new uint8_t[ size ]);
-    memcpy(send_buffer.get(), data, size);
-    auto buffer = boost::asio::buffer(send_buffer.get(), size);
+    if (socket_)
+    {
+        std::unique_ptr<uint8_t[]> send_buffer(new uint8_t[ size ]);
+        memcpy(send_buffer.get(), data, size);
+        auto buffer = boost::asio::buffer(send_buffer.get(), size);
 
-    socket_->async_send_to(std::move(buffer), remote_endpoint,
-                           std::bind(&Socket::handle_send, this, remote_endpoint,
-                                     std::move(send_buffer), size,
-                                     std::placeholders::_1,   // boost::asio::placeholders::error,
-                                     std::placeholders::_2)); // boost::asio::placeholders::bytes_transferred
+        socket_->async_send_to(std::move(buffer), remote_endpoint,
+                               std::bind(&Socket::handle_send, this, remote_endpoint,
+                                         std::move(send_buffer), size,
+                                         std::placeholders::_1,   // boost::asio::placeholders::error,
+                                         std::placeholders::_2)); // boost::asio::placeholders::bytes_transferred
+    }
 }
 
 void Socket::handle_receive(udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &data, const boost::system::error_code &err, std::size_t size)

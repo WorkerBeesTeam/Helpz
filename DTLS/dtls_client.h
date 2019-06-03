@@ -16,9 +16,7 @@ class Client final : public Socket
 public:
     Client(Tools *dtls_tools, boost::asio::io_context* io_context, Create_Client_Protocol_Func_T &&create_protocol_func);
 
-    ~Client()
-    {
-    }
+    ~Client();
 
     std::shared_ptr<Network::Protocol> protocol();
 
