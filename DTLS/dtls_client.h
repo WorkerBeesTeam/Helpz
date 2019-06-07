@@ -25,7 +25,7 @@ public:
 private:
     Client_Node* node();
     Client_Controller* controller();
-    void check_deadline();
+    void check_deadline(const boost::system::error_code& err = {});
 
     void start_receive(udp::endpoint& remote_endpoint) override;
     void error_message(const std::string& msg) override;

@@ -50,9 +50,9 @@ std::future<void> Thread::add_query(std::function<void (Base *)> callback)
 std::future<void> Thread::add_pending_query(QString &&sql, std::vector<QVariantList> &&values_list,
                                std::function<void(QSqlQuery&, const QVariantList&)> callback)
 {
-    if (sql.isEmpty() || values_list.empty())
+    if (sql.isEmpty())
     {
-        qCritical(DBLog) << "Attempt to add bad pending query";
+        qCritical(DBLog) << "Attempt to add empty pending query";
         return {};
     }
 
@@ -115,14 +115,25 @@ void Thread::run()
                                       std::function<void (QSqlQuery &, const QVariantList &)>& callback)
 {
     QSqlQuery query;
-    for (const QVariantList& values: values_list)
+    if (values_list.empty())
     {
-        query = db->exec(sql, values);
+        query = db->exec(sql);
         if (callback)
         {
-            callback(query, values);
+            callback(query, QVariantList());
         }
-        query.clear();
+    }
+    else
+    {
+        for (const QVariantList& values: values_list)
+        {
+            query = db->exec(sql, values);
+            if (callback)
+            {
+                callback(query, values);
+            }
+            query.clear();
+        }
     }
 }
 

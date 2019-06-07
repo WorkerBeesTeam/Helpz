@@ -15,8 +15,6 @@ Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, Create_Cl
     Socket{io_context, nullptr, new Client_Controller{dtls_tools, this, std::move(create_protocol_func)}},
     deadline_{*io_context}
 {
-    deadline_.expires_at(boost::posix_time::pos_infin);
-    check_deadline();
 }
 
 Client::~Client()
@@ -36,6 +34,7 @@ void Client::start_connection(const std::string &host, const std::string &port, 
         socket_->close();
     }
     socket_.reset(new udp::socket{*io_context_});
+    deadline_.cancel();
 
     udp::resolver resolver(*io_context_);
     udp::resolver::query query(udp::v4(), host, port);
@@ -45,7 +44,9 @@ void Client::start_connection(const std::string &host, const std::string &port, 
 
     node()->start(host, receiver_endpoint, next_protocols);
 
+    deadline_.expires_at(boost::posix_time::pos_infin);
     start_receive(remote_endpoint_);
+    check_deadline();
 }
 
 void Client::close()
@@ -63,12 +64,13 @@ Client_Controller *Client::controller()
     return static_cast<Client_Controller*>(controller_.get());
 }
 
-void Client::check_deadline()
+void Client::check_deadline(const boost::system::error_code &err)
 {
     // Check whether the deadline has passed. We compare the deadline against
     // the current time since a new asynchronous operation may have moved the
     // deadline before this actor had a chance to run.
-    if (deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
+    if (err != boost::asio::error::operation_aborted && // Changing the expiry time
+        deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
     {
         if (node()->is_reconnect_needed())
         {
@@ -91,7 +93,7 @@ void Client::check_deadline()
     }
 
     // Put the actor back to sleep.
-    deadline_.async_wait(boost::bind(&Client::check_deadline, this));
+    deadline_.async_wait(std::bind(&Client::check_deadline, this, std::placeholders::_1));
 }
 
 void Client::start_receive(udp::endpoint &remote_endpoint)
