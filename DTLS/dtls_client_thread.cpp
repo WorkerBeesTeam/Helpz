@@ -94,15 +94,17 @@ Client_Thread::~Client_Thread()
 void Client_Thread::stop()
 {
     stop_flag_ = true;
+    std::lock_guard lock(mutex_);
     if (io_context_)
     {
         io_context_->stop();
     }
 }
 
-Client *Client_Thread::client()
+std::shared_ptr<Client> Client_Thread::client()
 {
-    return client_.load();
+    std::lock_guard lock(mutex_);
+    return client_;
 }
 
 void Client_Thread::run(Client_Thread_Config conf)
@@ -111,18 +113,23 @@ void Client_Thread::run(Client_Thread_Config conf)
     try
     {
         stop_flag_ = false;
-        io_context_ = new boost::asio::io_context{};
         Tools dtls_tools{ conf.tls_police_file_name() };
-
-        Client client(&dtls_tools, io_context_, std::move(conf.create_protocol_func()));
-        client_.store(&client);
 
         while(!stop_flag_.load())
         {
             try
             {
+                {
+                    std::lock_guard lock(mutex_);
+                    client_.reset();
+                    if (io_context_)
+                        delete io_context_;
+                    io_context_ = new boost::asio::io_context{};
+                    client_ = std::make_shared<Client>(&dtls_tools, io_context_, conf.create_protocol_func());
+                }
+
                 std::cout << "try connect to " << conf.host() << ':' << conf.port() << std::endl;
-                client.start_connection(conf.host(), conf.port(), conf.next_protocols());
+                client_->start_connection(conf.host(), conf.port(), conf.next_protocols());
                 io_context_->run();
             }
             catch (std::exception& e)
@@ -135,8 +142,6 @@ void Client_Thread::run(Client_Thread_Config conf)
                 std::cerr << "DTLS Client exception. reconnect in: " << conf.reconnect_interval().count() << "s" << std::endl;
                 std::this_thread::sleep_for(conf.reconnect_interval());
             }
-
-            client.close();
         }
     }
     catch (std::exception& e)
@@ -148,6 +153,7 @@ void Client_Thread::run(Client_Thread_Config conf)
         std::cerr << "DTLS Client_Thread exception" << std::endl;
     }
 
+    client_.reset();
     delete io_context_;
 }
 

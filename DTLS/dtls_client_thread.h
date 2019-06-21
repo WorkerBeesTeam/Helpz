@@ -57,15 +57,17 @@ public:
 
     void stop();
 
-    Client* client();
+    std::shared_ptr<Client> client();
 
 private:
     void run(Client_Thread_Config conf);
 
     boost::asio::io_context* io_context_;
     std::atomic<bool> stop_flag_;
-    std::atomic<Client*> client_;
+    std::shared_ptr<Client> client_;
     std::thread* thread_;
+
+    std::mutex mutex_;
 };
 
 } // namespace DTLS

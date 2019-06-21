@@ -7,10 +7,10 @@
 namespace Helpz {
 namespace DTLS {
 
-Client_Controller::Client_Controller(Tools *dtls_tools, Client *client, Create_Client_Protocol_Func_T &&create_protocol_func) :
+Client_Controller::Client_Controller(Tools *dtls_tools, Client *client, const Create_Client_Protocol_Func_T& create_protocol_func) :
     Controller{ dtls_tools },
     node_{ new Client_Node{this, client} },
-    create_protocol_func_(std::move(create_protocol_func))
+    create_protocol_func_(create_protocol_func)
 {
 }
 

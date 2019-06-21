@@ -16,7 +16,7 @@ class Client_Node;
 class Client_Controller final : public Controller
 {
 public:
-    Client_Controller(Tools *dtls_tools, Client* client, Create_Client_Protocol_Func_T&& create_protocol_func);
+    Client_Controller(Tools *dtls_tools, Client* client, const Create_Client_Protocol_Func_T& create_protocol_func);
 
     std::shared_ptr<Network::Protocol> create_protocol(const std::string& app_proto);
 
