@@ -77,6 +77,9 @@ public:
     QSqlQuery del(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
     QString del_query(const QString& table_name, const QString& where = QString()) const;
 
+    QSqlQuery truncate(const QString& table_name);
+    QString truncate_query(const QString& table_name) const;
+
     quint32 row_count(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
 
     QSqlQuery exec(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);

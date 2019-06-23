@@ -311,6 +311,16 @@ QString Base::del_query(const QString &table_name, const QString &where) const
     return sql;
 }
 
+QSqlQuery Base::truncate(const QString &table_name)
+{
+    return exec(truncate_query(table_name));
+}
+
+QString Base::truncate_query(const QString &table_name) const
+{
+    return "TRUNCATE TABLE " + table_name + ';';
+}
+
 quint32 Base::row_count(const QString &table_name, const QString &where, const QVariantList &values)
 {
     if (table_name.isEmpty())
