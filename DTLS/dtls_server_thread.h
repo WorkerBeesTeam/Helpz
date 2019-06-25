@@ -55,7 +55,6 @@ class Server_Thread
 {
 public:
     Server_Thread(Server_Thread_Config&& conf);
-
     ~Server_Thread();
 
     void stop();

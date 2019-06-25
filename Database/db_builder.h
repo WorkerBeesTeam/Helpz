@@ -65,6 +65,25 @@ QVector<T> db_build_list(Base& db, const QVector<uint32_t>& id_vect, const QStri
     return db_build_list<T>(db, suffix, db_name);
 }
 
+template<typename T>
+T db_build_item(Base& db, uint32_t id, const QString& db_name = QString())
+{
+    QString suffix = "WHERE ";
+    if (!T::table_short_name().isEmpty())
+    {
+        suffix += T::table_short_name() + '.';
+    }
+    suffix += T::table_column_names().first() + '=' + QString::number(id);
+
+    QSqlQuery q = db.select(db_table<T>(db_name), suffix);
+    if (q.next())
+    {
+        return db_build<T>(q);
+    }
+
+    return {};
+}
+
 } // namespace Database
 } // namespace Helpz
 

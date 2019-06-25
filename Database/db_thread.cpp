@@ -75,7 +75,7 @@ std::future<void> Thread::add_task(std::packaged_task<void (Base*)>&& task)
 void Thread::open_and_run(Connection_Info&& info)
 {
     std::stringstream s;
-    s << "pending_queries" << std::this_thread::get_id();
+    s << "pending_queries_" << std::this_thread::get_id();
     db_.reset(new Base{info, QString::fromStdString(s.str())});
     run();
 }
