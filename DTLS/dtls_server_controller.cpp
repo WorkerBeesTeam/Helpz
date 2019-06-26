@@ -70,6 +70,7 @@ void Server_Controller::remove_copy(Network::Protocol *client)
             if (proto && proto.get() != client && *proto == *client)
             {
                 qCDebug(Log) << it->second->title() << "same. Erase it.";
+                proto->before_remove_copy();
                 it = clients_.erase(it);
             }
             else

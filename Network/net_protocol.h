@@ -139,6 +139,8 @@ public:
 public:
     Protocol();
 
+    virtual void before_remove_copy() {}
+
     QString title() const;
 
     void reset_msg_id();
@@ -187,6 +189,7 @@ private:
 
 public:
     void process_wait_list();
+
 private:
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();
