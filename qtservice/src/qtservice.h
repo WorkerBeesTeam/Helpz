@@ -160,6 +160,7 @@ protected:
 
 private:
 
+    bool is_immediately_;
     friend class QtServiceSysPrivate;
     QtServiceBasePrivate *d_ptr;
 };

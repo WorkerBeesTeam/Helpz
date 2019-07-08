@@ -636,7 +636,8 @@ int QtServiceBasePrivate::run(bool asService, const QStringList &argList)
 
     \sa exec(), start(), QtServiceController::install()
 */
-QtServiceBase::QtServiceBase(int argc, char **argv, const QString &name)
+QtServiceBase::QtServiceBase(int argc, char **argv, const QString &name) :
+    is_immediately_(false)
 {
 #if defined(QTSERVICE_DEBUG)
 #  if QT_VERSION >= 0x050000
@@ -819,6 +820,7 @@ int QtServiceBase::exec()
 #else
             bool is_service = false;
 #endif
+            is_immediately_ = true;
             int ec = d_ptr->run(is_service, d_ptr->args);
             if (ec == -1)
                 qErrnoWarning("The service could not be executed.");
@@ -905,7 +907,7 @@ QtServiceBase *QtServiceBase::instance()
     return QtServiceBasePrivate::instance;
 }
 
-bool QtServiceBase::isImmediately() const { return !d_ptr || !d_ptr->sysd; }
+bool QtServiceBase::isImmediately() const { return is_immediately_; }
 
 /*!
     \fn void QtServiceBase::start()
