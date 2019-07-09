@@ -4,16 +4,12 @@
 #include <csignal>
 
 #include "qtservice.h"
-
-#include <Helpz/simplethread.h>
 #include "service.h"
 
 namespace Helpz {
 namespace Service {
 
 /*static*/ Q_LOGGING_CATEGORY(Base::Log, "service")
-
-typedef ParamThread<Logging> LogThread;
 
 Base* g_obj = nullptr;
 
@@ -26,23 +22,19 @@ void term_handler(int)
     std::exit(0);
 }
 
-Object::Object(OneObjectThread *worherThread, bool debug) :
-    th_{ new LogThread, worherThread }
+Object::Object(Base *base, bool debug) :
+    log_thread_(new Log_Thread),
+    base_(base)
 {
-    QObject::connect(worherThread, &OneObjectThread::restart, this, &Object::restart, Qt::QueuedConnection);
-
-    th_[0]->start();
-    while (Logging::instance() == nullptr && !th_[0]->wait(5));
-
-    connect(&logg(), &Logging::new_message, worherThread, &OneObjectThread::logMessage);
+    log_thread_->start();
+    log_thread_->ptr();
 
     logg().set_debug(debug);
 #ifdef Q_OS_UNIX
     logg().set_syslog(true);
 #endif
 
-    th_[1]->start();
-
+    create_worker();
     qCInfo(Base::Log) << "Server start!";
 }
 
@@ -51,39 +43,43 @@ Object::~Object()
     qCInfo(Base::Log) << "Server stop...";
     disconnect(&logg(), &Logging::new_message, nullptr, nullptr);
 
-    if (th_.size())
-    {
-        if (th_.size() >= 2)
-            QObject::disconnect(th_[1], SIGNAL(finished()), nullptr, nullptr);
+    delete worker_;
 
-        auto it = th_.end();
-
-        do {
-            it--;
-            (*it)->quit();
-            if (!(*it)->wait(15000))
-                (*it)->terminate();
-            delete *it;
-        }
-        while( it != th_.begin() );
-        th_.clear();
-    }
+    log_thread_->quit();
+    if (!log_thread_->wait(15000))
+        log_thread_->terminate();
+    delete log_thread_;
 }
 
 void Object::processCommands(const QStringList &cmdList)
 {
-    auto obj = static_cast<OneObjectThread*>(th_.at(1))->obj();
-    QMetaObject::invokeMethod(obj, "processCommands", Qt::QueuedConnection,
-                Q_ARG(QStringList, cmdList));
+    QMetaObject::invokeMethod(worker_, "processCommands", Qt::QueuedConnection,
+                              Q_ARG(QStringList, cmdList));
 }
 
 void Object::restart()
 {
     qCInfo(Base::Log) << "Server restart...";
-    th_[1]->quit();
-    if (!th_[1]->wait(60000))
-        th_[1]->terminate();
-    th_[1]->start();
+
+    delete worker_;
+    create_worker();
+}
+
+void Object::create_worker()
+{
+    bool has_log_message_slot = false, has_restart_service_slot = false;
+    worker_ = base_->create_worker(&has_log_message_slot, &has_restart_service_slot);
+
+    if (has_log_message_slot)
+    {
+        connect(&logg(), SIGNAL(new_message(QtMsgType,Helpz::LogContext,QString)),
+                worker_, SLOT(logMessage(QtMsgType,Helpz::LogContext,QString)));
+    }
+
+    if (has_restart_service_slot)
+    {
+        connect(worker_, SIGNAL(serviceRestart()), this, SLOT(restart()), Qt::QueuedConnection);
+    }
 }
 
 Base::Base()
@@ -93,7 +89,7 @@ Base::Base()
 
 void Base::start()
 {
-    service_ = std::make_shared<Object>(getWorkerThread(), is_immediately());
+    service_ = std::make_shared<Object>(this, is_immediately());
 
     std::signal(SIGTERM, term_handler);
     std::signal(SIGINT, term_handler);

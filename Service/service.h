@@ -1,5 +1,5 @@
-#ifndef SERVICE_H
-#define SERVICE_H
+#ifndef HELPZ_SERVICE_H
+#define HELPZ_SERVICE_H
 
 #include <vector>
 #include <memory>
@@ -9,33 +9,32 @@
 #include <QMetaMethod>
 #include <QLoggingCategory>
 
+#include <Helpz/simplethread.h>
 #include <Helpz/logging.h>
 #include <Helpz/qtservice.h>
 
 namespace Helpz {
 namespace Service {
 
-class OneObjectThread : public QThread {
+class Base;
+class Object final : public QObject
+{
     Q_OBJECT
-protected:
-    QObject *obj_ = nullptr;
 public:
-    QObject *obj() const { return obj_; }
-signals:
-    void logMessage(QtMsgType type, const Helpz::LogContext &ctx, const QString &str);
-    void restart();
-};
-
-class Object final : public QObject {
-public:
-    Object(OneObjectThread* worherThread, bool debug);
+    Object(Base* base, bool debug);
     ~Object();
 
     void processCommands(const QStringList &cmdList);
 
-private:
+private slots:
     void restart();
-    std::vector<QThread*> th_;
+private:
+    void create_worker();
+
+    typedef ParamThread<Logging> Log_Thread;
+    Log_Thread* log_thread_;
+    QObject* worker_;
+    Base* base_;
 };
 
 class Base
@@ -47,8 +46,8 @@ public:
 
     Base(int argc, char **argv, const QString &name = QString());
 
+    virtual QObject* create_worker(bool* has_log_message_slot, bool* has_restart_service_slot) = 0;
 protected:
-    virtual OneObjectThread* getWorkerThread() = 0;
     virtual bool is_immediately() const = 0;
     void start();
     void stop();
@@ -102,27 +101,6 @@ private:
 #endif
 };
 
-template<class T>
-class WorkerThread : public OneObjectThread {
-    void run() override
-    {
-        std::unique_ptr<T> workObj(new T);
-        obj_ = workObj.get();
-
-        for (int n = 0; n < T::staticMetaObject.methodCount(); n++)
-        {
-            auto&& method = T::staticMetaObject.method(n).name();
-            if (method == "logMessage")
-                connect(this, SIGNAL(logMessage(QtMsgType, Helpz::LogContext, QString)), workObj.get(),
-                        SLOT(logMessage(QtMsgType, Helpz::LogContext, QString)), Qt::QueuedConnection);
-            else if (method == "serviceRestart")
-                connect(workObj.get(), SIGNAL(serviceRestart()), this, SIGNAL(restart()), Qt::QueuedConnection);
-        }
-
-        exec();
-    }
-};
-
 template<class T, typename Application = QCoreApplication>
 class Impl : public Base_Template<Application>
 {
@@ -135,13 +113,32 @@ public:
         return service;
     }
 private:
-    OneObjectThread* getWorkerThread() override
+    QObject* create_worker(bool* has_log_message_slot, bool* has_restart_service_slot) override
     {
-        return new WorkerThread<T>;
+        QByteArray method_name;
+        for (int n = 0; n < T::staticMetaObject.methodCount(); n++)
+        {
+            method_name = T::staticMetaObject.method(n).name();
+            if (method_name == "logMessage")
+            {
+                *has_log_message_slot = true;
+            }
+            else if (method_name == "serviceRestart")
+            {
+                *has_restart_service_slot = true;
+            }
+
+            if (*has_log_message_slot && *has_restart_service_slot)
+            {
+                break;
+            }
+        }
+
+        return new T;
     }
 };
 
 } // namespace Service
 } // namespace Helpz
 
-#endif // SERVICE_H
+#endif // HELPZ_SERVICE_H
