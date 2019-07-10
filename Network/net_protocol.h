@@ -10,6 +10,8 @@
 #include <QBuffer>
 #include <QLoggingCategory>
 
+QT_FORWARD_DECLARE_CLASS(QTemporaryFile)
+
 namespace Helpz {
 namespace Network {
 
@@ -47,12 +49,20 @@ struct Fragmented_Message
 {
     Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size);
 
+    Fragmented_Message(Fragmented_Message&&) = default;
+    Fragmented_Message& operator =(Fragmented_Message&&) = default;
+
+    Fragmented_Message(const Fragmented_Message&) = delete;
+    Fragmented_Message& operator =(const Fragmented_Message&) = delete;
+
+    ~Fragmented_Message();
+
     bool operator ==(uint8_t id) const;
 
     uint8_t id_;
     uint16_t cmd_;
     uint32_t max_fragment_size_;
-    std::shared_ptr<QIODevice> data_device_;
+    QTemporaryFile* data_device_;
 };
 
 /**

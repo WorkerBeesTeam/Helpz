@@ -18,12 +18,15 @@ void Protocol_Writer::set_last_msg_recv_time(std::chrono::time_point<std::chrono
 // ----------------------------------------------------------------------------------
 
 Fragmented_Message::Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size) :
-    id_(id), cmd_(cmd), max_fragment_size_(max_fragment_size)
+    id_(id), cmd_(cmd), max_fragment_size_(max_fragment_size),
+    data_device_(new QTemporaryFile)
 {
-    auto file = new QTemporaryFile{};
-    file->setAutoRemove(true);
-    file->open();
-    data_device_.reset(file);
+    data_device_->setAutoRemove(true);
+}
+
+Fragmented_Message::~Fragmented_Message()
+{
+    delete data_device_;
 }
 
 bool Fragmented_Message::operator ==(uint8_t id) const
@@ -284,6 +287,7 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
     {
         if ((now - it->first) > std::chrono::minutes(4) || (it->second >= next_rx_msg_id_ && it->second < msg_id))
         {
+            fragmented_messages_.erase(std::remove(fragmented_messages_.begin(), fragmented_messages_.end(), it->second), fragmented_messages_.end());
             it = lost_msg_list_.erase(it);
         }
         else
@@ -360,45 +364,55 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             if (it == fragmented_messages_.end())
             {
                 uint32_t max_fragment_size = pos > 0 ? pos : MAX_MESSAGE_DATA_SIZE;
-                it = fragmented_messages_.emplace(fragmented_messages_.end(), Fragmented_Message{ msg_id, cmd, max_fragment_size });
+                it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size);
             }
             Fragmented_Message &msg = *it;
-            if (msg.data_device_)
+
+            if (!msg.data_device_->open())
             {
-                if (!ds.atEnd())
-                {
-                    uint32_t data_pos = ds.device()->pos();
-                    msg.data_device_->seek(pos);
-                    msg.data_device_->write(data.constData() + data_pos, data.size() - data_pos);
-                }
+                qCCritical(Log) << title() << "Failed open tempriorary device:" << msg.data_device_->errorString();
+                fragmented_messages_.erase(it);
+                return;
+            }
 
-                lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
-                auto msg_out = send(cmd);
-                msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
-                msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+            msg.data_device_->seek(pos);
 
-                if (msg.data_device_->pos() == full_size)
+            if (!ds.atEnd())
+            {
+                uint32_t data_pos = ds.device()->pos();
+                msg.data_device_->write(data.constData() + data_pos, data.size() - data_pos);
+            }
+
+            lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
+            auto msg_out = send(cmd);
+            msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+            msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+
+            if (msg.data_device_->pos() == full_size)
+            {
+                msg.data_device_->seek(0);
+                if (flags & ANSWER)
                 {
-                    msg.data_device_->seek(0);
-                    if (flags & ANSWER)
+                    Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
+                    if (waiting_msg.answer_func_)
                     {
-                        Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
-                        if (waiting_msg.answer_func_)
-                        {
-                            waiting_msg.answer_func_(*msg.data_device_);
-                        }
-                        else
-                        {
-                            process_answer_message(msg_id, cmd, *msg.data_device_);
-                        }
+                        waiting_msg.answer_func_(*msg.data_device_);
                     }
                     else
                     {
 //                    msg.data_device_->close(); // most process_message call with closed devices
-                        process_message(msg_id, cmd, *msg.data_device_);
+                        process_answer_message(msg_id, cmd, *msg.data_device_);
                     }
-                    fragmented_messages_.erase(it);
                 }
+                else
+                {
+                    process_message(msg_id, cmd, *msg.data_device_);
+                }
+                fragmented_messages_.erase(it);
+            }
+            else
+            {
+                msg.data_device_->close();
             }
         }
         else
