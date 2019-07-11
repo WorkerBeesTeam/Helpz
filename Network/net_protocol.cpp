@@ -24,9 +24,29 @@ Fragmented_Message::Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fr
     data_device_->setAutoRemove(true);
 }
 
+Fragmented_Message::Fragmented_Message(Fragmented_Message&& o) :
+    id_(std::move(o.id_)), cmd_(std::move(o.cmd_)), max_fragment_size_(std::move(o.max_fragment_size_)),
+    data_device_(std::move(o.data_device_))
+{
+    o.data_device_ = nullptr;
+}
+
+Fragmented_Message& Fragmented_Message::operator =(Fragmented_Message&& o)
+{
+    id_ = std::move(o.id_);
+    cmd_ = std::move(o.cmd_);
+    max_fragment_size_ = std::move(o.max_fragment_size_);
+    data_device_ = std::move(o.data_device_);
+    o.data_device_ = nullptr;
+    return *this;
+}
+
 Fragmented_Message::~Fragmented_Message()
 {
-    delete data_device_;
+    if (data_device_)
+    {
+        delete data_device_;
+    }
 }
 
 bool Fragmented_Message::operator ==(uint8_t id) const

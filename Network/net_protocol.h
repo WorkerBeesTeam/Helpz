@@ -49,8 +49,8 @@ struct Fragmented_Message
 {
     Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size);
 
-    Fragmented_Message(Fragmented_Message&&) = default;
-    Fragmented_Message& operator =(Fragmented_Message&&) = default;
+    Fragmented_Message(Fragmented_Message&& o);
+    Fragmented_Message& operator =(Fragmented_Message&& o);
 
     Fragmented_Message(const Fragmented_Message&) = delete;
     Fragmented_Message& operator =(const Fragmented_Message&) = delete;
