@@ -36,10 +36,31 @@ void parse_out(DataStream &) {}
 template<typename T, typename... Args>
 void parse_out(QDataStream &ds, T& out, Args&... args)
 {
+#ifdef QT_DEBUG
+    qint64 pos = ds.device()->pos();
+#endif
     ds >> out;
     if (ds.status() != QDataStream::Ok)
     {
-        throw std::runtime_error(std::string("QDataStream parse failed for type: ") + typeid(T).name());
+        std::string msg{"QDataStream parse failed for type: "};
+        msg += typeid(T).name();
+        msg += " size: " + std::to_string(ds.device()->size());
+        switch (ds.status())
+        {
+        case QDataStream::ReadCorruptData: msg += " corrupt data"; break;
+        case QDataStream::ReadPastEnd: msg += " read past end"; break;
+        default: break;
+        }
+#ifdef QT_DEBUG
+        msg += " start pos: " + std::to_string(pos);
+        pos = ds.device()->pos();
+        msg += " pos: " + std::to_string(pos);
+        msg += " hex:";
+        ds.device()->seek(0);
+        msg += ds.device()->readAll().toHex().toStdString();
+        ds.device()->seek(pos);
+#endif
+        throw std::runtime_error(msg);
     }
     parse_out(ds, args...);
 }
