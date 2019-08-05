@@ -9,6 +9,9 @@
 #include <Helpz/dtls_server_controller.h>
 
 namespace Helpz {
+
+class Thread_Promises;
+
 namespace DTLS {
 
 class Server_Thread_Config
@@ -68,6 +71,8 @@ private:
     boost::asio::io_context* io_context_;
     std::atomic<Server*> server_;
     std::thread* thread_;
+
+    Thread_Promises* promises_;
 };
 
 } // namespace DTLS

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 
+#include <Helpz/simplethread.h>
+
 #include "dtls_tools.h"
 #include "dtls_server.h"
 #include "dtls_server_thread.h"
@@ -98,13 +100,17 @@ void Server_Thread_Config::set_record_thread_count(const uint16_t &record_thread
 
 // -------------------------------------------------------------------------------------------------------------------
 
-Server_Thread::Server_Thread(Server_Thread_Config&& conf)
+Server_Thread::Server_Thread(Server_Thread_Config&& conf) :
+    server_(nullptr), promises_(new Thread_Promises)
 {
     thread_ = new std::thread(&Server_Thread::run, this, std::move(conf));
 }
 
 Server_Thread::~Server_Thread()
 {
+    if (promises_)
+        delete promises_;
+
     if (thread_->joinable())
     {
         stop();
@@ -121,9 +127,16 @@ void Server_Thread::stop()
     }
 }
 
-Server *Server_Thread::server()
+Server* Server_Thread::server()
 {
-    return server_.load();
+    Server* obj = server_.load();
+    if (!obj && promises_)
+    {
+        if (!promises_->get_future().get())
+            throw std::runtime_error("bad thread start result");
+        obj = server_.load();
+    }
+    return obj;
 }
 
 void Server_Thread::run(Server_Thread_Config conf)
@@ -137,7 +150,10 @@ void Server_Thread::run(Server_Thread_Config conf)
         Tools dtls_tools{ conf.tls_police_file_name(), conf.certificate_file_name(), conf.certificate_key_file_name() };
 
         Server server(&dtls_tools, io_context_, conf.port(), std::move(conf.create_protocol_func()), conf.cleaning_timeout(), conf.record_thread_count());
+
         server_.store(&server);
+        promises_->set_value(true);
+        delete promises_; promises_ = nullptr;
 
         boost::asio::ip::udp::endpoint remote_endpoint;
         server.start_receive(remote_endpoint);
@@ -155,6 +171,12 @@ void Server_Thread::run(Server_Thread_Config conf)
     catch (...)
     {
         std::cerr << "DTLS Server_Thread exception" << std::endl;
+    }
+
+    if (promises_)
+    {
+        promises_->set_value(false);
+        delete promises_; promises_ = nullptr;
     }
 
     if (!io_context_->stopped())
