@@ -46,7 +46,7 @@ Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
     protocol_(std::move(obj.protocol_)), msg_(std::move(obj.msg_))
 {
     setVersion(obj.version());
-    obj.unsetDevice();
+    obj.setDevice(nullptr);
     obj.protocol_ = nullptr;
 }
 
@@ -65,7 +65,7 @@ Protocol_Sender::~Protocol_Sender()
         protocol_->send_message(std::move(msg_), start_pos);
     }
 
-    unsetDevice();
+    setDevice(nullptr);
 }
 
 void Protocol_Sender::release()
@@ -92,7 +92,7 @@ void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint3
         return;
     }
 
-    unsetDevice();
+    setDevice(nullptr);
     msg_.fragment_size_ = fragment_size;
     msg_.data_device_ = std::move(data_dev);
     setDevice(msg_.data_device_.get());
