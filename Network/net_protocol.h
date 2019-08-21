@@ -6,11 +6,10 @@
 
 #include <Helpz/apply_parse.h>
 #include <Helpz/net_protocol_sender.h>
+#include <Helpz/net_fragmented_message.h>
 
 #include <QBuffer>
 #include <QLoggingCategory>
-
-QT_FORWARD_DECLARE_CLASS(QTemporaryFile)
 
 namespace Helpz {
 namespace Network {
@@ -43,26 +42,6 @@ public:
 private:
     QString title_;
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time_;
-};
-
-struct Fragmented_Message
-{
-    Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size);
-
-    Fragmented_Message(Fragmented_Message&& o);
-    Fragmented_Message& operator =(Fragmented_Message&& o);
-
-    Fragmented_Message(const Fragmented_Message&) = delete;
-    Fragmented_Message& operator =(const Fragmented_Message&) = delete;
-
-    ~Fragmented_Message();
-
-    bool operator ==(uint8_t id) const;
-
-    uint8_t id_;
-    uint16_t cmd_;
-    uint32_t max_fragment_size_;
-    QTemporaryFile* data_device_;
 };
 
 /**
@@ -182,6 +161,7 @@ public:
      */
     virtual void ready_write() {}
     virtual void closed() {}
+    virtual void lost_msg_detected(uint8_t /*msg_id*/, uint8_t /*expected*/) {}
 protected:
 
     virtual void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) = 0;

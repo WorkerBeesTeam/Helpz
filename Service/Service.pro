@@ -17,7 +17,7 @@ HEADERS += \
 LIBS += -lHelpzBase
 
 VER_MAJ = 1
-VER_MIN = 2
+VER_MIN = 3
 include(../helpz_install.pri)
 
 qtservice_files.files = ../qtservice/src/qtservice.h

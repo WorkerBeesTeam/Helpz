@@ -23,6 +23,7 @@ void Node::close()
 {
     if (protocol_)
     {
+        protocol_->set_writer(nullptr);
         protocol_.reset();
     }
     if (dtls_)

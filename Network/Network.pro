@@ -9,7 +9,8 @@ SOURCES += \
     net_version.cpp \
     net_protocol.cpp \
     net_protocol_sender.cpp \
-    net_protocol_timer.cpp
+    net_protocol_timer.cpp \
+    net_fragmented_message.cpp
 
 HEADERS += \
     udpclient.h \
@@ -18,10 +19,11 @@ HEADERS += \
     net_protocol.h \
     net_protocol_sender.h \
     net_protocol_timer.h \
-    net_defs.h
+    net_defs.h \
+    net_fragmented_message.h
 
 LIBS += -lHelpzBase
 
 VER_MAJ = 1
-VER_MIN = 2
+VER_MIN = 3
 include(../helpz_install.pri)
