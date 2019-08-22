@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDebug>
 
 #include <Helpz/net_protocol.h>
 #include <Helpz/dtls_server_thread.h>
@@ -38,7 +39,7 @@ private:
 
     void ready_write() override
     {
-        std::cout << title() << " CONNECTED" << std::endl;
+        qDebug().noquote() << title() << "CONNECTED";
     }
     void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
     {
@@ -51,28 +52,28 @@ private:
         case MSG_FILE:      process_file(data_dev);                                                 break;
 
         default:
-            std::cout << title() << " process_message " << cmd << std::endl;
+            qDebug().noquote() << title() << "process_message " << cmd;
             break;
         }
     }
     void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
     {
-        std::cout << title() << " process_answer_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
+        qDebug().noquote() << title() << "process_answer_message #" << int(msg_id) << cmd << "size" << data_dev.size();
     }
 
     void process_simple(QString value1)
     {
-        std::cout << title() << " MSG_SIMPLE " << value1.toStdString() << std::endl;
+        qDebug().noquote() << title() << "MSG_SIMPLE" << value1;
     }
     void process_answered(bool value1, quint32 value2, uint16_t cmd, uint8_t msg_id)
     {
-        std::cout << title() << " MSG_ANSWERED " << value1 << " v " << value2 << std::endl;
+        qDebug().noquote() << title() << "MSG_ANSWERED" << value1 << "v" << value2;
         send_answer(cmd, msg_id) << QString("OK");
     }
     void process_file_meta(FileMetaInfo info)
     {
-        std::cout << title() << " MSG_FILE_META " << info.name_.toStdString() << " size " << info.size_
-                  << " hash " << info.hash_.toHex().constData() << std::endl;
+        qDebug().noquote() << title() << "MSG_FILE_META" << info.name_ << "size" << info.size_
+                  << "hash" << info.hash_.toHex();
         file_info_ = std::move(info);
     }
     void process_file(QIODevice& data_dev)
@@ -85,11 +86,11 @@ private:
         QCryptographicHash hash(QCryptographicHash::Sha1);
         if (!hash.addData(&data_dev))
         {
-            std::cerr << title() << " Can't get file hash" << std::endl;
+            qCritical().noquote() << title() << "Can't get file hash";
             return;
         }
-        std::cout << title() << " MSG_FILE is valid hash: " << (file_info_.hash_ == hash.result() ? "true" : "false")
-                  << " size: " << data_dev.size() << "(" << file_info_.size_ << ')' << std::endl;
+        qDebug().noquote() << title() << "MSG_FILE is valid hash:" << (file_info_.hash_ == hash.result() ? "true" : "false")
+                  << "size:" << data_dev.size() << "(" << file_info_.size_ << ')';
     }
 };
 
@@ -99,7 +100,7 @@ int main(int argc, char *argv[])
 
     Helpz::DTLS::Create_Server_Protocol_Func_T create_protocol = [](const std::vector<std::string> &client_protos, std::string* choose_out) -> std::shared_ptr<Helpz::Network::Protocol>
     {
-        std::cout << "create_protocol" << std::endl;
+        qDebug() << "create_protocol";
         for (const std::string& proto: client_protos)
         {
             if (proto == "dai/1.1")
@@ -113,7 +114,7 @@ int main(int argc, char *argv[])
                 return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});
             }
         }
-        std::cerr << "Unsuported protocol" << std::endl;
+        qCritical() << "Unsuported protocol";
         return std::shared_ptr<Helpz::Network::Protocol>{};
     };
 

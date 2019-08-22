@@ -85,13 +85,17 @@ private:
 void periodic_send_thread_func(Helpz::DTLS::Client_Thread* client_thread)
 {
     std::shared_ptr<Helpz::Network::Protocol> protocol_ptr;
-    for(int i = 0; i < 100; ++i)
+    for(int i = 0; i < 1000; ++i)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(3));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         protocol_ptr = client_thread->client()->protocol();
         if (protocol_ptr)
         {
+            std::static_pointer_cast<Protocol>(protocol_ptr)->test_simple_message();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
             std::static_pointer_cast<Protocol>(protocol_ptr)->test_message_with_answer(i);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::static_pointer_cast<Protocol>(protocol_ptr)->test_send_file();
         }
         else
         {
@@ -114,7 +118,7 @@ int main(int argc, char *argv[])
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
-//    std::thread(periodic_send_thread_func, &client_thread).detach();;
-    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(2)); qApp->quit(); }).detach();
+    std::thread(periodic_send_thread_func, &client_thread).detach();;
+//    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(2)); qApp->quit(); }).detach();
     return a.exec();
 }
