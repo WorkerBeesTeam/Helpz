@@ -100,6 +100,7 @@ void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint3
 
 Protocol_Sender& Protocol_Sender::answer(std::function<void(QIODevice&)> answer_func)
 {
+    assert(!msg_.answer_id_ && "Attempt to wait answer to answer");
     msg_.answer_func_ = std::move(answer_func);
     auto now = std::chrono::system_clock::now();
     if (msg_.end_time_ < now)
