@@ -88,8 +88,6 @@ void Protocol::send_message(Message_Item message, uint32_t pos)
         return;
     }
 
-    qDebug().noquote() << title() << "send msg" << *message.id_ << is_new_message;
-
     Time_Point now = std::chrono::system_clock::now();
     if (message.end_time_ > now)
     {
