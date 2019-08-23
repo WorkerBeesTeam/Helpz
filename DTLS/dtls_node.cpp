@@ -21,6 +21,7 @@ Node::~Node()
 
 void Node::close()
 {
+    std::lock_guard lock(mutex_);
     if (protocol_)
     {
         protocol_->set_writer(nullptr);
@@ -66,17 +67,16 @@ std::string Node::address() const
 
 void Node::write(const uint8_t *data, std::size_t size)
 {
+    std::lock_guard lock(mutex_);
     if (dtls_ && dtls_->is_active())
-    {
-        std::lock_guard lock(mutex_);
         dtls_->send(data, size);
-    }
 }
 
 void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size)
 {
     try
     {
+        std::lock_guard lock(mutex_);
         if (!dtls_)
         {
             return;
