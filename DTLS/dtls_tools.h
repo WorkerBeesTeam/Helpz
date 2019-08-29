@@ -1,9 +1,9 @@
 #ifndef HELPZ_DTLS_TOOLS_H
 #define HELPZ_DTLS_TOOLS_H
 
-#include <botan/rng.h>
-#include <botan/tls_session_manager.h>
-#include <botan/tls_policy.h>
+#include <botan-2/botan/rng.h>
+#include <botan-2/botan/tls_session_manager.h>
+#include <botan-2/botan/tls_policy.h>
 
 #include <Helpz/dtls_credentials_manager.h>
 

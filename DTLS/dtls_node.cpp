@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include <botan/x509path.h>
-#include <botan/hex.h>
-#include <botan/tls_exceptn.h>
+#include <botan-2/botan/x509path.h>
+#include <botan-2/botan/hex.h>
+#include <botan-2/botan/tls_exceptn.h>
 
 #include "dtls_node.h"
 

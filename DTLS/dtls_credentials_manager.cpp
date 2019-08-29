@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include <botan/pkcs8.h>
-#include <botan/data_src.h>
+#include <botan-2/botan/pkcs8.h>
+#include <botan-2/botan/data_src.h>
 
 #include "dtls_credentials_manager.h"
 

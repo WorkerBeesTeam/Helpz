@@ -1,28 +1,28 @@
 #include <iostream>
 #include <fstream>
 
-#include <botan/version.h>
-#include <botan/loadstor.h>
-#include <botan/hash.h>
-#include <botan/pkcs8.h>
-#include <botan/hex.h>
+#include <botan-2/botan/version.h>
+#include <botan-2/botan/loadstor.h>
+#include <botan-2/botan/hash.h>
+#include <botan-2/botan/pkcs8.h>
+#include <botan-2/botan/hex.h>
 
-#include <botan/x509self.h>
-#include <botan/data_src.h>
+#include <botan-2/botan/x509self.h>
+#include <botan-2/botan/data_src.h>
 
 #if defined(BOTAN_HAS_HMAC_DRBG)
-#include <botan/hmac_drbg.h>
+#include <botan-2/botan/hmac_drbg.h>
 #endif
 
 #if defined(BOTAN_HAS_SYSTEM_RNG)
-#include <botan/system_rng.h>
+#include <botan-2/botan/system_rng.h>
 #endif
 
 #if defined(BOTAN_HAS_AUTO_SEEDING_RNG)
-  #include <botan/auto_rng.h>
+  #include <botan-2/botan/auto_rng.h>
 #endif
 
-#include <botan/pbkdf.h>
+#include <botan-2/botan/pbkdf.h>
 
 #include "dtls_tools.h"
 

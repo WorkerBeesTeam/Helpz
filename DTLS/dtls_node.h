@@ -3,9 +3,9 @@
 
 #include <memory>
 
-#include <botan/tls_channel.h>
-#include <botan/tls_callbacks.h>
-#include <botan/tls_policy.h>
+#include <botan-2/botan/tls_channel.h>
+#include <botan-2/botan/tls_callbacks.h>
+#include <botan-2/botan/tls_policy.h>
 
 #include <Helpz/net_protocol.h>
 #include <Helpz/dtls_socket.h>

@@ -1,7 +1,7 @@
 #ifndef HELPZ_DTLS_CREDENTIALS_MANAGER_H
 #define HELPZ_DTLS_CREDENTIALS_MANAGER_H
 
-#include <botan/credentials_manager.h>
+#include <botan-2/botan/credentials_manager.h>
 
 namespace Helpz {
 namespace DTLS {

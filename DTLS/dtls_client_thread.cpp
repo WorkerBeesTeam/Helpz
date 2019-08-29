@@ -94,7 +94,6 @@ Client_Thread::~Client_Thread()
 void Client_Thread::stop()
 {
     stop_flag_ = true;
-    std::lock_guard lock(mutex_);
     if (io_context_)
     {
         io_context_->stop();

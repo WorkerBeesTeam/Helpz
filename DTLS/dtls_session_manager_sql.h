@@ -3,11 +3,11 @@
 
 #include <iostream>
 
-#include <botan/rng.h>
-#include <botan/credentials_manager.h>
-#include <botan/tls_session_manager.h>
-#include <botan/tls_alert.h>
-#include <botan/tls_policy.h>
+#include <botan-2/botan/rng.h>
+#include <botan-2/botan/credentials_manager.h>
+#include <botan-2/botan/tls_session_manager.h>
+#include <botan-2/botan/tls_alert.h>
+#include <botan-2/botan/tls_policy.h>
 
 #include <QObject>
 
