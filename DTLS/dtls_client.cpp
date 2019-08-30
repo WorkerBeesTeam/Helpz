@@ -30,7 +30,7 @@ std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
 
 void Client::start_connection(const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols)
 {
-    udp::resolver resolver(*io_context_);
+    udp::resolver resolver(*get_io_context());
     udp::resolver::query query(udp::v4(), host, port);
     udp::endpoint receiver_endpoint = *resolver.resolve(query);
 

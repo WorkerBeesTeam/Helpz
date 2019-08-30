@@ -8,7 +8,7 @@ namespace Helpz {
 namespace DTLS {
 
 Socket::Socket(boost::asio::io_context *io_context, udp::socket *socket, Controller *controller) :
-    io_context_(io_context), socket_(socket), controller_(controller)
+    socket_(socket), controller_(controller), io_context_(io_context)
 {
 }
 
@@ -42,6 +42,11 @@ void Socket::send(const udp::endpoint &remote_endpoint, const uint8_t *data, std
                                          std::placeholders::_1,   // boost::asio::placeholders::error,
                                          std::placeholders::_2)); // boost::asio::placeholders::bytes_transferred
     }
+}
+
+boost::asio::io_context*Socket::get_io_context()
+{
+    return io_context_;
 }
 
 void Socket::handle_receive(udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]> &data, const boost::system::error_code &err, std::size_t size)

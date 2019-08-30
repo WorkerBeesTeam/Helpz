@@ -79,7 +79,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos)
         message.id_ = next_tx_msg_id_++;
     }
 
-    const QByteArray packet = prepare_packet(message, pos);
+    QByteArray packet = prepare_packet(message, pos);
     if (!packet.size())
     {
         if (is_new_message)
@@ -104,7 +104,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos)
         protocol_writer_->add_timeout_at(time_point);
     }
 
-    protocol_writer_->write(reinterpret_cast<const uint8_t*>(packet.constData()), packet.size());
+    protocol_writer_->write(std::move(packet));
 }
 
 QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos)

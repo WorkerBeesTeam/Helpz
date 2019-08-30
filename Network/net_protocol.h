@@ -37,7 +37,7 @@ public:
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time() const;
     void set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value);
 
-    virtual void write(const quint8* data, std::size_t size) = 0;
+    virtual void write(QByteArray&& data) = 0;
     virtual void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) = 0;
 private:
     QString title_;

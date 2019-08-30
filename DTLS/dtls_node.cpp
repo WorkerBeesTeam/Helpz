@@ -65,11 +65,17 @@ std::string Node::address() const
     return title_s.str();
 }
 
-void Node::write(const uint8_t *data, std::size_t size)
+void Node::write(QByteArray&& data)
 {
-    std::lock_guard lock(mutex_);
-    if (dtls_ && dtls_->is_active())
-        dtls_->send(data, size);
+    auto* ctrl = controller_;
+    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+
+    socket_->get_io_context()->post([ctrl, endpoint, data]()
+    {
+        auto node = ctrl->get_node(endpoint);
+        if (node)
+            node->send(data);
+    });
 }
 
 void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size)
@@ -211,6 +217,13 @@ bool Node::tls_session_established(const Botan::TLS::Session &session)
     }
 
     return true;
+}
+
+void Node::send(const QByteArray& data)
+{
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active())
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
 }
 
 } // namespace DTLS
