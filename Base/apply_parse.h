@@ -25,7 +25,7 @@ inline std::unique_ptr<QDataStream> parse_open_device(QIODevice &data_dev, int d
 
     std::unique_ptr<QDataStream> ds(new QDataStream{&data_dev});
     ds->setVersion(ds_version);
-    return std::move(ds);
+    return ds;
 }
 
 //template<> void parse_out(QDataStream &) {}
