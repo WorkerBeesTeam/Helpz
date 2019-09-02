@@ -153,7 +153,7 @@ public:
 public:
     QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
-    void process_bytes(const quint8 *data, size_t size);
+    void process_bytes(const uint8_t* data, size_t size);
 
     /**
      * @brief ready_write

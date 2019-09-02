@@ -137,13 +137,8 @@ std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }
 
 void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {
-    std::unique_ptr<uint8_t[]> buffer(new uint8_t[size]);
-    memcpy(buffer.get(), data, size);
-
     if (protocol_)
-    {
         protocol_->process_bytes(data, size);
-    }
 }
 
 void Node::tls_alert(Botan::TLS::Alert alert)

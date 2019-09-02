@@ -178,12 +178,12 @@ void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t m
     device->read(data.data() + header_pos, raw_size);
 }
 
-void Protocol::process_bytes(const quint8* data, size_t size)
+void Protocol::process_bytes(const uint8_t* data, size_t size)
 {
     if (protocol_writer_)
         protocol_writer_->set_last_msg_recv_time(std::chrono::system_clock::now());
 
-    device_.write((const char*)data, size);
+    device_.write(reinterpret_cast<const char*>(data), size);
     device_.seek(0);
     process_stream();
 
