@@ -521,7 +521,7 @@ Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Ite
         {
             Message_Item msg = std::move(it->second);
             waiting_messages_.erase(it);
-            return std::move(msg);
+            return msg;
         }
     }
     return {};

@@ -63,6 +63,7 @@ public:
     void stop();
 
     Server* server();
+    boost::asio::io_context* io_context();
 private:
     void run(Server_Thread_Config conf);
 

@@ -16,6 +16,7 @@ public:
     using udp = boost::asio::ip::udp;
 
     Socket(boost::asio::io_context *io_context, udp::socket* socket, Controller* controller);
+    virtual ~Socket() = default;
 
     virtual void start_receive(udp::endpoint& remote_endpoint);
 

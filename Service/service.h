@@ -43,6 +43,7 @@ public:
     static const QLoggingCategory &Log();
 
     Base();
+    virtual ~Base() = default;
 
     Base(int argc, char **argv, const QString &name = QString());
 

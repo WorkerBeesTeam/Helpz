@@ -21,7 +21,7 @@ public:
     Thread_Base(Args... __args) :
         args_(new Tuple{__args...}) {}
 
-    ~Thread_Base()
+    virtual ~Thread_Base()
     {
         if (args_)
             delete args_;
@@ -96,7 +96,7 @@ public:
         ptr_(nullptr),
         promises_(new Thread_Promises{})
     {}
-    ~ParamThread()
+    virtual ~ParamThread()
     {
         if (promises_)
             delete promises_;

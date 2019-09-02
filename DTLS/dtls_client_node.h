@@ -7,7 +7,7 @@ namespace Helpz {
 namespace DTLS {
 
 class Client_Controller;
-class Client_Node : public Node
+class Client_Node final : public Node
 {
 public:
     Client_Node(Client_Controller* controller, Socket* socket);

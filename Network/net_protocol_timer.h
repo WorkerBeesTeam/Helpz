@@ -14,6 +14,7 @@ namespace Network {
 class Protocol_Timer_Emiter
 {
 public:
+    virtual ~Protocol_Timer_Emiter() = default;
     virtual void on_protocol_timeout(boost::asio::ip::udp::endpoint endpoint) = 0;
 };
 
@@ -21,7 +22,7 @@ class Protocol_Timer
 {
 public:
     Protocol_Timer(Protocol_Timer_Emiter* emiter);
-    ~Protocol_Timer();
+    virtual ~Protocol_Timer();
 
     typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;
 

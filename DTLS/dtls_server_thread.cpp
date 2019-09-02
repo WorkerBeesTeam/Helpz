@@ -139,6 +139,13 @@ Server* Server_Thread::server()
     return obj;
 }
 
+boost::asio::io_context *Helpz::DTLS::Server_Thread::io_context()
+{
+    if (server())
+        return io_context_;
+    return nullptr;
+}
+
 void Server_Thread::run(Server_Thread_Config conf)
 {
     io_context_ = nullptr;

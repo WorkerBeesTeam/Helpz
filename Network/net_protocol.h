@@ -31,6 +31,8 @@ class Protocol;
 class Protocol_Writer
 {
 public:
+    virtual ~Protocol_Writer() = default;
+
     const QString& title() const;
     void set_title(const QString& title);
 
@@ -127,6 +129,7 @@ public:
 
 public:
     Protocol();
+    virtual ~Protocol() = default;
 
     virtual void before_remove_copy() {}
 

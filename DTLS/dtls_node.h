@@ -17,7 +17,7 @@ class Node : public Botan::TLS::Callbacks, public Network::Protocol_Writer
 {
 public:
     Node(Controller* controller, Socket* socket);
-    ~Node();
+    virtual ~Node();
 
     std::recursive_mutex mutex_;
 

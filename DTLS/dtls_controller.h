@@ -22,6 +22,7 @@ public:
     using udp = boost::asio::ip::udp;
 
     Controller(Tools* dtls_tools);
+    virtual ~Controller() = default;
 
     Tools* dtls_tools();
 
