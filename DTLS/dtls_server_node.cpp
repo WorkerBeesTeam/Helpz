@@ -16,6 +16,8 @@ Server_Node::Server_Node(Server_Controller *controller, const boost::asio::ip::u
     set_receiver_endpoint(endpoint);
 
     auto tools = controller->dtls_tools();
+
+    std::lock_guard lock(mutex_);
     dtls_.reset(new Botan::TLS::Server{ *this, *tools->session_manager_, *tools->creds_,
                                         *tools->policy_, *tools->rng_, true });
 }
@@ -32,9 +34,7 @@ void Server_Node::tls_alert(Botan::TLS::Alert alert)
     Node::tls_alert(alert);
 
     if (alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
-    {
-        std::thread(&Server_Controller::remove_client, controller(), receiver_endpoint()).detach();
-    }
+        controller()->socket()->get_io_context()->post(boost::bind(&Server_Controller::remove_client, controller(), receiver_endpoint()));
 }
 
 std::string Server_Node::tls_server_choose_app_protocol(const std::vector<std::string> &client_protos)
@@ -47,7 +47,7 @@ std::string Server_Node::tls_server_choose_app_protocol(const std::vector<std::s
     }
     else
     {
-        std::thread(&Server_Controller::remove_client, controller(), receiver_endpoint()).detach();
+        controller()->socket()->get_io_context()->post(boost::bind(&Server_Controller::remove_client, controller(), receiver_endpoint()));
     }
 
     qCDebug(Log).noquote() << title() << "protocol is" << app_protocol.c_str() << '(' << boost::algorithm::join(client_protos, ", ").c_str() << ')';
