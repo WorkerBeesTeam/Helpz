@@ -118,10 +118,10 @@ void Thread::run()
         {
             auto start_point = std::chrono::system_clock::now();
             task(db_.get());
-            std::chrono::nanoseconds delta = std::chrono::system_clock::now() - start_point;
-            if (delta > std::chrono::milliseconds(5))
+            std::chrono::milliseconds delta = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_point);
+            if (delta > std::chrono::milliseconds(100))
             {
-                std::cout << "db freeze " << delta.count() << " size " << s << std::endl;
+                std::cout << "db freeze " << delta.count() << "ms size " << s << std::endl;
             }
         }
         catch (...) {}
