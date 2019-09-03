@@ -19,8 +19,11 @@ Server_Controller::Server_Controller(Tools *dtls_tools, Socket *socket, Create_S
 
 Server_Controller::~Server_Controller()
 {
-    records_thread_break_flag_ = true;
-    records_cond_.notify_all();
+    {
+        std::lock_guard lock(records_mutex_);
+        records_thread_break_flag_ = true;
+        records_cond_.notify_all();
+    }
 
     {
         std::unique_lock lock(clients_mutex_);
@@ -192,7 +195,7 @@ void Server_Controller::add_received_record(std::shared_ptr<Node> &&node, std::u
 void Server_Controller::records_thread_run()
 {
     std::unique_lock lock(records_mutex_, std::defer_lock);
-    while (true)
+    while (!records_thread_break_flag_)
     {
         lock.lock();
         records_cond_.wait(lock, [this](){ return records_queue_.size() || records_thread_break_flag_; });

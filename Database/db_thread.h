@@ -19,14 +19,11 @@ class Base;
 class Thread
 {
 public:
-    Thread(Connection_Info&& info);
+    Thread(Connection_Info info, std::size_t thread_count = 1);
     Thread(std::shared_ptr<Base> db);
     ~Thread();
 
     void stop();
-    void set_priority(int priority);
-
-    const Base* db() const;
 
     template<typename Func>
     std::future<void> add(Func f)
@@ -41,9 +38,8 @@ public:
                            std::function<void(QSqlQuery&, const QVariantList&)> callback = nullptr);
 private:
     std::future<void> add_task(std::packaged_task<void(Base*)>&& task);
-    void open_and_run(Connection_Info&& info);
-    void store_and_run(std::shared_ptr<Base> db);
-    void run();
+    void open_and_run(const Connection_Info &info);
+    void run(std::shared_ptr<Base> db);
 
     static void process_query(Base* db, QString& sql, std::vector<QVariantList>& values_list,
                        std::function<void(QSqlQuery&, const QVariantList&)>& callback);
@@ -52,10 +48,7 @@ private:
     std::queue<std::packaged_task<void(Base*)>> data_queue_;
     std::mutex mutex_;
     std::condition_variable cond_;
-
-    std::shared_ptr<Base> db_;
-
-    std::thread thread_;
+    std::vector<std::thread> thread_list_;
 };
 
 } // namespace Database

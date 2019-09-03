@@ -11,46 +11,32 @@ Q_DECLARE_LOGGING_CATEGORY(DBLog)
 namespace Helpz {
 namespace Database {
 
-Thread::Thread(Connection_Info&& info) :
-    break_flag_(false),
-    thread_(&Thread::open_and_run, this, std::move(info))
+Thread::Thread(Connection_Info info, std::size_t thread_count) :
+    break_flag_(false)
 {
+    for (std::size_t i = 0; i < thread_count; ++i)
+        thread_list_.emplace_back(std::thread(&Thread::open_and_run, this, info));
 }
 
 Thread::Thread(std::shared_ptr<Base> db) :
-    break_flag_(false),
-    thread_(&Thread::store_and_run, this, std::move(db))
+    break_flag_(false)
 {
+    thread_list_.emplace_back(std::thread(&Thread::run, this, std::move(db)));
 }
 
 Thread::~Thread()
 {
     stop();
-    if (thread_.joinable())
-    {
-        thread_.join();
-    }
+    for (std::thread& thread: thread_list_)
+        if (thread.joinable())
+            thread.join();
 }
 
 void Thread::stop()
 {
     std::lock_guard lock(mutex_);
     break_flag_ = true;
-    cond_.notify_one();
-}
-
-void Thread::set_priority(int priority)
-{
-#ifdef Q_OS_UNIX
-    sched_param sch_param;
-    sch_param.sched_priority = priority;
-    pthread_setschedparam(thread_.native_handle(), SCHED_FIFO, &sch_param);
-#endif
-}
-
-const Base* Thread::db() const
-{
-    return db_.get();
+    cond_.notify_all();
 }
 
 std::future<void> Thread::add_query(std::function<void (Base *)> callback)
@@ -86,21 +72,14 @@ std::future<void> Thread::add_task(std::packaged_task<void (Base*)>&& task)
     return res;
 }
 
-void Thread::open_and_run(Connection_Info&& info)
+void Thread::open_and_run(const Connection_Info& info)
 {
     std::stringstream s;
     s << "pending_queries_" << std::this_thread::get_id();
-    db_.reset(new Base{info, QString::fromStdString(s.str())});
-    run();
+    run(std::make_shared<Helpz::Database::Base>(info, QString::fromStdString(s.str())));
 }
 
-void Thread::store_and_run(std::shared_ptr<Base> db)
-{
-    db_ = std::move(db);
-    run();
-}
-
-void Thread::run()
+void Thread::run(std::shared_ptr<Helpz::Database::Base> db)
 {
     std::unique_lock lock(mutex_, std::defer_lock);
     while (!break_flag_)
@@ -117,11 +96,10 @@ void Thread::run()
 
         try
         {
-            task(db_.get());
+            task(db.get());
         }
         catch (...) {}
     }
-    db_.reset();
 }
 
 /*static*/ void Thread::process_query(Base* db, QString &sql, std::vector<QVariantList> &values_list,
