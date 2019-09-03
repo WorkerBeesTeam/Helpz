@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iostream>
 
 #include <QLoggingCategory>
 
@@ -10,30 +11,41 @@ Q_DECLARE_LOGGING_CATEGORY(DBLog)
 namespace Helpz {
 namespace Database {
 
-Thread::Thread(Connection_Info&& info)
+Thread::Thread(Connection_Info&& info) :
+    break_flag_(false),
+    thread_(&Thread::open_and_run, this, std::move(info))
 {
-    thread_ = new std::thread(&Thread::open_and_run, this, std::move(info));
 }
 
-Thread::Thread(std::shared_ptr<Base> db)
+Thread::Thread(std::shared_ptr<Base> db) :
+    break_flag_(false),
+    thread_(&Thread::store_and_run, this, std::move(db))
 {
-    thread_ = new std::thread(&Thread::store_and_run, this, std::move(db));
 }
 
 Thread::~Thread()
 {
     stop();
-    if (thread_->joinable())
+    if (thread_.joinable())
     {
-        thread_->join();
+        thread_.join();
     }
-    delete thread_;
 }
 
 void Thread::stop()
 {
+    std::lock_guard lock(mutex_);
     break_flag_ = true;
     cond_.notify_one();
+}
+
+void Thread::set_priority(int priority)
+{
+#ifdef Q_OS_UNIX
+    sched_param sch_param;
+    sch_param.sched_priority = priority;
+    pthread_setschedparam(thread_.native_handle(), SCHED_FIFO, &sch_param);
+#endif
 }
 
 const Base* Thread::db() const
@@ -88,7 +100,6 @@ void Thread::store_and_run(std::shared_ptr<Base> db)
 
 void Thread::run()
 {
-    break_flag_ = false;
     std::unique_lock lock(mutex_, std::defer_lock);
     while (!break_flag_)
     {
@@ -100,11 +111,18 @@ void Thread::run()
         }
         std::packaged_task<void(Base*)> task{std::move(data_queue_.front())};
         data_queue_.pop();
+        std::size_t s = data_queue_.size();
         lock.unlock();
 
         try
         {
+            auto start_point = std::chrono::system_clock::now();
             task(db_.get());
+            std::chrono::nanoseconds delta = std::chrono::system_clock::now() - start_point;
+            if (delta > std::chrono::milliseconds(5))
+            {
+                std::cout << "db freeze " << delta.count() << " size " << s << std::endl;
+            }
         }
         catch (...) {}
     }

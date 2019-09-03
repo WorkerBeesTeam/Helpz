@@ -55,7 +55,7 @@ std::shared_ptr<Node> Server_Controller::get_node(const boost::asio::ip::udp::en
 void Server_Controller::process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
 {
     // node already locked
-    node->process_received_data(std::move(data), size);
+    node->process_received_data(node, std::move(data), size);
 }
 
 void Server_Controller::remove_copy(Network::Protocol *client)
@@ -182,10 +182,10 @@ std::shared_ptr<Network::Protocol> Server_Controller::create_protocol(const std:
     return create_protocol_func_(client_protos, choose_out);
 }
 
-void Server_Controller::add_received_record(const udp::endpoint &remote_endpoint, std::unique_ptr<uint8_t[]> &&buffer, std::size_t size)
+void Server_Controller::add_received_record(std::shared_ptr<Node> &&node, std::unique_ptr<uint8_t[]> &&buffer, std::size_t size)
 {
     std::lock_guard lock(records_mutex_);
-    records_queue_.push(Record_Item{remote_endpoint, std::move(buffer), size});
+    records_queue_.push(Record_Item{std::move(node), std::move(buffer), size});
     records_cond_.notify_one();
 }
 
@@ -205,15 +205,13 @@ void Server_Controller::records_thread_run()
         records_queue_.pop();
         lock.unlock();
 
-        // Possible violation the order, another thread can lock node->record_mutex_ first.
-        auto node = find_client(record.remote_endpoint_);
-        if (node)
+        if (record.node_)
         {
-            auto proto = node->protocol();
+            auto proto = record.node_->protocol();
             if (proto)
             {
-                std::lock_guard node_lock(node->record_mutex_);
-                proto->process_bytes(record.buffer_.get(), record.size_);
+                std::lock_guard node_lock(static_cast<Server_Node*>(record.node_.get())->record_mutex_);
+                proto->process_bytes(std::move(record.node_), record.buffer_.get(), record.size_);
             }
         }
     }

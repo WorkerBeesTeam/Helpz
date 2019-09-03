@@ -78,7 +78,7 @@ void Node::write(QByteArray&& data)
     });
 }
 
-void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size)
+void Node::process_received_data(std::shared_ptr<Node> node, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
 {
     try
     {
@@ -87,6 +87,8 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
         {
             return;
         }
+
+        self_ = std::move(node);
 
         bool first_active = !dtls_->is_active();
 
@@ -126,6 +128,9 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     {
         qCWarning(Log).noquote() << title() << "Error in receided data process_received_data";
     }
+
+    if (self_)
+        self_.reset();
 }
 
 void Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)
@@ -138,7 +143,10 @@ std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }
 void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {
     if (protocol_)
-        protocol_->process_bytes(data, size);
+        protocol_->process_bytes(std::move(self_), data, size);
+
+    if (self_)
+        self_.reset();
 }
 
 void Node::tls_alert(Botan::TLS::Alert alert)
@@ -150,6 +158,9 @@ void Node::tls_alert(Botan::TLS::Alert alert)
         protocol_->closed();
         close();
     }
+
+    if (self_)
+        self_.reset();
 }
 
 void Node::tls_emit_data(const uint8_t data[], size_t size)

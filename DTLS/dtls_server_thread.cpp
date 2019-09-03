@@ -12,8 +12,9 @@ namespace DTLS {
 
 Server_Thread_Config::Server_Thread_Config(uint16_t port, const std::string &tls_police_file_name, const std::string &certificate_file_name,
                                            const std::string &certificate_key_file_name, uint32_t cleaning_timeout_sec, uint16_t receive_thread_count,
-                                           uint16_t record_thread_count) :
-    port_(port), receive_thread_count_(receive_thread_count), record_thread_count_(record_thread_count), cleaning_timeout_(std::chrono::seconds{cleaning_timeout_sec}),
+                                           uint16_t record_thread_count, int main_thread_priority) :
+    port_(port), receive_thread_count_(receive_thread_count), record_thread_count_(record_thread_count),
+    main_thread_priority_(main_thread_priority), cleaning_timeout_(std::chrono::seconds{cleaning_timeout_sec}),
     tls_police_file_name_(tls_police_file_name), certificate_file_name_(certificate_file_name), certificate_key_file_name_(certificate_key_file_name)
 {
 }
@@ -98,12 +99,21 @@ void Server_Thread_Config::set_record_thread_count(const uint16_t &record_thread
     record_thread_count_ = record_thread_count;
 }
 
+int Server_Thread_Config::main_thread_priority() const
+{
+    return main_thread_priority_;
+}
+
+void Server_Thread_Config::set_main_thread_priority(int main_thread_priority)
+{
+    main_thread_priority_ = main_thread_priority;
+}
+
 // -------------------------------------------------------------------------------------------------------------------
 
 Server_Thread::Server_Thread(Server_Thread_Config&& conf) :
-    server_(nullptr), promises_(new Thread_Promises)
+    promises_(new Thread_Promises), server_(nullptr), thread_(&Server_Thread::run, this, std::move(conf))
 {
-    thread_ = new std::thread(&Server_Thread::run, this, std::move(conf));
 }
 
 Server_Thread::~Server_Thread()
@@ -111,12 +121,11 @@ Server_Thread::~Server_Thread()
     if (promises_)
         delete promises_;
 
-    if (thread_->joinable())
+    if (thread_.joinable())
     {
         stop();
-        thread_->join();
+        thread_.join();
     }
-    delete thread_;
 }
 
 void Server_Thread::stop()
@@ -125,6 +134,15 @@ void Server_Thread::stop()
     {
         io_context_->stop();
     }
+}
+
+void Server_Thread::set_priority(int priority)
+{
+#ifdef Q_OS_UNIX
+    sched_param sch_param;
+    sch_param.sched_priority = priority;
+    pthread_setschedparam(thread_.native_handle(), SCHED_FIFO, &sch_param);
+#endif
 }
 
 Server* Server_Thread::server()
@@ -148,6 +166,9 @@ boost::asio::io_context *Server_Thread::io_context()
 
 void Server_Thread::run(Server_Thread_Config conf)
 {
+    if (conf.main_thread_priority() != -1)
+        set_priority(conf.main_thread_priority());
+
     io_context_ = nullptr;
     std::vector<std::thread> additional_threads;
 

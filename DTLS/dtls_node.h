@@ -33,7 +33,7 @@ public:
 
     void write(QByteArray&& data) override;
 
-    void process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size);
+    void process_received_data(std::shared_ptr<Node> node, std::unique_ptr<uint8_t[]> &&data, std::size_t size);
 protected:
     void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override;
 
@@ -49,6 +49,8 @@ protected:
        const std::string& hostname,
        const Botan::TLS::Policy& policy) override;
     bool tls_session_established(const Botan::TLS::Session &session) override;
+
+    std::shared_ptr<Node> self_;
 
     std::unique_ptr<Botan::TLS::Channel> dtls_;
     Controller* controller_;

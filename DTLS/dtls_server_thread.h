@@ -18,7 +18,7 @@ class Server_Thread_Config
 {
 public:
     Server_Thread_Config(uint16_t port, const std::string& tls_police_file_name, const std::string& certificate_file_name, const std::string& certificate_key_file_name,
-                         uint32_t cleaning_timeout_sec = 3 * 60, uint16_t receive_thread_count = 5, uint16_t record_thread_count = 5);
+                         uint32_t cleaning_timeout_sec = 3 * 60, uint16_t receive_thread_count = 5, uint16_t record_thread_count = 5, int main_thread_priority = -1);
     Server_Thread_Config(Server_Thread_Config&&) = default;
     Server_Thread_Config(const Server_Thread_Config&) = delete;
 
@@ -46,8 +46,12 @@ public:
     uint16_t record_thread_count() const;
     void set_record_thread_count(const uint16_t &record_thread_count);
 
+    int main_thread_priority() const;
+    void set_main_thread_priority(int main_thread_priority);
+
 private:
     uint16_t port_, receive_thread_count_, record_thread_count_;
+    int main_thread_priority_;
     std::chrono::seconds cleaning_timeout_;
     std::string tls_police_file_name_, certificate_file_name_, certificate_key_file_name_;
     Create_Server_Protocol_Func_T create_protocol_func_;
@@ -61,6 +65,7 @@ public:
     ~Server_Thread();
 
     void stop();
+    void set_priority(int priority);
 
     Server* server();
     boost::asio::io_context* io_context();
@@ -69,11 +74,11 @@ private:
 
     void run_context(uint16_t thread_number);
 
+    Thread_Promises* promises_;
+
     boost::asio::io_context* io_context_;
     std::atomic<Server*> server_;
-    std::thread* thread_;
-
-    Thread_Promises* promises_;
+    std::thread thread_;
 };
 
 } // namespace DTLS

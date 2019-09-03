@@ -21,7 +21,7 @@ public:
     std::shared_ptr<Network::Protocol> create_protocol(const std::string& app_proto);
 
     std::shared_ptr<Node> get_node(const udp::endpoint& remote_endpoint = udp::endpoint()) override;
-    void process_data(std::shared_ptr<Node> &, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
+    void process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 private:
 //    Client* client_;
     std::shared_ptr<Client_Node> node_;

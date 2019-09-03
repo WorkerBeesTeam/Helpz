@@ -43,7 +43,7 @@ public:
 
     std::shared_ptr<Network::Protocol> create_protocol(const std::vector<std::string> &client_protos, std::string* choose_out);
 
-    void add_received_record(const udp::endpoint& remote_endpoint, std::unique_ptr<uint8_t[]>&& buffer, std::size_t size);
+    void add_received_record(std::shared_ptr<Node>&& node, std::unique_ptr<uint8_t[]>&& buffer, std::size_t size);
 private:
     void records_thread_run();
 
@@ -55,7 +55,7 @@ private:
 
     struct Record_Item
     {
-        udp::endpoint remote_endpoint_;
+        std::shared_ptr<Node> node_;
         std::unique_ptr<uint8_t[]> buffer_;
         std::size_t size_;
     };

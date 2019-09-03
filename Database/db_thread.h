@@ -24,6 +24,7 @@ public:
     ~Thread();
 
     void stop();
+    void set_priority(int priority);
 
     const Base* db() const;
 
@@ -54,7 +55,7 @@ private:
 
     std::shared_ptr<Base> db_;
 
-    std::thread* thread_;
+    std::thread thread_;
 };
 
 } // namespace Database

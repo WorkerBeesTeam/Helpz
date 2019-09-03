@@ -33,6 +33,11 @@ QString Protocol::title() const
     return protocol_writer_ ? protocol_writer_->title() : QString{};
 }
 
+std::shared_ptr<Protocol_Writer> Protocol::writer_pointer()
+{
+    return writer_pointer_;
+}
+
 void Protocol::reset_msg_id()
 {
     next_rx_msg_id_ = 0;
@@ -178,8 +183,15 @@ void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t m
     device->read(data.data() + header_pos, raw_size);
 }
 
-void Protocol::process_bytes(const uint8_t* data, size_t size)
+void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, const uint8_t* data, size_t size)
 {
+    writer_pointer_ = std::move(self_pointer);
+    struct Clear_Pointer {
+        Clear_Pointer(std::shared_ptr<Protocol_Writer>& p) : p_(p) {}
+        ~Clear_Pointer() { p_.reset(); }
+        std::shared_ptr<Protocol_Writer>& p_;
+    } clear_pointer(writer_pointer_);
+
     if (protocol_writer_)
         protocol_writer_->set_last_msg_recv_time(std::chrono::system_clock::now());
 

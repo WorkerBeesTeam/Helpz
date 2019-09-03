@@ -58,9 +58,6 @@ public:
     const quint32 MAX_MESSAGE_SIZE = 2147483648;
 
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
-#if (QT_VERSION > QT_VERSION_CHECK(5, 12, 3))
-#pragma GCC warning "Think about raise used version or if it the same, then raise qt version in this condition."
-#endif
 
     enum Flags {
         FRAGMENT_QUERY              = 0x1000,
@@ -135,6 +132,8 @@ public:
 
     QString title() const;
 
+    std::shared_ptr<Protocol_Writer> writer_pointer();
+
     void reset_msg_id();
 
     virtual bool operator ==(const Protocol&) const { return false; }
@@ -156,7 +155,7 @@ public:
 public:
     QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
-    void process_bytes(const uint8_t* data, size_t size);
+    void process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, const uint8_t* data, size_t size);
 
     /**
      * @brief ready_write
@@ -201,6 +200,8 @@ private:
     std::vector<Fragmented_Message> fragmented_messages_;
     std::map<Time_Point,Message_Item> waiting_messages_;
     std::mutex waiting_messages_mutex_;
+
+    std::shared_ptr<Protocol_Writer> writer_pointer_;
 };
 
 } // namespace Network

@@ -13,7 +13,7 @@ namespace DTLS {
 
 class Server_Controller;
 
-class Server_Node : public Node
+class Server_Node final : public Node
 {
 public:
     std::mutex record_mutex_;

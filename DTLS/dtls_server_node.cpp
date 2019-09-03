@@ -26,7 +26,7 @@ void Server_Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_
 {
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[size]);
     memcpy(buffer.get(), data, size);
-    controller()->add_received_record(receiver_endpoint(), std::move(buffer), size);
+    controller()->add_received_record(std::move(self_), std::move(buffer), size);
 }
 
 void Server_Node::tls_alert(Botan::TLS::Alert alert)
