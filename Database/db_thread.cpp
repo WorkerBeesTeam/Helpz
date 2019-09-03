@@ -11,17 +11,21 @@ Q_DECLARE_LOGGING_CATEGORY(DBLog)
 namespace Helpz {
 namespace Database {
 
-Thread::Thread(Connection_Info info, std::size_t thread_count) :
+Thread::Thread(Connection_Info info, std::size_t thread_count, int priority) :
     break_flag_(false)
 {
     for (std::size_t i = 0; i < thread_count; ++i)
+    {
         thread_list_.emplace_back(std::thread(&Thread::open_and_run, this, info));
+        set_priority(thread_list_.back(), priority);
+    }
 }
 
-Thread::Thread(std::shared_ptr<Base> db) :
+Thread::Thread(std::shared_ptr<Base> db, int priority) :
     break_flag_(false)
 {
     thread_list_.emplace_back(std::thread(&Thread::run, this, std::move(db)));
+    set_priority(thread_list_.back(), priority);
 }
 
 Thread::~Thread()
@@ -37,6 +41,20 @@ void Thread::stop()
     std::lock_guard lock(mutex_);
     break_flag_ = true;
     cond_.notify_all();
+}
+
+void Thread::set_priority(std::thread &thread, int priority)
+{
+    if (priority >= 0)
+    {
+#ifdef Q_OS_UNIX
+    sched_param sch_param;
+    sch_param.sched_priority = priority;
+    int err = pthread_setschedparam(thread.native_handle(), SCHED_FIFO, &sch_param);
+    if (err)
+        qWarning(DBLog) << "DB Thread error: " << strerror(err);
+#endif
+    }
 }
 
 std::future<void> Thread::add_query(std::function<void (Base *)> callback)

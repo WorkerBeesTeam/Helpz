@@ -19,11 +19,13 @@ class Base;
 class Thread
 {
 public:
-    Thread(Connection_Info info, std::size_t thread_count = 1);
-    Thread(std::shared_ptr<Base> db);
+    Thread(Connection_Info info, std::size_t thread_count = 1, int priority = -1);
+    Thread(std::shared_ptr<Base> db, int priority = -1);
     ~Thread();
 
     void stop();
+
+    static void set_priority(std::thread& thread, int priority);
 
     template<typename Func>
     std::future<void> add(Func f)
