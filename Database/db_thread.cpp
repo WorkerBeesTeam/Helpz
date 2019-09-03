@@ -80,6 +80,8 @@ std::future<void> Thread::add_task(std::packaged_task<void (Base*)>&& task)
     std::future<void> res = task.get_future();
     std::lock_guard lock(mutex_);
     data_queue_.push(std::move(task));
+    if (data_queue_.size() > 50)
+        std::cout << "DB Thread too slow. Queue size: " << data_queue_.size() << std::endl;
     cond_.notify_one();
     return res;
 }
