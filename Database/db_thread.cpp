@@ -111,18 +111,11 @@ void Thread::run()
         }
         std::packaged_task<void(Base*)> task{std::move(data_queue_.front())};
         data_queue_.pop();
-        std::size_t s = data_queue_.size();
         lock.unlock();
 
         try
         {
-            auto start_point = std::chrono::system_clock::now();
             task(db_.get());
-            std::chrono::milliseconds delta = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_point);
-            if (delta > std::chrono::milliseconds(100))
-            {
-                std::cout << "-----------> db freeze " << delta.count() << "ms size " << s << std::endl;
-            }
         }
         catch (...) {}
     }
@@ -132,6 +125,8 @@ void Thread::run()
 /*static*/ void Thread::process_query(Base* db, QString &sql, std::vector<QVariantList> &values_list,
                                       std::function<void (QSqlQuery &, const QVariantList &)>& callback)
 {
+    auto start_point = std::chrono::system_clock::now();
+
     QSqlQuery query;
     if (values_list.empty())
     {
@@ -152,6 +147,12 @@ void Thread::run()
             }
             query.clear();
         }
+    }
+
+    std::chrono::milliseconds delta = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_point);
+    if (delta > std::chrono::milliseconds(100))
+    {
+        std::cout << "-----------> db freeze " << delta.count() << "ms vs " << values_list.size() << " sql " << sql.toStdString() << std::endl;
     }
 }
 
