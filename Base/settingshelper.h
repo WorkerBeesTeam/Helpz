@@ -7,6 +7,18 @@
 
 #include <Helpz/simplethread.h>
 
+template<>
+inline std::string qvariant_cast<std::string>(const QVariant& value)
+{
+    return value.toString().toStdString();
+}
+
+template<>
+inline QVariant qVariantFromValue<std::string>(const std::string &value)
+{
+    return QString::fromStdString(value);
+}
+
 namespace Helpz {
 
 template<typename _Tp> struct CharArrayToQString { typedef _Tp type; };
@@ -19,7 +31,7 @@ struct Param {
     typedef std::function<QVariant(const QVariant&/*value*//*, bool get_algo*/)> NormalizeFunc;
 
     Param(const QString& name, const T& default_value, NormalizeFunc normalize_function = nullptr) :
-        name(name), default_value(default_value), normalize(normalize_function) {}
+        name(name), default_value(qVariantFromValue(static_cast<Type>(default_value))), normalize(normalize_function) {}
 
     QString name;
     QVariant default_value;
