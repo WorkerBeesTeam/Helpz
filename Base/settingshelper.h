@@ -13,13 +13,10 @@ inline std::string qvariant_cast<std::string>(const QVariant& value)
     return value.toString().toStdString();
 }
 
-template<>
-inline QVariant qVariantFromValue<std::string>(const std::string &value)
-{
-    return QString::fromStdString(value);
-}
-
 namespace Helpz {
+
+template<typename T> inline QVariant QValueNormalize(const T& default_value) { return default_value; }
+template<> inline QVariant QValueNormalize<std::string>(const std::string& default_value) { return QString::fromStdString(default_value); }
 
 template<typename _Tp> struct CharArrayToQString { typedef _Tp type; };
 template<> struct CharArrayToQString<const char*> { typedef QString type; };
@@ -31,11 +28,12 @@ struct Param {
     typedef std::function<QVariant(const QVariant&/*value*//*, bool get_algo*/)> NormalizeFunc;
 
     Param(const QString& name, const T& default_value, NormalizeFunc normalize_function = nullptr) :
-        name(name), default_value(qVariantFromValue(static_cast<Type>(default_value))), normalize(normalize_function) {}
+        name_(name), default_value_(QValueNormalize<T>(default_value)), normalize_(normalize_function)
+    {}
 
-    QString name;
-    QVariant default_value;
-    NormalizeFunc normalize;
+    QString name_;
+    QVariant default_value_;
+    NormalizeFunc normalize_;
 };
 
 template<> struct CharArrayToQString<Param<const char*>> { typedef QString type; };
@@ -89,18 +87,18 @@ protected:
     typename Param<_Pt>::Type getValue(const Param<_Pt>& param)
     {
         using T = typename Param<_Pt>::Type;
-        if (s->contains(param.name))
+        if (s->contains(param.name_))
         {
-            QVariant value = s->value(param.name, param.default_value);
-            if (param.normalize)
-                value = param.normalize(value);
+            QVariant value = s->value(param.name_, param.default_value_);
+            if (param.normalize_)
+                value = param.normalize_(value);
             return qvariant_cast<T>(value);
         }
-        s->setValue(param.name, param.default_value);
+        s->setValue(param.name_, param.default_value_);
 
-        if (param.normalize)
-            return qvariant_cast<T>(param.normalize(param.default_value));
-        return qvariant_cast<T>(param.default_value);
+        if (param.normalize_)
+            return qvariant_cast<T>(param.normalize_(param.default_value_));
+        return qvariant_cast<T>(param.default_value_);
     }
 
     template<typename _PTuple>
