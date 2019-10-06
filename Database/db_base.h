@@ -22,32 +22,22 @@ class Base
 {
 public:
     static QString odbc_driver();
+    static Base& get_thread_local_instance();
 
-    Base() = default;
-    Base(const Connection_Info &info, const QString& name = QSqlDatabase::defaultConnection);
+    Base(const Connection_Info &info = Connection_Info::common(), const QString& name = QString());
     Base(QSqlDatabase &db);
     ~Base();
 
-//    void clone(Base* other, const QString& name = QSqlDatabase::defaultConnection);
-//    Base* clone(const QString& name = QSqlDatabase::defaultConnection);
-
-//    template<typename T>
-//    T* clone(const QString& name = QSqlDatabase::defaultConnection)
-//    {
-//        T* object = new T{};
-//        this->clone(object, name);
-//        return object;
-//    }
-
     QString connection_name() const;
     void set_connection_name(const QString& name);
-    QSqlDatabase db_from_info(const Connection_Info &info);
+
+    Connection_Info connection_info() const;
+    void set_connection_info(const Connection_Info& info);
 
     bool create_connection();
-    bool create_connection(const Connection_Info &info);
     bool create_connection(QSqlDatabase db);
 
-    void close(bool store_last = true);
+    void close();
     bool is_open() const;
 
     QSqlDatabase database() const;
@@ -89,7 +79,7 @@ private:
     bool silent_ = false;
     QString connection_name_;
 
-    std::unique_ptr<Connection_Info> last_connection_;
+    Connection_Info info_;
 };
 
 } // namespace Database

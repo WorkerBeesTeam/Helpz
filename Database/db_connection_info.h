@@ -7,14 +7,22 @@
 namespace Helpz {
 namespace Database {
 
-class Connection_Info {
+class Connection_Info
+{
+    static Connection_Info common_;
 public:
+
+    static const Connection_Info& common();
+    static void set_common(const Connection_Info& info);
+
     Connection_Info(const QString &db_name, const QString &login, const QString &password,
                    const QString &host = "localhost", int port = -1,
                    const QString &driver_name = "QMYSQL", const QString& connect_options = QString());
     Connection_Info(const QSqlDatabase &db);
     Connection_Info(Connection_Info&&) = default;
     Connection_Info(const Connection_Info&) = default;
+    Connection_Info& operator=(Connection_Info&&) = default;
+    Connection_Info& operator=(const Connection_Info&) = default;
     Connection_Info();
 
     QSqlDatabase to_db(const QString& connection_name = QSqlDatabase::defaultConnection) const;

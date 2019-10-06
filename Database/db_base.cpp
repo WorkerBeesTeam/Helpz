@@ -27,16 +27,26 @@ namespace Database {
 #endif
 }
 
-Base::Base(const Connection_Info& info, const QString &name)
+thread_local Base base_instance;
+/*static*/ Base& Base::get_thread_local_instance() { return base_instance; }
+
+QString gen_thread_based_name()
 {
-    connection_name_ = name;
-    create_connection(info);
+    return "hz_db_" + QString::number(reinterpret_cast<qintptr>(QThread::currentThreadId()));
 }
 
-Base::Base(QSqlDatabase& db)
+Base::Base(const Connection_Info& info, const QString &name) :
+    connection_name_(name), info_(info)
 {
-    connection_name_ = db.connectionName();
-    create_connection(db);
+    if (connection_name_.isEmpty())
+    {
+        connection_name_ = gen_thread_based_name();
+    }
+}
+
+Base::Base(QSqlDatabase& db) :
+    Base{Connection_Info(db), db.connectionName()}
+{
 }
 
 Base::~Base()
@@ -47,39 +57,28 @@ Base::~Base()
     if (QSqlDatabase::contains(connection_name_))
         QSqlDatabase::removeDatabase(connection_name_);
     if (QSqlDatabase::contains(connection_name_))
-        close(false);
+        close();
 }
-
-//void Base::clone(Base *other, const QString &name)
-//{
-//    if (!other)
-//        return;
-//    other->setConnectionName(name);
-//    other->last_connection_.reset(new ConnectionInfo{ db() });
-//}
-
-//Base *Base::clone(const QString &name) { return clone<Base>(name); }
 
 QString Base::connection_name() const { return connection_name_; }
 void Base::set_connection_name(const QString &name)
 {
-    close(false);
-    connection_name_ = name;
-}
+    close();
 
-QSqlDatabase Base::db_from_info(const Connection_Info &info)
-{
+    connection_name_ = name;
+    info_ = Connection_Info{database()};
+
     if (connection_name_.isEmpty())
     {
-        connection_name_ = QSqlDatabase::defaultConnection;
+        connection_name_ = gen_thread_based_name();
     }
+}
 
-    if (QSqlDatabase::contains(connection_name_))
-    {
-        close();
-    }
-
-    return info.to_db(connection_name_);
+Connection_Info Base::connection_info() const { return info_; }
+void Base::set_connection_info(const Connection_Info& info)
+{
+    close();
+    info_ = info;
 }
 
 bool Base::create_connection()
@@ -90,14 +89,8 @@ bool Base::create_connection()
         return create_connection(db_obj);
     }
 
-    if (last_connection_)
-    {
-        return create_connection(*last_connection_);
-    }
-    return false;
+    return create_connection(info_.to_db(connection_name_));
 }
-
-bool Base::create_connection(const Connection_Info& info) { return create_connection(db_from_info(info)); }
 
 bool Base::create_connection(QSqlDatabase db)
 {
@@ -129,38 +122,24 @@ bool Base::create_connection(QSqlDatabase db)
                    << QString("%1%2")
                       .arg(db.hostName().isEmpty() ? QString() : db.hostName() + (db.port() == -1 ? QString() : ' ' + QString::number(db.port())))
                       .arg(connection_name_ == QSqlDatabase::defaultConnection ? QString() : ' ' + connection_name_);
-
-    if (last_connection_)
-    {
-        last_connection_.reset();
-    }
     return true;
 }
 
-void Base::close(bool store_last)
+void Base::close()
 {
-    if (connection_name_.isEmpty())
-    {
-        return;
-    }
-
-    {
-        QSqlDatabase db_obj = database();
-        if (db_obj.isValid())
+    if (!connection_name_.isEmpty())
+    {    
+        if (database().isValid())
         {
+            QSqlDatabase db_obj = database();
             if (db_obj.isOpen())
             {
                 db_obj.close();
             }
-
-            if (store_last)
-            {
-                last_connection_.reset(new Connection_Info{ db_obj });
-            }
         }
-    }
 
-    QSqlDatabase::removeDatabase(connection_name_);
+        QSqlDatabase::removeDatabase(connection_name_);
+    }
 }
 
 bool Base::is_open() const { return database().isOpen(); }
@@ -397,7 +376,7 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
 
 //        if (lastError.type() == QSqlError::ConnectionError || attempts_count == 2)
         {
-            close(true);
+            close();
         }
 //        else
 //            break;

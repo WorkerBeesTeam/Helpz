@@ -3,6 +3,10 @@
 namespace Helpz {
 namespace Database {
 
+/*static*/ Connection_Info Connection_Info::common_;
+/*static*/ const Connection_Info& Connection_Info::common() { return common_; }
+/*static*/ void Connection_Info::set_common(const Connection_Info& info) { common_ = info; }
+
 Connection_Info::Connection_Info(const QString &db_name, const QString &login, const QString &password, const QString &host, int port, const QString &driver_name, const QString &connect_options) :
     port_(port), driver_name_(driver_name), connect_options_(connect_options), host_(host), db_name_(db_name), login_(login), password_(password) {}
 
