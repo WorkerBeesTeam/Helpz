@@ -9,6 +9,7 @@
 #include <cassert>
 
 #include <QThread>
+#include <QDebug>
 
 #include "fake_integer_sequence.h"
 
@@ -130,8 +131,17 @@ protected:
             Thread_Base<T, Args...>::run();
             ptr_.store(nullptr);
         }
+        catch(const std::exception& e)
+        {
+            qCritical() << "ParamThread exception:" << e.what() << "for type:" << typeid(T).name();
+            if (!promises_)
+                throw std::current_exception();
+            promises_->set_exception(std::current_exception());
+            delete promises_; promises_ = nullptr;
+        }
         catch(...)
         {
+            qCritical() << "ParamThread unknown exception for type:" << typeid(T).name();
             if (!promises_)
                 throw std::current_exception();
             promises_->set_exception(std::current_exception());
