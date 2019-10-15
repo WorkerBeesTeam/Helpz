@@ -30,6 +30,32 @@ namespace Database {
 thread_local Base base_instance;
 /*static*/ Base& Base::get_thread_local_instance() { return base_instance; }
 
+/*static*/ QString Base::get_q_array(int fields_count, int row_count)
+{
+    int curr_row = 0;
+    QString q_str((fields_count * 2 + 2) * row_count - 1, '?');
+    ushort* data = reinterpret_cast<ushort*>(q_str.data());
+    ushort* data_end = reinterpret_cast<ushort*>(q_str.data()) + q_str.size();
+    while (data < data_end)
+    {
+        if (curr_row >= fields_count)
+        {
+            curr_row = 0;
+
+            *data++ = ')';
+            if (data == data_end)
+                break;
+            *data++ = ',';
+        }
+
+        *data = curr_row == 0 ? '(' : ',';
+        data += 2;
+        ++curr_row;
+    }
+
+    return q_str;
+}
+
 QString gen_thread_based_name()
 {
     return "hz_db_" + QString::number(reinterpret_cast<qintptr>(QThread::currentThreadId()));

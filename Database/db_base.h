@@ -24,6 +24,8 @@ public:
     static QString odbc_driver();
     static Base& get_thread_local_instance();
 
+    static QString get_q_array(int fields_count, int row_count);
+
     Base(const Connection_Info &info = Connection_Info::common(), const QString& name = QString());
     Base(QSqlDatabase &db);
     ~Base();
