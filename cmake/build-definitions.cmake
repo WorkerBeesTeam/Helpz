@@ -2,6 +2,8 @@
 # Build definitions for building Helpz submodules
 # -------------------------------------------------------------------
 
+set(PROJECT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_BUILD}")
+
 if (ANDROID)
     set(LIBRARY_TYPE_STATIC TRUE)
     set(CMAKE_CXX_STANDARD 14)
@@ -20,4 +22,3 @@ endif ()
 
 add_definitions(-DVER_MJ=${PROJECT_VERSION_MAJOR} -DVER_MN=${PROJECT_VERSION_MINOR} -DVER_B=${PROJECT_VERSION_BUILD})
 add_library(${TARGET} ${LIBRARY_TYPE} ${SOURCES})
-set_target_properties(${TARGET} PROPERTIES PUBLIC_HEADER "${HEADERS}")

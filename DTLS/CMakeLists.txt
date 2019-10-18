@@ -56,4 +56,5 @@ qt5_use_modules(${TARGET} Core Network Sql)
 # Installation
 # -------------------------------------------------------------------
 
+include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)

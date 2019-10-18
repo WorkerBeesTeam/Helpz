@@ -45,4 +45,5 @@ qt5_use_modules(${TARGET} Core Sql)
 # Installation
 # -------------------------------------------------------------------
 
+include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)

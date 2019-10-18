@@ -36,4 +36,5 @@ qt5_use_modules(${TARGET} Core Network)
 # Installation
 # -------------------------------------------------------------------
 
+include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)

@@ -48,6 +48,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/home/bymsx/freelance/daidev/build-helpz-apt-and-pacman-on-cmake/helpz/cmake-build-debug/qtservice/cmake_install.cmake")
   include("/home/bymsx/freelance/daidev/build-helpz-apt-and-pacman-on-cmake/helpz/cmake-build-debug/DBWidgets/cmake_install.cmake")
   include("/home/bymsx/freelance/daidev/build-helpz-apt-and-pacman-on-cmake/helpz/cmake-build-debug/Widgets/cmake_install.cmake")
+  include("/home/bymsx/freelance/daidev/build-helpz-apt-and-pacman-on-cmake/helpz/cmake-build-debug/include/cmake_install.cmake")
 
 endif()
 

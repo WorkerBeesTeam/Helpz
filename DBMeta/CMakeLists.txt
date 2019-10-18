@@ -30,4 +30,5 @@ qt5_use_modules(${TARGET} Core)
 # Installation
 # -------------------------------------------------------------------
 
+include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)

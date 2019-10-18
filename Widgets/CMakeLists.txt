@@ -32,4 +32,5 @@ qt5_use_modules(${TARGET} Core Widgets)
 # Installation
 # -------------------------------------------------------------------
 
+include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)
