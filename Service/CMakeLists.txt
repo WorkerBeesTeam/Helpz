@@ -30,6 +30,8 @@ include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)
 qt5_use_modules(${TARGET} Core Sql)
 
+set(REQUIRED_PKGS_QT "libqt5core5a,libqt5sql5")
+
 # -------------------------------------------------------------------
 # Installation
 # -------------------------------------------------------------------

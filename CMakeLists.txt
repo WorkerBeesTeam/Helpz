@@ -20,3 +20,7 @@ add_dependencies(HelpzDB HelpzDBMeta)
 add_dependencies(HelpzService HelpzBase Helpzqtservice)
 
 add_dependencies(HelpzDev HelpzBase HelpzDB HelpzDBMeta HelpzDTLS HelpzNetwork HelpzService HelpzDBWidgets HelpzWidgets)
+
+add_custom_target(all-deb
+        DEPENDS HelpzDev HelpzBase-deb HelpzDB-deb HelpzDBMeta-deb HelpzDTLS-deb HelpzNetwork-deb HelpzService-deb
+        HelpzDBWidgets-deb HelpzWidgets-deb)

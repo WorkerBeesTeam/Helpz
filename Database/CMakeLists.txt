@@ -30,6 +30,8 @@ set(HEADERS db_base.h
 
 set(LIBS HelpzDBMeta)
 
+set(REQUIRED_PKGS "libhelpzdbmeta") # (>=1.3.100)
+
 include(../cmake/build-definitions.cmake)
 include(../cmake/resolve-headers.cmake)
 
@@ -40,6 +42,8 @@ include(../cmake/resolve-headers.cmake)
 include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)
 qt5_use_modules(${TARGET} Core Sql)
+
+set(REQUIRED_PKGS_QT "libqt5core5a,libqt5sql5")
 
 # -------------------------------------------------------------------
 # Installation

@@ -23,7 +23,17 @@ set(HEADERS dtls_version.h dtls_tools.h dtls_credentials_manager.h dtls_session_
         dtls_server_controller.h dtls_server_node.h dtls_node.h dtls_client_node.h)
 set(LIBS botan-2 HelpzNetwork HelpzDB boost_system boost_thread)
 
-find_package(Boost COMPONENTS thread system REQUIRED)
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};../cmake/") # TODO: move out?
+
+set(REQUIRED_PKGS "libbotan-2-4,libboost-system1.71.0,libboost-thread1.71.0,libhelpznetwork")
+
+find_package(Boost 1.71.0 COMPONENTS thread system REQUIRED)
+find_package(Botan REQUIRED)
+
+if (BOTAN_FOUND)
+    include_directories(${BOTAN_INCLUDE_DIRS})
+    link_directories(${BOTAN_LIBRARIES})
+endif()
 
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
@@ -51,6 +61,8 @@ target_link_libraries(${TARGET} Helpzqtservice)
 include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core Network Sql REQUIRED)
 qt5_use_modules(${TARGET} Core Network Sql)
+
+set(REQUIRED_PKGS_QT "libqt5core5a,libqt5sql5,libqt5network5")
 
 # -------------------------------------------------------------------
 # Installation

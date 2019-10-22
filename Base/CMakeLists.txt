@@ -28,6 +28,8 @@ include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core REQUIRED)
 qt5_use_modules(${TARGET} Core)
 
+set(REQUIRED_PKGS_QT "libqt5core5a")
+
 # -------------------------------------------------------------------
 # Installation
 # -------------------------------------------------------------------

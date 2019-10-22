@@ -21,6 +21,14 @@ set(LIBS HelpzBase)
 include(../cmake/build-definitions.cmake)
 include(../cmake/resolve-headers.cmake)
 
+set(REQUIRED_PKGS "libboost-system1.71.0,libboost-thread1.71.0,libhelpzbase")
+
+find_package(Boost 1.71.0 COMPONENTS thread system REQUIRED)
+
+if (Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
 target_include_directories(${TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../qtservice/src")
 target_link_libraries(${TARGET} Helpzqtservice)
 
@@ -31,6 +39,8 @@ target_link_libraries(${TARGET} Helpzqtservice)
 include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core Network REQUIRED)
 qt5_use_modules(${TARGET} Core Network)
+
+set(REQUIRED_PKGS_QT "libqt5core5a,libqt5network5")
 
 # -------------------------------------------------------------------
 # Installation

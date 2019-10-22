@@ -13,4 +13,4 @@ install(DIRECTORY Helpz
         PATTERN *.h*)
 add_custom_command(TARGET HelpzDev
         POST_BUILD
-        COMMAND checkinstall -D --pkgname=libhelpz-dev --pkgversion=${PROJECT_VERSION_STRING} --bk --nodoc --default --install=no --pakdir=../ > checkinstall.log)
+        COMMAND checkinstall -D --pkgname=libhelpz-dev --pkgversion=${PROJECT_VERSION_STRING} --bk --nodoc --default --install=no --pakdir=../ --requires="libhelpzbase,libhelpzdb,libhelpzdbmeta,libhelpzwidgets,libhelpzdtls,libhelpznetwork,libhelpzservice,libhelpzwidgets")
