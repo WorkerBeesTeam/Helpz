@@ -13,10 +13,9 @@ namespace DTLS {
 
 class Client final : public Socket
 {
-    Client(const std::shared_ptr<Tools>& tools, boost::asio::io_context* io_context,
-           const Create_Client_Protocol_Func_T &create_protocol_func);
 public:
-    Client(const std::shared_ptr<Tools>& tools, const Create_Client_Protocol_Func_T &create_protocol_func);
+    Client(const std::shared_ptr<boost::asio::io_context> &io_context,
+           const std::shared_ptr<Tools>& tools, const Create_Client_Protocol_Func_T &create_protocol_func);
     ~Client();
 
     std::shared_ptr<Network::Protocol> protocol();
@@ -32,10 +31,10 @@ private:
     void start_receive(udp::endpoint& remote_endpoint) override;
     void error_message(const std::string& msg) override;
 
+    std::shared_ptr<boost::asio::io_context> io_context_;
     boost::asio::deadline_timer deadline_;
     udp::endpoint remote_endpoint_;
     std::shared_ptr<Tools> tools_;
-    std::unique_ptr<boost::asio::io_context> io_context_;
 };
 
 } // namespace DTLS

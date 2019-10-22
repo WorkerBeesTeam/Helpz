@@ -171,7 +171,8 @@ bool Client_Thread::start(const std::shared_ptr<Tools>& tools, const Client_Thre
         client_->close();
     }
 
-    client_ = std::make_shared<Client>(tools, conf.create_protocol_func());
+    auto io_context = std::make_shared<boost::asio::io_context>();
+    client_ = std::make_shared<Client>(io_context, tools, conf.create_protocol_func());
 
     std::cout << "try connect to " << conf.host() << ':' << conf.port() << std::endl;
     client_->start_connection(conf.host(), conf.port(), conf.next_protocols());

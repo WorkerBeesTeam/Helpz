@@ -11,16 +11,12 @@ namespace DTLS {
 
 using boost::asio::ip::udp;
 
-Client::Client(const std::shared_ptr<Tools> &tools, boost::asio::io_context *io_context, const Create_Client_Protocol_Func_T& create_protocol_func) :
-    Socket{io_context, new udp::socket{*io_context}, new Client_Controller{tools.get(), this, create_protocol_func}},
-    deadline_{*io_context}, tools_(tools), io_context_(io_context)
+Client::Client(const std::shared_ptr<boost::asio::io_context>& io_context,
+               const std::shared_ptr<Tools> &tools, const Create_Client_Protocol_Func_T& create_protocol_func) :
+    Socket{io_context.get(), new udp::socket{*io_context}, new Client_Controller{tools.get(), this, create_protocol_func}},
+    io_context_(io_context), deadline_{*io_context}, tools_(tools)
 {
     deadline_.expires_at(boost::posix_time::pos_infin);
-}
-
-Client::Client(const std::shared_ptr<Tools> &tools, const Create_Client_Protocol_Func_T &create_protocol_func) :
-    Client{tools, new boost::asio::io_context{}, create_protocol_func}
-{
 }
 
 Client::~Client()
