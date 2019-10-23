@@ -23,6 +23,7 @@ endif()
 
 set(LIBRARY_TYPE_STATIC TRUE)
 
+include(../cmake/project-version.cmake)
 include(../cmake/build-definitions.cmake)
 include(../cmake/resolve-headers.cmake)
 include(../cmake/qt-defines.cmake)

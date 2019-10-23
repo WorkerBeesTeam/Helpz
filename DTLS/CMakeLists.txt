@@ -25,9 +25,9 @@ set(LIBS botan-2 HelpzNetwork HelpzDB boost_system boost_thread)
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};../cmake/") # TODO: move out?
 
-set(REQUIRED_PKGS "libbotan-2-4,libboost-system1.71.0,libboost-thread1.71.0,libhelpznetwork")
+set(REQUIRED_PKGS "libbotan-2-9\\|libbotan-2-4,libboost-system1.67.0,libboost-thread1.67.0,libqt5serialbus5,libhelpznetwork")
 
-find_package(Boost 1.71.0 COMPONENTS thread system REQUIRED)
+find_package(Boost 1.67.0 COMPONENTS thread system REQUIRED)
 find_package(Botan REQUIRED)
 
 if (BOTAN_FOUND)

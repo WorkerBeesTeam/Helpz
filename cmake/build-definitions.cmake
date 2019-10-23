@@ -2,6 +2,10 @@
 # Build definitions for building Helpz submodules
 # -------------------------------------------------------------------
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
 set(PROJECT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_BUILD}")
 
 if (ANDROID)
@@ -22,3 +26,5 @@ endif ()
 
 add_definitions(-DVER_MJ=${PROJECT_VERSION_MAJOR} -DVER_MN=${PROJECT_VERSION_MINOR} -DVER_B=${PROJECT_VERSION_BUILD})
 add_library(${TARGET} ${LIBRARY_TYPE} ${SOURCES})
+
+set_target_properties(${TARGET} PROPERTIES VERSION ${PROJECT_VERSION_MAJOR})

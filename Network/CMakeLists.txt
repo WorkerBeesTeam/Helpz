@@ -21,9 +21,9 @@ set(LIBS HelpzBase)
 include(../cmake/build-definitions.cmake)
 include(../cmake/resolve-headers.cmake)
 
-set(REQUIRED_PKGS "libboost-system1.71.0,libboost-thread1.71.0,libhelpzbase")
+set(REQUIRED_PKGS "libboost-system1.67.0,libboost-thread1.67.0,libhelpzbase")
 
-find_package(Boost 1.71.0 COMPONENTS thread system REQUIRED)
+find_package(Boost 1.67.0 COMPONENTS thread system REQUIRED)
 
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
