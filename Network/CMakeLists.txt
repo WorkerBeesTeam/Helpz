@@ -19,9 +19,9 @@ set(HEADERS udpclient.h waithelper.h net_version.h net_protocol.h net_protocol_s
 set(LIBS HelpzBase)
 
 include(../cmake/build-definitions.cmake)
-include(../cmake/resolve-headers.cmake)
 
-set(REQUIRED_PKGS "libboost-system1.67.0,libboost-thread1.67.0,libhelpzbase")
+set(REQUIRED_DEBS "libboost-system1.67.0,libboost-thread1.67.0,libhelpzbase")
+set(REQUIRED_PKGS "boost boost-libs HelpzBase")
 
 find_package(Boost 1.67.0 COMPONENTS thread system REQUIRED)
 
@@ -40,11 +40,11 @@ include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core Network REQUIRED)
 qt5_use_modules(${TARGET} Core Network)
 
-set(REQUIRED_PKGS_QT "libqt5core5a,libqt5network5")
+set(REQUIRED_DEBS_QT "libqt5core5a,libqt5network5")
+set(REQUIRED_PKGS_QT "qt5-base")
 
 # -------------------------------------------------------------------
 # Installation
 # -------------------------------------------------------------------
 
-include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)

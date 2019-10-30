@@ -18,7 +18,6 @@ set(SOURCES logging.cpp consolereader.cpp base_version.cpp)
 set(HEADERS logging.h consolereader.h base_version.h simplethread.h settingshelper.h fake_integer_sequence.h apply_parse.h)
 
 include(../cmake/build-definitions.cmake)
-include(../cmake/resolve-headers.cmake)
 
 # -------------------------------------------------------------------
 # Qt integrration
@@ -28,11 +27,11 @@ include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core REQUIRED)
 qt5_use_modules(${TARGET} Core)
 
-set(REQUIRED_PKGS_QT "libqt5core5a")
+set(REQUIRED_DEBS_QT "libqt5core5a")
+set(REQUIRED_PKGS_QT "qt5-base")
 
 # -------------------------------------------------------------------
 # Installation
 # -------------------------------------------------------------------
 
-include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)

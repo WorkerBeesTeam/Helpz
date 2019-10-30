@@ -17,7 +17,6 @@ set(HEADERS service.h srv_version.h)
 set(LIBS HelpzBase)
 
 include(../cmake/build-definitions.cmake)
-include(../cmake/resolve-headers.cmake)
 
 target_include_directories(${TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../qtservice/src")
 target_link_libraries(${TARGET} Helpzqtservice)
@@ -30,11 +29,11 @@ include(../cmake/qt-defines.cmake)
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)
 qt5_use_modules(${TARGET} Core Sql)
 
-set(REQUIRED_PKGS_QT "libqt5core5a,libqt5sql5")
+set(REQUIRED_DEBS_QT "libqt5core5a,libqt5sql5")
+set(REQUIRED_PKGS_QT "qt5-base")
 
 # -------------------------------------------------------------------
 # Installation
 # -------------------------------------------------------------------
 
-include(../cmake/install-prefix.cmake)
 include(../cmake/install.cmake)
