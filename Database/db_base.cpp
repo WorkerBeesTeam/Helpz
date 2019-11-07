@@ -58,7 +58,7 @@ thread_local Base base_instance;
 
 QString gen_thread_based_name()
 {
-    return "hz_db_" + QString::number(reinterpret_cast<qintptr>(QThread::currentThreadId()));
+    return QString("hz_db_%1_%2").arg(reinterpret_cast<qintptr>(QThread::currentThreadId())).arg(qrand());
 }
 
 Base::Base(const Connection_Info& info, const QString &name) :
