@@ -11,9 +11,10 @@ namespace DTLS {
 
 using boost::asio::ip::udp;
 
-Client::Client(Tools *dtls_tools, boost::asio::io_context *io_context, const Create_Client_Protocol_Func_T& create_protocol_func) :
-    Socket{io_context, new udp::socket{*io_context}, new Client_Controller{dtls_tools, this, create_protocol_func}},
-    deadline_{*io_context}
+Client::Client(const std::shared_ptr<boost::asio::io_context>& io_context,
+               const std::shared_ptr<Tools> &tools, const Create_Client_Protocol_Func_T& create_protocol_func) :
+    Socket{io_context.get(), new udp::socket{*io_context}, new Client_Controller{tools.get(), this, create_protocol_func}},
+    io_context_(io_context), deadline_{*io_context}, tools_(tools)
 {
     deadline_.expires_at(boost::posix_time::pos_infin);
 }
@@ -26,6 +27,11 @@ Client::~Client()
 std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
 {
     return controller()->get_node()->protocol();
+}
+
+void Client::run()
+{
+    io_context_->run();
 }
 
 void Client::start_connection(const std::string &host, const std::string &port, const std::vector<std::string> &next_protocols)
@@ -51,6 +57,7 @@ void Client::close()
         socket_->cancel();
         socket_->close();
     }
+    io_context_->stop();
 }
 
 Client_Node *Client::node()

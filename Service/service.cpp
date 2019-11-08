@@ -3,6 +3,9 @@
 #include <iostream>
 #include <csignal>
 
+#include <execinfo.h>
+#include <unistd.h>
+
 #include "qtservice.h"
 #include "service.h"
 
@@ -13,13 +16,27 @@ namespace Service {
 
 Base* g_obj = nullptr;
 
-void term_handler(int)
+void term_handler(int signal)
 {
+    int exit_code;
+    if (signal == SIGSEGV || signal == SIGFPE)
+    {
+        void *array[10];
+        size_t size = backtrace(array, 10);
+
+        // print out all the frames to stderr
+        fprintf(stderr, "Error: signal %d:\n", signal);
+        backtrace_symbols_fd(array, size, STDERR_FILENO);
+        exit_code = 1;
+    }
+    else
+        exit_code = 0;
+
     if (g_obj)
         g_obj->stop();
-    qApp->quit();
+    qApp->exit(exit_code);
     std::cerr << "Termination complete.\n";
-    std::exit(0);
+    std::exit(exit_code);
 }
 
 Object::Object(Base *base, bool debug) :
@@ -93,6 +110,8 @@ void Base::start()
 
     std::signal(SIGTERM, term_handler);
     std::signal(SIGINT, term_handler);
+    std::signal(SIGSEGV, term_handler);
+    std::signal(SIGFPE, term_handler);
 }
 
 void Base::stop()

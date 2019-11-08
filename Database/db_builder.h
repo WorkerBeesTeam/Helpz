@@ -7,7 +7,7 @@ namespace Helpz {
 namespace Database {
 
 template<typename T>
-T db_build(QSqlQuery& query)
+T db_build(const QSqlQuery& query)
 {
     T result;
     if (query.record().count() >= T::COL_COUNT)

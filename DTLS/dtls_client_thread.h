@@ -23,7 +23,7 @@ public:
     Client_Thread_Config(const Client_Thread_Config&) = delete;
     Client_Thread_Config(Client_Thread_Config&&) = default;
 
-    Create_Client_Protocol_Func_T&& create_protocol_func();
+    Create_Client_Protocol_Func_T create_protocol_func() const;
     void set_create_protocol_func(Create_Client_Protocol_Func_T &&create_protocol_func);
 
     std::chrono::seconds reconnect_interval() const;
@@ -48,6 +48,7 @@ private:
     Create_Client_Protocol_Func_T create_protocol_func_;
 };
 
+class Tools;
 class Client;
 class Client_Thread
 {
@@ -61,11 +62,11 @@ public:
 
 private:
     void run(Client_Thread_Config conf);
+    bool start(const std::shared_ptr<Tools> &tools, const Client_Thread_Config& conf);
 
-    boost::asio::io_context* io_context_;
-    std::atomic<bool> stop_flag_;
+    bool stop_flag_;
     std::shared_ptr<Client> client_;
-    std::thread* thread_;
+    std::thread thread_;
 
     std::mutex mutex_;
 };
