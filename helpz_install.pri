@@ -40,6 +40,7 @@ INSTALLS += target
 
 DESTDIR = $${OUT_PWD}/../
 
+# ByMsx: resolving headers, mkdir for output like /include/Helpz
 MKDIR_FLAG=
 win32 {
     HAVE_COPY=$$system(copy /?)
@@ -56,6 +57,7 @@ isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
     RET=$$system(mkdir $$MKDIR_FLAG $$system_quote($$system_path($${OUT_PWD}/../include/Helpz)))
 }
 
+# ByMsx: for resolving headers by copying it to other directory.
 for(f, HEADERS) {
   FILE_BASE = $$basename(f)
   exists($$f) {
@@ -71,6 +73,7 @@ LIBS += -L$${OUT_PWD}/..
 
 include(helpz_version.pri)
 
+# ByMsx: code below is completed
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings
 # depend on your compiler). Please consult the documentation of the
