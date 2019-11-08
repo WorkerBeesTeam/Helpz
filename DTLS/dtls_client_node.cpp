@@ -38,7 +38,7 @@ bool Client_Node::is_reconnect_needed()
     if (dtls_ && dtls_->is_active())
     {
         auto last_recv_delta = std::chrono::system_clock::now() - last_msg_recv_time();
-        if (last_recv_delta < std::chrono::seconds(90))
+        if (last_recv_delta < std::chrono::seconds(20))
         {
             return false;
         }
@@ -49,7 +49,7 @@ bool Client_Node::is_reconnect_needed()
             if (!ping_flag_)
             {
                 ping_flag_ = true;
-                proto->send(Network::Cmd::PING).timeout(nullptr, std::chrono::seconds(30), std::chrono::seconds(3));
+                proto->send(Network::Cmd::PING).timeout(nullptr, std::chrono::seconds(10), std::chrono::seconds(1));
                 return false;
             }
         }

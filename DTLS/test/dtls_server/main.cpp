@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QFile>
 #include <QDebug>
 
 #include <Helpz/net_protocol.h>
@@ -91,6 +92,7 @@ private:
         }
         qDebug().noquote() << title() << "MSG_FILE is valid hash:" << (file_info_.hash_ == hash.result() ? "true" : "false")
                   << "size:" << data_dev.size() << "(" << file_info_.size_ << ')';
+        QFile::remove(file_info_.name_);
     }
 };
 
@@ -118,8 +120,14 @@ int main(int argc, char *argv[])
         return std::shared_ptr<Helpz::Network::Protocol>{};
     };
 
+    uint16_t port = 25590;
+    if (argc >= 2)
+    {
+        port = std::atoi(argv[1]);
+    }
+
     std::string app_dir = qApp->applicationDirPath().toStdString();
-    Helpz::DTLS::Server_Thread_Config conf{25590, app_dir + "/tls_policy.conf", app_dir + "/dtls.pem", app_dir + "/dtls.key", 30, 5, 5};
+    Helpz::DTLS::Server_Thread_Config conf{port, app_dir + "/tls_policy.conf", app_dir + "/dtls.pem", app_dir + "/dtls.key", 30, 5, 5};
     conf.set_create_protocol_func(std::move(create_protocol));
 
     Helpz::DTLS::Server_Thread server_thread{std::move(conf)};

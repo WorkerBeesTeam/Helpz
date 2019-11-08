@@ -38,18 +38,26 @@ public:
             std::cout << "Answer text: " << answer_text.toStdString() << std::endl;
         }).timeout([]() {
             std::cout << "MSG_ANSWERED timeout" << std::endl;
-        }, std::chrono::seconds(5)) << bool(true) << value2;
+        }, std::chrono::seconds(15), std::chrono::milliseconds{3000}) << bool(true) << value2;
     }
 
     void test_send_file()
     {
-        QString file_name = "/usr/lib/libcc1.so.0.0.0";
+        QString file_name = qApp->applicationDirPath() + "/test_file.dat"; //"/usr/lib/libcc1.so.0.0.0";
+        QFile::remove(file_name);
         std::shared_ptr<QFile> device(new QFile(file_name));
-        if (!device->open(QIODevice::ReadOnly))
+        if (!device->open(QIODevice::ReadWrite))
         {
             std::cerr << "Can't open file: " << device->errorString().toStdString() << std::endl;
             return;
         }
+
+        while (device->size() < 100000000)
+        {
+            std::unique_ptr<char[]> data(new char[4096]);
+            device->write(data.get(), 4096);
+        }
+        device->seek(0);
 
         QCryptographicHash hash(QCryptographicHash::Sha1);
         if (!hash.addData(device.get()))
@@ -68,9 +76,9 @@ private:
     {
         std::cout << "Connected" << std::endl;
 
+        test_send_file();
         test_simple_message();
         test_message_with_answer();
-        test_send_file();
     }
     void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
     {
@@ -114,11 +122,16 @@ int main(int argc, char *argv[])
         return std::shared_ptr<Helpz::Network::Protocol>(new Protocol{});
     };
 
-    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", "25590", {"dai/1.1"}, 5};
+    std::string port = "25590";
+    if (argc >= 2)
+    {
+        port = argv[1];
+    }
+    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", port, {"dai/1.1"}, 5};
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
-    std::thread(periodic_send_thread_func, &client_thread).detach();;
+    // std::thread(periodic_send_thread_func, &client_thread).detach();
 //    std::thread([]() { std::this_thread::sleep_for(std::chrono::seconds(2)); qApp->quit(); }).detach();
     return a.exec();
 }
