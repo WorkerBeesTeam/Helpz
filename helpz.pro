@@ -1,17 +1,15 @@
 TEMPLATE = subdirs
 
-# yes
 SUBDIRS = \
     Base \
     DBMeta \
     Database \
     Service
 
-Service.depends = Base # yes
-Database.depends = DBMeta # yes
-DTLS.depends = Network # yes
+Service.depends = Base
+Database.depends = DBMeta
+DTLS.depends = Network
 
-# yes
 !nobotanandproto {
     SUBDIRS += \
         DTLS \
@@ -21,7 +19,6 @@ DTLS.depends = Network # yes
     message('nobotanandproto FOUND');
 }
 
-# yes
 !nowidgets {
     SUBDIRS += \
         Widgets \
