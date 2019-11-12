@@ -50,7 +50,7 @@ QString get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t co
     suffix += T::table_column_names().at(column_index) + " IN (";
     for (uint32_t id: id_vect)
         suffix += QString::number(id) + ',';
-    suffix[suffix.size() - 1] = ')';
+    suffix.replace(suffix.size() - 1, 1, QChar(')'));
     return suffix;
 }
 
