@@ -110,8 +110,16 @@ void Base::start()
 
     std::signal(SIGTERM, term_handler);
     std::signal(SIGINT, term_handler);
-    std::signal(SIGSEGV, term_handler);
-    std::signal(SIGFPE, term_handler);
+
+    if (qEnvironmentVariableIsSet("HELPZ_DISABLE_SIGNAL_CATCH"))
+    {
+        qCWarning(Base::Log) << "SEGV and FPE signal catch disabled";
+    }
+    else
+    {
+        std::signal(SIGSEGV, term_handler);
+        std::signal(SIGFPE, term_handler);
+    }
 }
 
 void Base::stop()
