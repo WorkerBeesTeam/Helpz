@@ -50,7 +50,7 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
         return { HELPZ_DB_QUOTE_##N (__VA_ARGS__) };            \
     }                                                           \
     static QVariant value_getter(const T& obj,                  \
-                                 uint32_t pos)                  \
+                                 std::size_t pos)               \
     {                                                           \
         switch (pos)                                            \
         {                                                       \
@@ -59,10 +59,10 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
         }                                                       \
         return {};                                              \
     }                                                           \
-    static void value_setter(T& obj, int col,                   \
+    static void value_setter(T& obj, std::size_t pos,           \
                              const QVariant& value)             \
     {                                                           \
-        switch (col) {                                          \
+        switch (pos) {                                          \
         HELPZ_DB_SETTER_CASE_##N (T, obj, value, __VA_ARGS__)   \
         default: break;                                         \
         }                                                       \
