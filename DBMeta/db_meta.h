@@ -67,6 +67,15 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
         default: break;                                         \
         }                                                       \
     }                                                           \
+    static QVariantList to_variantlist(const T& obj)            \
+    {                                                           \
+        QVariantList variantlist;                               \
+        for (std::size_t i = 0; i < T::COL_COUNT; ++i)          \
+        {                                                       \
+            variantlist.push_back(T::value_getter(obj, i));     \
+        }                                                       \
+        return variantlist;                                     \
+    }                                                           \
     private:
 
 #define HELPZ_DB_COL_NAME_1(A, GT, ST, ...)   COL_##A
