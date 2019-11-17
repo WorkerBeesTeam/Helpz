@@ -46,6 +46,7 @@ public:
     void add_received_record(std::shared_ptr<Node>&& node, std::unique_ptr<uint8_t[]>&& buffer, std::size_t size);
 private:
     void records_thread_run();
+    void on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint) override;
 
     mutable boost::shared_mutex clients_mutex_;
     std::map<udp::endpoint, std::shared_ptr<Server_Node>> clients_;

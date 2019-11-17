@@ -23,6 +23,8 @@ public:
     std::shared_ptr<Node> get_node(const udp::endpoint& remote_endpoint = udp::endpoint()) override;
     void process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size) override;
 private:
+    void on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint) override;
+
 //    Client* client_;
     std::shared_ptr<Client_Node> node_;
     Create_Client_Protocol_Func_T create_protocol_func_;

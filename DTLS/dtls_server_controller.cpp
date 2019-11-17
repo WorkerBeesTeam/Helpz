@@ -220,5 +220,19 @@ void Server_Controller::records_thread_run()
     }
 }
 
+void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint)
+{
+    std::shared_ptr<Server_Node> node = find_client(remote_endpoint);
+    if (node)
+    {
+        std::shared_ptr<Network::Protocol> proto = node->protocol();
+        if (proto)
+        {
+            std::lock_guard node_lock(node->record_mutex_);
+            proto->process_wait_list();
+        }
+    }
+}
+
 } // namespace DTLS
 } // namespace Helpz
