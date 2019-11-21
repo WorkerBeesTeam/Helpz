@@ -14,6 +14,18 @@
 
 namespace Helpz {
 
+LogContext::LogContext(const QMessageLogContext& ctx) :
+    category_(ctx.category)
+{
+}
+
+QString LogContext::category() const
+{
+    return category_;
+}
+
+// --------------------------------------------------------
+
 Logging* Logging::s_obj = nullptr;
 
 Logging::Logging(bool debug
@@ -76,7 +88,7 @@ QDebug Logging::operator <<(const QString &str)
     //    return *this;
 }
 
-QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const QString& date_format)
+QString Logging::get_prefix(QtMsgType type, const QString& category, const QString& date_format)
 {
     QChar type_char;
     switch (type) {
@@ -88,7 +100,7 @@ QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const
     case QtFatalMsg: type_char = 'F'; break;
     }
 
-    return QDateTime::currentDateTime().toString(date_format) + '[' + ctx->category + "][" + type_char + "] ";
+    return QDateTime::currentDateTime().toString(date_format) + '[' + category + "][" + type_char + "] ";
 }
 
 /*static*/ void Logging::handler(QtMsgType type, const QMessageLogContext &ctx, const QString &str)
@@ -98,10 +110,9 @@ QString Logging::get_prefix(QtMsgType type, const QMessageLogContext *ctx, const
 #ifdef Q_OS_UNIX
     if (!s_obj->syslog() || s_obj->debug())
 #endif
-    qt_message_output(type, ctx, get_prefix(type, &ctx) + str);
+    qt_message_output(type, ctx, get_prefix(type, ctx.category) + str);
 
-    auto logContext = std::make_shared<QMessageLogContext>( ctx.file, ctx.line, ctx.function, ctx.category );
-    emit s_obj->new_message(type, logContext, str);
+    emit s_obj->new_message(type, {ctx}, str);
 }
 
 void Logging::init()
@@ -147,16 +158,17 @@ void Logging::save(QtMsgType type, const LogContext &ctx, const QString &str)
         case QtCriticalMsg: level = LOG_ERR; break;
         case QtFatalMsg: level = LOG_CRIT; break;
         }
-        ::syslog(level, "[%s] %s", ctx->category, qPrintable(str));
+        ::syslog(level, "[%s] %s", ctx.category().toLocal8Bit().constData(), qPrintable(str));
     }
     else
 #endif
         if (ts_)
     {
-        *ts_ << (get_prefix(type, ctx.get(), "[hh:mm:ss dd.MM]") + str) << endl;
+        *ts_ << (get_prefix(type, ctx.category(), "[hh:mm:ss dd.MM]") + str) << endl;
         ts_->flush();
     }
 }
+
 } // namespace Helpz
 
 Helpz::Logging &logg()

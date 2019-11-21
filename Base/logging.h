@@ -12,7 +12,22 @@ class QTextStream;
 
 namespace Helpz {
 
-typedef std::shared_ptr<QMessageLogContext> LogContext;
+class LogContext
+{
+public:
+    LogContext() = default;
+    LogContext(LogContext&&) = default;
+    LogContext(const LogContext&) = default;
+    LogContext& operator=(LogContext&&) = default;
+    LogContext& operator=(const LogContext&) = default;
+    LogContext(const QMessageLogContext& ctx);
+
+    QString category() const;
+
+private:
+    QString category_;
+};
+
 /**
  * @brief Класс для логирования сообщений.
  */
@@ -44,7 +59,7 @@ public:
 
     QDebug operator <<(const QString &str);
 
-    static QString get_prefix(QtMsgType type, const QMessageLogContext *ctx, const QString &date_format = "[hh:mm:ss]");
+    static QString get_prefix(QtMsgType type, const QString& category, const QString &date_format = "[hh:mm:ss]");
 signals:
     void new_message(QtMsgType type, const Helpz::LogContext &ctx, const QString &str);
 public slots:

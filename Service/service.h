@@ -1,109 +1,145 @@
-#ifndef SERVICE_H
-#define SERVICE_H
+#ifndef HELPZ_SERVICE_H
+#define HELPZ_SERVICE_H
 
 #include <vector>
 #include <memory>
-#include <assert.h>
+#include <cassert>
 
 #include <QThread>
 #include <QMetaMethod>
 #include <QLoggingCategory>
 
+#include <Helpz/simplethread.h>
 #include <Helpz/logging.h>
-#include "qtservice.h"
+#include <Helpz/qtservice.h>
 
 namespace Helpz {
 namespace Service {
 
-class OneObjectThread : public QThread {
+class Base;
+class Object final : public QObject
+{
     Q_OBJECT
-protected:
-    QObject *obj_ = nullptr;
 public:
-    QObject *obj() const { return obj_; }
-signals:
-    void logMessage(QtMsgType type, const Helpz::LogContext &ctx, const QString &str);
-    void restart();
-};
-
-class Object final : public QObject {
-public:
-    Object(OneObjectThread* worherThread, bool debug);
+    Object(Base* base, bool debug);
     ~Object();
 
     void processCommands(const QStringList &cmdList);
 
-private:
+private slots:
     void restart();
-    std::vector<QThread*> th_;
+private:
+    void create_worker();
+
+    typedef ParamThread<Logging> Log_Thread;
+    Log_Thread* log_thread_;
+    QObject* worker_;
+    Base* base_;
 };
 
-class Base : public QtService<QCoreApplication>
+class Base
 {
 public:
     static const QLoggingCategory &Log();
 
-    Base(int argc, char **argv);
-#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-    bool isImmediately() const;
-#endif
-protected:
-    virtual OneObjectThread* getWorkerThread() = 0;
-private:
-    void start() override;
-    void stop() override;
+    Base();
+    virtual ~Base() = default;
 
-    void processCommands(const QStringList &cmdList) override;
+    Base(int argc, char **argv, const QString &name = QString());
+
+    virtual QObject* create_worker(bool* has_log_message_slot, bool* has_restart_service_slot) = 0;
+protected:
+    virtual bool is_immediately() const = 0;
+    void start();
+    void stop();
+    void processCommands(const QStringList &cmdList);
+private:
 
     friend void term_handler(int);
-
-#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
-    bool isImmediately_ = false;
-#endif
 
     std::shared_ptr<Object> service_;
 };
 
-template<class T>
-class WorkerThread : public OneObjectThread {
-    void run() override
-    {
-        std::unique_ptr<T> workObj(new T);
-        obj_ = workObj.get();
-
-        for (int n = 0; n < T::staticMetaObject.methodCount(); n++)
-        {
-            auto&& method = T::staticMetaObject.method(n).name();
-            if (method == "logMessage")
-                connect(this, SIGNAL(logMessage(QtMsgType, Helpz::LogContext, QString)), workObj.get(),
-                        SLOT(logMessage(QtMsgType, Helpz::LogContext, QString)), Qt::QueuedConnection);
-            else if (method == "serviceRestart")
-                connect(workObj.get(), SIGNAL(serviceRestart()), this, SIGNAL(restart()), Qt::QueuedConnection);
-        }
-
-        exec();
-    }
-};
-
-template<class T>
-class Impl : public Base
+template<typename Application>
+class Base_Template : public QtService<Application>, public Base
 {
 public:
-    using Base::Base;
-
-    static Impl<T>& instance(int argc = 0, char **argv = nullptr)
+    Base_Template(int argc, char **argv, const QString& name) :
+        QtService<Application>( argc, argv, name.isEmpty() ? QCoreApplication::applicationName() : name ),
+        Base()
     {
-        static Impl<T> service(argc, argv);
+        assert( !QtService<Application>::serviceName().isEmpty() );
+
+    #ifdef Q_OS_WIN32
+        setStartupType(QtServiceController::AutoStartup);
+    #endif
+
+    #ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
+        for(int i = 1; i < argc; ++i)
+        {
+            QString a(argv[i]);
+            if (a == QLatin1String("-e") || a == QLatin1String("-exec"))
+            {
+                isImmediately_ = true;
+                break;
+            }
+        }
+    #endif
+    }
+
+#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
+    bool isImmediately() const { return isImmediately_; }
+#endif
+
+    bool is_immediately() const override { return Base_Template<Application>::isImmediately(); }
+private:
+    void start() override { Base::start(); }
+    void stop() override { Base::stop(); }
+    void processCommands(const QStringList &cmdList) override { Base::processCommands(cmdList); }
+
+#ifndef HAS_QT_SERVICE_IMMEDIATELY_CHECK
+    bool isImmediately_ = false;
+#endif
+};
+
+template<class T, typename Application = QCoreApplication>
+class Impl : public Base_Template<Application>
+{
+public:
+    using Base_Template<Application>::Base_Template;
+
+    static Impl<T, Application>& instance(int argc = 0, char **argv = nullptr, const QString &name = QString())
+    {
+        static Impl<T, Application> service(argc, argv, name);
         return service;
     }
 private:
-    OneObjectThread* getWorkerThread() override
+    QObject* create_worker(bool* has_log_message_slot, bool* has_restart_service_slot) override
     {
-        return new WorkerThread<T>;
+        QByteArray method_name;
+        for (int n = 0; n < T::staticMetaObject.methodCount(); n++)
+        {
+            method_name = T::staticMetaObject.method(n).name();
+            if (method_name == "logMessage")
+            {
+                *has_log_message_slot = true;
+            }
+            else if (method_name == "serviceRestart")
+            {
+                *has_restart_service_slot = true;
+            }
+
+            if (*has_log_message_slot && *has_restart_service_slot)
+            {
+                break;
+            }
+        }
+
+        return new T;
     }
 };
 
 } // namespace Service
 } // namespace Helpz
 
-#endif // SERVICE_H
+#endif // HELPZ_SERVICE_H

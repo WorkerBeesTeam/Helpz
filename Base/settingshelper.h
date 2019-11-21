@@ -7,7 +7,16 @@
 
 #include <Helpz/simplethread.h>
 
+template<>
+inline std::string qvariant_cast<std::string>(const QVariant& value)
+{
+    return value.toString().toStdString();
+}
+
 namespace Helpz {
+
+template<typename T> inline QVariant QValueNormalize(const T& default_value) { return default_value; }
+template<> inline QVariant QValueNormalize<std::string>(const std::string& default_value) { return QString::fromStdString(default_value); }
 
 template<typename _Tp> struct CharArrayToQString { typedef _Tp type; };
 template<> struct CharArrayToQString<const char*> { typedef QString type; };
@@ -19,11 +28,12 @@ struct Param {
     typedef std::function<QVariant(const QVariant&/*value*//*, bool get_algo*/)> NormalizeFunc;
 
     Param(const QString& name, const T& default_value, NormalizeFunc normalize_function = nullptr) :
-        name(name), default_value(default_value), normalize(normalize_function) {}
+        name_(name), default_value_(QValueNormalize<T>(default_value)), normalize_(normalize_function)
+    {}
 
-    QString name;
-    QVariant default_value;
-    NormalizeFunc normalize;
+    QString name_;
+    QVariant default_value_;
+    NormalizeFunc normalize_;
 };
 
 template<> struct CharArrayToQString<Param<const char*>> { typedef QString type; };
@@ -59,7 +69,10 @@ public:
     Tuple operator ()() { return m_args; }
 
     template<typename T>
-    T* ptr() { return applyToObj<T>(m_idx); }
+    T obj() { return apply_to_obj<T>(m_idx); }
+
+    template<typename T>
+    T* ptr() { return apply_to_obj_ptr<T>(m_idx); }
 
     template<typename T>
     std::shared_ptr<T> shared_ptr() { return std::shared_ptr<T>{ ptr<T>() }; }
@@ -69,22 +82,23 @@ public:
 protected:
     template<typename T>
     const T& getValue(const T& val) const { return val; }
+//    template<typename T> T&& getValue(T&& val) const { return val; }
     template<typename _Pt>
     typename Param<_Pt>::Type getValue(const Param<_Pt>& param)
     {
         using T = typename Param<_Pt>::Type;
-        if (s->contains(param.name))
+        if (s->contains(param.name_))
         {
-            QVariant value = s->value(param.name, param.default_value);
-            if (param.normalize)
-                value = param.normalize(value);
+            QVariant value = s->value(param.name_, param.default_value_);
+            if (param.normalize_)
+                value = param.normalize_(value);
             return qvariant_cast<T>(value);
         }
-        s->setValue(param.name, param.default_value);
+        s->setValue(param.name_, param.default_value_);
 
-        if (param.normalize)
-            return qvariant_cast<T>(param.normalize(param.default_value));
-        return qvariant_cast<T>(param.default_value);
+        if (param.normalize_)
+            return qvariant_cast<T>(param.normalize_(param.default_value_));
+        return qvariant_cast<T>(param.default_value_);
     }
 
     template<typename _PTuple>
@@ -102,7 +116,13 @@ protected:
     }
 
     template <typename Type, std::size_t... _Idx>
-    Type* applyToObj(const std::index_sequence<_Idx...>&)
+    Type apply_to_obj(const std::index_sequence<_Idx...>&)
+    {
+        return Type{std::get<_Idx>(std::forward<Tuple>(m_args))...};
+    }
+
+    template <typename Type, std::size_t... _Idx>
+    Type* apply_to_obj_ptr(const std::index_sequence<_Idx...>&)
     {
         return new Type{std::get<_Idx>(std::forward<Tuple>(m_args))...};
     }

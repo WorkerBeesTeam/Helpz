@@ -636,7 +636,8 @@ int QtServiceBasePrivate::run(bool asService, const QStringList &argList)
 
     \sa exec(), start(), QtServiceController::install()
 */
-QtServiceBase::QtServiceBase(int argc, char **argv, const QString &name)
+QtServiceBase::QtServiceBase(int argc, char **argv, const QString &name) :
+    is_immediately_(false)
 {
 #if defined(QTSERVICE_DEBUG)
 #  if QT_VERSION >= 0x050000
@@ -814,7 +815,13 @@ int QtServiceBase::exec()
             return 0;
         } else if (a == QLatin1String("-e") || a == QLatin1String("-exec")) {
             d_ptr->args.removeAt(1);
-            int ec = d_ptr->run(false, d_ptr->args);
+#ifdef Q_OS_UNIX
+            bool is_service = true;
+#else
+            bool is_service = false;
+#endif
+            is_immediately_ = true;
+            int ec = d_ptr->run(is_service, d_ptr->args);
             if (ec == -1)
                 qErrnoWarning("The service could not be executed.");
             return ec;
@@ -834,13 +841,13 @@ int QtServiceBase::exec()
                 code = d_ptr->args.at(2).toInt();
             d_ptr->controller.sendCommand(code);
             return 0;
-        } else if (a == QLatin1String("-l") || a == QLatin1String("-list")) {
-
-            if (d_ptr->args.size() > 2)
+        } else if (a == QLatin1String("-l") || a == QLatin1String("-list"))
+        {
+            d_ptr->args.removeFirst();
+            d_ptr->args.removeFirst();
+            if (d_ptr->args.size())
             {
-                QStringList args = d_ptr->args;
-                args.removeAt(1);
-                d_ptr->controller.sendCommands(args);
+                d_ptr->controller.sendCommands(d_ptr->args);
             }
             return 0;
         } else  if (a == QLatin1String("-h") || a == QLatin1String("-help")) {
@@ -900,7 +907,7 @@ QtServiceBase *QtServiceBase::instance()
     return QtServiceBasePrivate::instance;
 }
 
-bool QtServiceBase::isImmediately() const { return !d_ptr || !d_ptr->sysd; }
+bool QtServiceBase::isImmediately() const { return is_immediately_; }
 
 /*!
     \fn void QtServiceBase::start()

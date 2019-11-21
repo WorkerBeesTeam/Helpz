@@ -4,6 +4,8 @@ TARGET = Service
 
 INCLUDEPATH += ../qtservice/src/
 
+include(../qtservice/src/qtservice.pri)
+
 SOURCES += \
     service.cpp \
     srv_version.cpp
@@ -14,10 +16,8 @@ HEADERS += \
 
 LIBS += -lHelpzBase
 
-include(../qtservice/src/qtservice.pri)
-
 VER_MAJ = 1
-VER_MIN = 2
+VER_MIN = 3
 include(../helpz_install.pri)
 
 qtservice_files.files = ../qtservice/src/qtservice.h

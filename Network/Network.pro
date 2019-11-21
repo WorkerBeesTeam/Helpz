@@ -5,18 +5,25 @@ TARGET = Network
 
 SOURCES += \  
     udpclient.cpp \
-    prototemplate.cpp \
     waithelper.cpp \
-    net_version.cpp
+    net_version.cpp \
+    net_protocol.cpp \
+    net_protocol_sender.cpp \
+    net_protocol_timer.cpp \
+    net_fragmented_message.cpp
 
 HEADERS += \
     udpclient.h \
-    prototemplate.h \
     waithelper.h \
-    net_version.h
+    net_version.h \
+    net_protocol.h \
+    net_protocol_sender.h \
+    net_protocol_timer.h \
+    net_defs.h \
+    net_fragmented_message.h
 
 LIBS += -lHelpzBase
 
 VER_MAJ = 1
-VER_MIN = 2
+VER_MIN = 3
 include(../helpz_install.pri)

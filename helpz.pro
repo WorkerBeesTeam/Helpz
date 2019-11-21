@@ -2,10 +2,12 @@ TEMPLATE = subdirs
 
 SUBDIRS = \
     Base \
+    DBMeta \
     Database \
     Service
 
 Service.depends = Base
+Database.depends = DBMeta
 DTLS.depends = Network
 
 !nobotanandproto {

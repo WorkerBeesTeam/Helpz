@@ -3,15 +3,14 @@
 
 #include <memory>
 
-#include <QMutex>
-#include <QTimer>
 #include <QByteArray>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlRecord>
 #include <QtSql/QSqlQuery>
 #include <QLoggingCategory>
 
-#include "db_connectioninfo.h"
+#include <Helpz/db_connection_info.h>
+#include <Helpz/db_table.h>
 
 namespace Helpz {
 
@@ -19,100 +18,70 @@ Q_DECLARE_LOGGING_CATEGORY(DBLog)
 
 namespace Database {
 
-struct Table {
-    QString name;
-    QStringList fieldNames;
-
-    bool operator !() const;
-};
-
-class Base /*: public QObject*/
+class Base
 {
-//    Q_OBJECT
 public:
-    static QString odbcDriver();
+    static QString odbc_driver();
+    static Base& get_thread_local_instance();
 
-    Base() = default;
-    Base(const ConnectionInfo &info, const QString& name = QSqlDatabase::defaultConnection);
+    static QString get_q_array(int fields_count, int row_count);
+
+    Base(const Connection_Info &info = Connection_Info::common(), const QString& name = QString());
     Base(QSqlDatabase &db);
     ~Base();
 
-//    void clone(Base* other, const QString& name = QSqlDatabase::defaultConnection);
-//    Base* clone(const QString& name = QSqlDatabase::defaultConnection);
+    QString connection_name() const;
+    void set_connection_name(const QString& name);
 
-//    template<typename T>
-//    T* clone(const QString& name = QSqlDatabase::defaultConnection)
-//    {
-//        T* object = new T{};
-//        this->clone(object, name);
-//        return object;
-//    }
+    Connection_Info connection_info() const;
+    void set_connection_info(const Connection_Info& info);
 
-    QString connectionName() const;
-    void setConnectionName(const QString& name);
-    QSqlDatabase dbFromInfo(const ConnectionInfo &info);
+    bool create_connection();
+    bool create_connection(QSqlDatabase db);
 
-    bool createConnection();
-    bool createConnection(const ConnectionInfo &info);
-    bool createConnection(QSqlDatabase db);
+    void close();
+    bool is_open() const;
 
-    void close(bool store_last = true);
-    bool isOpen() const;
+    QSqlDatabase database() const;
 
-    QSqlDatabase db() const;
-
-    void setErrorReconnect(bool flag);
-
-    struct SilentExec {
-        SilentExec(Base* db) : db(db) { db->setSilent(true); }
-        ~SilentExec() { db->setSilent(false); }
+    struct SilentExec
+    {
+        SilentExec(Base* db) : db(db) { db->set_silent(true); }
+        ~SilentExec() { db->set_silent(false); }
         Base* db;
     };
 
-    bool isSilent() const;
-    void setSilent(bool sailent);
+    bool is_silent() const;
+    void set_silent(bool sailent);
 
-    void addTable(uint idx, const Table& table);
-    const Table& getTable(uint idx) const;
-    const std::map<uint, Table>& getTables() const;
+    bool create_table(const Table& table, const QStringList& types);
 
-    bool createTable(uint idx, const QStringList& types);
-    bool createTable(const Table& table, const QStringList& types);
-    QSqlQuery select(uint idx, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint> &fieldIds = {});
-    QSqlQuery select(const Table &table, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint>& fieldIds = {});
+    QSqlQuery select(const Table &table, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint>& field_ids = {});
+    QString select_query(const Table& table, const QString &suffix = {}, const std::vector<uint> &field_ids = {}) const;
 
-    bool insert(uint idx, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &fieldIds = {});
-    bool insert(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &fieldIds = {}, const QString &method = "INSERT");
-    bool replace(uint idx, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &fieldIds = {});
-    bool replace(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &fieldIds = {});
+    bool insert(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const QString& suffix = QString(), const std::vector<uint> &field_ids = {}, const QString &method = "INSERT");
+    QString insert_query(const Table& table, int values_size, const QString& suffix = QString(), const std::vector<uint>& field_ids = {}, const QString& method = "INSERT") const;
+    bool replace(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
 
-    bool update(uint idx, const QVariantList& values, const QString& where, const std::vector<uint> &fieldIds = {});
-    bool update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &fieldIds = {});
+    bool update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
+    QString update_query(const Table& table, int values_size, const QString& where, const std::vector<uint>& field_ids = {}) const;
 
-    QSqlQuery del(uint idx, const QString& where = QString(), const QVariantList &values = QVariantList());
-    QSqlQuery del(const QString& tableName, const QString& where = QString(), const QVariantList &values = QVariantList());
+    QSqlQuery del(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
+    QString del_query(const QString& table_name, const QString& where = QString()) const;
 
-    quint32 row_count(uint idx, const QString& where = QString(), const QVariantList &values = QVariantList());
-    quint32 row_count(const QString& tableName, const QString& where = QString(), const QVariantList &values = QVariantList());
+    QSqlQuery truncate(const QString& table_name);
+    QString truncate_query(const QString& table_name) const;
+
+    quint32 row_count(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
 
     QSqlQuery exec(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
-//public slots:
-//    QList<QVariantList> exec_slot(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
-protected:
-    void lock(bool locked = true);
 private:
-    QStringList escapeFields(const Table& table, const std::vector<uint> &fieldIds, QSqlDriver *driver = nullptr);
-    QString connName;
+    QStringList escape_fields(const Table& table, const std::vector<uint> &field_ids, bool use_short_name = false, QSqlDriver *driver = nullptr) const;
 
-    std::map<uint, Table> m_tables;
-    static Table m_emptyTable;
+    bool silent_ = false;
+    QString connection_name_;
 
-    bool m_silent = false;
-    bool m_error_reconnect = true;
-    QMutex m_mutex;
-
-    std::unique_ptr<ConnectionInfo> m_lastConnection;
-    QTimer m_timer;
+    Connection_Info info_;
 };
 
 } // namespace Database
