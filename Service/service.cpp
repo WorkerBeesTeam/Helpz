@@ -52,12 +52,12 @@ Object::Object(Base *base, bool debug) :
 #endif
 
     create_worker();
-    qCInfo(Base::Log) << "Server start!";
+    qCInfo(Base::Log) << "Service start!";
 }
 
 Object::~Object()
 {
-    qCInfo(Base::Log) << "Server stop...";
+    qCInfo(Base::Log) << "Service stop...";
     disconnect(&logg(), &Logging::new_message, nullptr, nullptr);
 
     delete worker_;
@@ -76,7 +76,7 @@ void Object::processCommands(const QStringList &cmdList)
 
 void Object::restart()
 {
-    qCInfo(Base::Log) << "Server restart...";
+    qCInfo(Base::Log) << "Service restart...";
 
     delete worker_;
     create_worker();
