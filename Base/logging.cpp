@@ -117,6 +117,10 @@ QString Logging::get_prefix(QtMsgType type, const QString& category, const QStri
 
 void Logging::init()
 {
+    if (initialized_)
+    {
+        return;
+    }
 #ifdef Q_OS_UNIX
     if (syslog_)
     {
