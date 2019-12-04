@@ -185,6 +185,11 @@ void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t m
 
 void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, const uint8_t* data, size_t size)
 {
+    if (size == 0)
+    {
+        return;
+    }
+
     writer_pointer_ = std::move(self_pointer);
     struct Clear_Pointer {
         Clear_Pointer(std::shared_ptr<Protocol_Writer>& p) : p_(p) {}
@@ -195,6 +200,7 @@ void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, cons
     if (protocol_writer_)
         protocol_writer_->set_last_msg_recv_time(std::chrono::system_clock::now());
 
+    packet_end_position_.push(size);
     device_.write(reinterpret_cast<const char*>(data), size);
     device_.seek(0);
     process_stream();

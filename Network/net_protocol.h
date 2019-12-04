@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <mutex>
+#include <queue>
 
 #include <Helpz/apply_parse.h>
 #include <Helpz/net_protocol_sender.h>
@@ -202,6 +203,7 @@ private:
     std::mutex waiting_messages_mutex_;
 
     std::shared_ptr<Protocol_Writer> writer_pointer_;
+    std::queue<std::size_t> packet_end_position_;
 };
 
 } // namespace Network
