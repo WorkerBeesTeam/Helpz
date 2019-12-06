@@ -201,19 +201,19 @@ void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, cons
         protocol_writer_->set_last_msg_recv_time(std::chrono::system_clock::now());
 
     packet_end_position_.push(size);
+    if (device_.size() != 0)
+        qDebug() << "SIZE:" << device_.size();
+    device_.seek(device_.size());
     device_.write(reinterpret_cast<const char*>(data), size);
     device_.seek(0);
     process_stream();
 
-    int next_start_pos = 0;
     if (device_.bytesAvailable())
     {
-        next_start_pos = device_.bytesAvailable();
-        device_.buffer() = device_.buffer().right(next_start_pos);
+        device_.buffer().remove(0, device_.pos());
     }
     else
         device_.buffer().clear();
-    device_.seek(next_start_pos);
 }
 
 void Protocol::process_stream()
