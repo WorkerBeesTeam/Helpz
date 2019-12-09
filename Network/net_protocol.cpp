@@ -200,13 +200,23 @@ void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, cons
     if (protocol_writer_)
         protocol_writer_->set_last_msg_recv_time(std::chrono::system_clock::now());
 
-    packet_end_position_.push(size);
     if (device_.size() != 0)
-        qDebug() << "SIZE:" << device_.size();
+    {
+        qDebug(Log) << "POSIBLE FRAGMENTED TLS BECOSE ALREADY SIZE:" << device_.size() << "AND NEW PACKET:" << size;
+    }
+
+//    packet_end_position_.push(size);
     device_.seek(device_.size());
     device_.write(reinterpret_cast<const char*>(data), size);
     device_.seek(0);
-    process_stream();
+    while (!process_stream() /* && !packet_end_position_.empty() */)
+    {
+        /* Функция process_stream возвращает false только если чек-сумма используется и не совпала.
+         * И если она не совпала и в текущем device_ хранится несколько пакетов,
+         * то нужно удалить из него первый пакет и попробовать заново.
+         */
+        break;
+    }
 
     if (device_.bytesAvailable())
     {
@@ -216,7 +226,7 @@ void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, cons
         device_.buffer().clear();
 }
 
-void Protocol::process_stream()
+bool Protocol::process_stream()
 {
     /* TODO:
      * Нужно обрабатывать входящие пакеты отдельно, а не складывать их.
@@ -224,9 +234,15 @@ void Protocol::process_stream()
      * а потом приходит первый пакет нового сообщения, то новое сообщение не будет обработано.
      * Нужно хранить все пакеты отдельно или хотя бы позиции начала пакета, что бы если первое сообщение неудачное,
      * то мы удаляем первый пакет, и пробуем заново.
+     *
+     * Но если протокол использует шифрование то это не актуально.
      */
 
-    // TODO: Нужно сделать чек-сумму на заголовки однобайтную, и добавить двубайтную чек-сумму на тело сообщения.
+    /* TODO:
+     * Нужно сделать чек-сумму на заголовки однобайтную,
+     * и добавить двух или трёх-байтную чек-сумму на тело сообщения
+     * если стоит флаг "Использовать чек-сумму".
+     */
 
     bool checksum_ok;
     uint8_t msg_id;
@@ -247,18 +263,24 @@ void Protocol::process_stream()
             buffer_size = 0;
         }
 
-        if (!checksum_ok || buffer_size > MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
+        if (!checksum_ok || buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
         {
             if (!device_.atEnd())
             {
                 device_.seek(device_.size());
             }
-            return;
+            if (!checksum_ok)
+            {
+                qCWarning(Log) << "Message corrupt, checksum isn't same."
+                               << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
+                               << "expected:" << checksum;
+            }
+            return checksum_ok;
         }
         else if (device_.bytesAvailable() < buffer_size) // else if all ok, but not enough bytes
         {
             device_.seek(pos);
-            return; // Wait more bytes
+            return true; // Wait more bytes
         }
 
         flags = cmd & ALL_FLAGS;
@@ -279,6 +301,8 @@ void Protocol::process_stream()
 
         device_.seek(pos + 9 + buffer_size);
     }
+
+    return true;
 }
 
 bool Protocol::is_lost_message(uint8_t msg_id)
@@ -379,16 +403,16 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
 
             std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
 
-            if (full_size >= MAX_MESSAGE_SIZE)
+            if (full_size >= HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
             {
-                qCCritical(Log).noquote() << title() << "try to receive too big message:" << full_size << "max:" << MAX_MESSAGE_SIZE;
+                qCCritical(Log).noquote() << title() << "try to receive too big message:" << full_size << "max:" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE;
                 fragmented_messages_.erase(it);
                 return;
             }
 
             if (it == fragmented_messages_.end())
             {
-                uint32_t max_fragment_size = pos > 0 ? pos : MAX_MESSAGE_DATA_SIZE;
+                uint32_t max_fragment_size = pos > 0 ? pos : HELPZ_MAX_MESSAGE_DATA_SIZE;
                 it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size, full_size < 1000000);
             }
             Fragmented_Message &msg = *it;

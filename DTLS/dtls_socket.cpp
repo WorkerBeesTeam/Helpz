@@ -16,8 +16,8 @@ void Socket::start_receive(udp::endpoint& remote_endpoint)
 {
     if (socket_)
     {
-        std::unique_ptr<uint8_t[]> recv_buffer(new uint8_t[ MAX_UDP_PACKET_SIZE ]);
-        auto buffer = boost::asio::buffer(recv_buffer.get(), MAX_UDP_PACKET_SIZE);
+        std::unique_ptr<uint8_t[]> recv_buffer(new uint8_t[ HELPZ_MAX_UDP_PACKET_SIZE ]);
+        auto buffer = boost::asio::buffer(recv_buffer.get(), HELPZ_MAX_UDP_PACKET_SIZE);
 
         socket_->async_receive_from(
                     std::move(buffer), remote_endpoint,
