@@ -30,7 +30,8 @@ class Protocol;
 struct Message_Item
 {
     Message_Item(uint16_t command, std::optional<uint8_t>&& answer_id, std::shared_ptr<QIODevice>&& device_ptr,
-                 std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000}, uint32_t fragment_size = MAX_MESSAGE_DATA_SIZE);
+                 std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000},
+                 uint32_t fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE);
     Message_Item(Message_Item&&) = default;
     Message_Item() = default;
 
@@ -59,7 +60,7 @@ public:
 
     void set_fragment_size(uint32_t fragment_size);
 
-    void set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size = MAX_MESSAGE_DATA_SIZE);
+    void set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE);
     Protocol_Sender &answer(std::function<void(QIODevice &)> answer_func);
     Protocol_Sender &timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration,
                              std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000});
