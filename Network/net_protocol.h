@@ -55,8 +55,6 @@ private:
 class Protocol
 {
 public:
-    const quint32 MAX_MESSAGE_SIZE = 2147483648;
-
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
 
     enum Flags {
@@ -173,7 +171,7 @@ protected:
 
 //    friend class Protocol_Sender;
 private:
-    void process_stream();
+    bool process_stream();
     bool is_lost_message(uint8_t msg_id);
     void fill_lost_msg(uint8_t msg_id);
     void internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char* data_ptr, uint32_t data_size);
@@ -202,6 +200,7 @@ private:
     std::mutex waiting_messages_mutex_;
 
     std::shared_ptr<Protocol_Writer> writer_pointer_;
+//    std::vector<std::size_t> packet_end_position_;
 };
 
 } // namespace Network
