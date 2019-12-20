@@ -58,12 +58,18 @@ public:
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
 
     enum Flags {
+        RESERVED                    = 0x0400,
+
+        REPEATED                    = 0x0800,
         FRAGMENT_QUERY              = 0x1000,
         FRAGMENT                    = 0x2000,
         ANSWER                      = 0x4000,
         COMPRESSED                  = 0x8000,
-        ALL_FLAGS                   = FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
+
+        ALL_FLAGS                   = RESERVED | REPEATED | FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
     };
+
+    bool use_repeated_flag_ = true;
 
     template<typename... Args>
     void parse_out(QIODevice& data_dev, Args&... args)
@@ -148,10 +154,10 @@ public:
     Protocol_Sender send_answer(uint16_t cmd, std::optional<uint8_t> msg_id);
     void send_byte(uint16_t cmd, char byte);
     void send_array(uint16_t cmd, const QByteArray &buff);
-    void send_message(Message_Item message, uint32_t pos = 0);
+    void send_message(Message_Item message, uint32_t pos = 0, bool is_repeated = false);
 
 public:
-    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0);
+    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0, bool add_repeated_flag = false);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
     void process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, const uint8_t* data, size_t size);
 
