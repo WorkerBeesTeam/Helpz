@@ -69,10 +69,11 @@ Protocol_Sender Protocol::send_answer(uint16_t cmd, std::optional<uint8_t> msg_i
 void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
-void Protocol::send_message(Message_Item message, uint32_t pos)
+void Protocol::send_message(Message_Item message, uint32_t pos, bool is_repeated)
 {
     if (!protocol_writer_)
     {
+        qCWarning(Log).noquote() << title() << "Attempt to send message, but writer is not set. cmd:" << message.cmd_;
         return;
     }
 
@@ -84,7 +85,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos)
         message.id_ = next_tx_msg_id_++;
     }
 
-    QByteArray packet = prepare_packet(message, pos);
+    QByteArray packet = prepare_packet(message, pos, is_repeated);
     if (!packet.size())
     {
         if (is_new_message)
@@ -112,7 +113,7 @@ void Protocol::send_message(Message_Item message, uint32_t pos)
     protocol_writer_->write(std::move(packet));
 }
 
-QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos)
+QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, bool add_repeated_flag)
 {
     if (!msg.data_device_ || (pos > msg.data_device_->size() && pos != std::numeric_limits<uint32_t>::max()))
     {
@@ -121,6 +122,11 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos)
 
     QByteArray packet, data;
     uint16_t cmd = msg.cmd_;
+
+    if (add_repeated_flag)
+    {
+        cmd |= REPEATED;
+    }
 
     if (msg.answer_id_ || msg.data_device_->size() > msg.fragment_size_ || pos != 0)
     {
@@ -311,6 +317,7 @@ bool Protocol::is_lost_message(uint8_t msg_id)
     {
         if (it->second == msg_id)
         {
+            qCDebug(DetailLog).noquote() << title() << "Find lost message" << msg_id;
             lost_msg_list_.erase(it);
             return true;
         }
@@ -354,10 +361,11 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
 
 void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char *data_ptr, uint32_t data_size)
 {
-    if (msg_id < next_rx_msg_id_ && uint8_t(next_rx_msg_id_ - msg_id) < std::numeric_limits<int8_t>::max())
+    if (flags & REPEATED || (msg_id < next_rx_msg_id_ && uint8_t(next_rx_msg_id_ - msg_id) < std::numeric_limits<int8_t>::max()))
     {
         if (!is_lost_message(msg_id))
         {
+            qCDebug(DetailLog).noquote() << title() << "Dropped message" << msg_id << "expected" << next_rx_msg_id_ << ". Cmd:" << cmd << "Flags:" << flags << "Size:" << data_size;
             return;
         }
     }
@@ -378,6 +386,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
     // If COMPRESSED or FRAGMENT flag is setted, then data_size can not be zero.
     if (!data_size && (flags & (COMPRESSED | FRAGMENT)))
     {
+        qCWarning(Log).noquote() << title() << "COMPRESSED or FRAGMENT flag is setted, but data_size is zero.";
         return;
     }
 
@@ -516,16 +525,18 @@ void Protocol::process_wait_list()
     {
         if (msg.end_time_ > now)
         {
-            uint32_t pos = msg.data_device_ ? msg.data_device_->pos() : 0;
+            uint32_t pos = msg.data_device_ && !msg.data_device_->atEnd() ? msg.data_device_->pos() : 0;
             msg.fragment_size_ /= 2;
             if (msg.fragment_size_ < 32)
             {
                 msg.fragment_size_ = 32;
             }
-            send_message(std::move(msg), pos);
+            send_message(std::move(msg), pos, use_repeated_flag_/*replace to true*/);
         }
         else
         {
+            qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg.id_.value_or(0);
+
             if (msg.timeout_func_)
             {
                 msg.timeout_func_();
