@@ -22,11 +22,16 @@ Server_Node::Server_Node(Server_Controller *controller, const boost::asio::ip::u
                                         *tools->policy_, *tools->rng_, true });
 }
 
+std::shared_ptr<Node> Server_Node::get_shared()
+{
+    return std::static_pointer_cast<Node>(shared_from_this());
+}
+
 void Server_Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[size]);
     memcpy(buffer.get(), data, size);
-    controller()->add_received_record(std::move(self_), std::move(buffer), size);
+    controller()->add_received_record(get_shared(), std::move(buffer), size);
 }
 
 void Server_Node::tls_alert(Botan::TLS::Alert alert)

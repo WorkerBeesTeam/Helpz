@@ -58,7 +58,7 @@ std::shared_ptr<Node> Server_Controller::get_node(const boost::asio::ip::udp::en
 void Server_Controller::process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
 {
     // node already locked
-    node->process_received_data(node, std::move(data), size);
+    node->process_received_data(std::move(data), size);
 }
 
 void Server_Controller::remove_copy(Network::Protocol *client)
@@ -214,7 +214,7 @@ void Server_Controller::records_thread_run()
             if (proto)
             {
                 std::lock_guard node_lock(static_cast<Server_Node*>(record.node_.get())->record_mutex_);
-                proto->process_bytes(std::move(record.node_), record.buffer_.get(), record.size_);
+                proto->process_bytes(record.buffer_.get(), record.size_);
             }
         }
     }

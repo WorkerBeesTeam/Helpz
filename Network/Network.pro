@@ -10,7 +10,9 @@ SOURCES += \
     net_protocol.cpp \
     net_protocol_sender.cpp \
     net_protocol_timer.cpp \
-    net_fragmented_message.cpp
+    net_fragmented_message.cpp \
+    net_protocol_writer.cpp \
+    net_message_item.cpp
 
 HEADERS += \
     udpclient.h \
@@ -20,7 +22,9 @@ HEADERS += \
     net_protocol_sender.h \
     net_protocol_timer.h \
     net_defs.h \
-    net_fragmented_message.h
+    net_fragmented_message.h \
+    net_protocol_writer.h \
+    net_message_item.h
 
 LIBS += -lHelpzBase
 

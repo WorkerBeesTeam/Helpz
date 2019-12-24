@@ -8,18 +8,7 @@ namespace Network {
 Q_LOGGING_CATEGORY(Log, "net")
 Q_LOGGING_CATEGORY(DetailLog, "net.detail", QtInfoMsg)
 
-const QString &Protocol_Writer::title() const { return title_; }
-void Protocol_Writer::set_title(const QString &title) { title_ = title; }
-
-std::chrono::time_point<std::chrono::system_clock> Protocol_Writer::last_msg_recv_time() const { return last_msg_recv_time_; }
-void Protocol_Writer::set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value) { last_msg_recv_time_ = value; }
-
-// ----------------------------------------------------------------------------------
-
-// ----------------------------------------------------------------------------------
-
 Protocol::Protocol() :
-    protocol_writer_(nullptr),
     next_rx_msg_id_(0), next_tx_msg_id_(0),
     last_msg_send_time_(Time_Point{})
 {
@@ -30,12 +19,8 @@ Protocol::Protocol() :
 
 QString Protocol::title() const
 {
+    std::lock_guard lock(mutex_);
     return protocol_writer_ ? protocol_writer_->title() : QString{};
-}
-
-std::shared_ptr<Protocol_Writer> Protocol::writer_pointer()
-{
-    return writer_pointer_;
 }
 
 void Protocol::reset_msg_id()
@@ -44,19 +29,22 @@ void Protocol::reset_msg_id()
     next_tx_msg_id_ = 0;
 }
 
-Protocol_Writer *Protocol::writer()
+std::shared_ptr<Protocol_Writer> Protocol::writer()
 {
+    std::lock_guard lock(mutex_);
     return protocol_writer_;
 }
 
-const Protocol_Writer* Protocol::writer() const
+std::shared_ptr<const Protocol_Writer> Protocol::writer() const
 {
+    std::lock_guard lock(mutex_);
     return protocol_writer_;
 }
 
-void Protocol::set_writer(Protocol_Writer *protocol_writer)
+void Protocol::set_writer(std::shared_ptr<Protocol_Writer> protocol_writer)
 {
-    protocol_writer_ = protocol_writer;
+    std::lock_guard lock(mutex_);
+    protocol_writer_ = std::move(protocol_writer);
 }
 
 Protocol::Time_Point Protocol::last_msg_send_time() const
@@ -64,14 +52,33 @@ Protocol::Time_Point Protocol::last_msg_send_time() const
     return last_msg_send_time_.load();
 }
 
-Protocol_Sender Protocol::send(uint16_t cmd) { return Protocol_Sender(this, cmd); }
-Protocol_Sender Protocol::send_answer(uint16_t cmd, std::optional<uint8_t> msg_id) { return Protocol_Sender(this, cmd, msg_id); }
+Protocol_Sender Protocol::send(uint16_t cmd)
+{
+    auto ptr = writer();
+    if (ptr)
+    {
+        return Protocol_Sender(ptr->protocol(), cmd);
+    }
+    return Protocol_Sender(std::shared_ptr<Protocol>(), cmd);
+}
+
+Protocol_Sender Protocol::send_answer(uint16_t cmd, std::optional<uint8_t> msg_id)
+{
+    auto ptr = writer();
+    if (ptr)
+    {
+        return Protocol_Sender(ptr->protocol(), cmd, msg_id);
+    }
+    return Protocol_Sender(std::shared_ptr<Protocol>(), cmd, msg_id);
+}
+
 void Protocol::send_byte(uint16_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint16_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
 void Protocol::send_message(Message_Item message, uint32_t pos, bool is_repeated)
 {
-    if (!protocol_writer_)
+    auto writer_ptr = writer();
+    if (!writer_ptr)
     {
         qCWarning(Log).noquote() << title() << "Attempt to send message, but writer is not set. cmd:" << message.cmd_;
         return;
@@ -107,10 +114,10 @@ void Protocol::send_message(Message_Item message, uint32_t pos, bool is_repeated
             time_point = message.end_time_;
         }
         add_to_waiting(time_point, std::move(message));
-        protocol_writer_->add_timeout_at(time_point);
+        writer_ptr->add_timeout_at(time_point);
     }
 
-    protocol_writer_->write(std::move(packet));
+    writer_ptr->write(std::move(packet));
 }
 
 QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, bool add_repeated_flag)
@@ -189,22 +196,18 @@ void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t m
     device->read(data.data() + header_pos, raw_size);
 }
 
-void Protocol::process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, const uint8_t* data, size_t size)
+void Protocol::process_bytes(const uint8_t* data, size_t size)
 {
     if (size == 0)
     {
         return;
     }
 
-    writer_pointer_ = std::move(self_pointer);
-    struct Clear_Pointer {
-        Clear_Pointer(std::shared_ptr<Protocol_Writer>& p) : p_(p) {}
-        ~Clear_Pointer() { p_.reset(); }
-        std::shared_ptr<Protocol_Writer>& p_;
-    } clear_pointer(writer_pointer_);
-
-    if (protocol_writer_)
-        protocol_writer_->set_last_msg_recv_time(std::chrono::system_clock::now());
+    {
+        auto writer_ptr = writer();
+        if (writer_ptr)
+            writer_ptr->set_last_msg_recv_time(std::chrono::system_clock::now());
+    }
 
     if (device_.size() != 0)
     {
@@ -547,14 +550,14 @@ void Protocol::process_wait_list()
 
 void Protocol::add_to_waiting(Time_Point time_point, Message_Item &&message)
 {
-    std::lock_guard lock(waiting_messages_mutex_);
+    std::lock_guard lock(mutex_);
     waiting_messages_.emplace(time_point, std::move(message));
 }
 
 std::vector<Message_Item> Protocol::pop_waiting_messages()
 {
     std::vector<Message_Item> messages;
-    std::lock_guard lock(waiting_messages_mutex_);
+    std::lock_guard lock(mutex_);
 
     Time_Point now = std::chrono::system_clock::now() + std::chrono::milliseconds(20);
     for (auto it = waiting_messages_.begin(); it != waiting_messages_.end(); )
@@ -577,7 +580,7 @@ Message_Item Protocol::pop_waiting_answer(uint8_t answer_id, uint16_t cmd)
 
 Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Item &)> check_func)
 {
-    std::lock_guard lock(waiting_messages_mutex_);
+    std::lock_guard lock(mutex_);
     for (auto it = waiting_messages_.begin(); it != waiting_messages_.end(); ++it)
     {
         if (check_func(it->second))
