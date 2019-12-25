@@ -28,10 +28,10 @@ std::shared_ptr<Node> Client_Controller::get_node(const boost::asio::ip::udp::en
     return node_;
 }
 
-void Client_Controller::process_data(std::shared_ptr<Node> &node, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
+void Client_Controller::process_data(std::shared_ptr<Node> &/*node*/, std::unique_ptr<uint8_t[]> &&data, std::size_t size)
 {
     node_->reset_ping_flag();
-    node_->process_received_data(node, std::move(data), size);
+    node_->process_received_data(std::move(data), size);
 }
 
 void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*remote_endpoint*/)

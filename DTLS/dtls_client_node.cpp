@@ -57,6 +57,11 @@ bool Client_Node::is_reconnect_needed()
     return true;
 }
 
+std::shared_ptr<Node> Client_Node::get_shared()
+{
+    return shared_from_this();
+}
+
 std::shared_ptr<Network::Protocol> Client_Node::create_protocol()
 {
     return controller()->create_protocol(application_protocol());
