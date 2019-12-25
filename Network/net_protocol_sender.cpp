@@ -11,17 +11,9 @@ namespace Network {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
 
-Message_Item::Message_Item(quint16 command, std::optional<uint8_t> &&answer_id, std::shared_ptr<QIODevice> &&device_ptr,
-                           std::chrono::milliseconds resend_timeout, uint32_t fragment_size) :
-    answer_id_{std::move(answer_id)}, cmd_(command), fragment_size_(fragment_size), resend_timeout_(resend_timeout), data_device_{std::move(device_ptr)}
-{
-}
-
-// -------------------------------------------------------------------------------------------------------------------------------------
-
-Protocol_Sender::Protocol_Sender(Protocol *p, uint16_t command, std::optional<uint8_t> answer_id, std::shared_ptr<QIODevice> device_ptr, std::chrono::milliseconds resend_timeout) :
+Protocol_Sender::Protocol_Sender(std::shared_ptr<Protocol> p, uint16_t command, std::optional<uint8_t> answer_id, std::shared_ptr<QIODevice> device_ptr, std::chrono::milliseconds resend_timeout) :
     QDataStream(device_ptr.get()),
-    protocol_(p), msg_{command, std::move(answer_id), std::move(device_ptr), std::move(resend_timeout)}
+    protocol_(std::move(p)), msg_{command, std::move(answer_id), std::move(device_ptr), std::move(resend_timeout)}
 {
     if (!msg_.data_device_)
     {
@@ -48,7 +40,7 @@ Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
 {
     setVersion(obj.version());
     obj.setDevice(nullptr);
-    obj.protocol_ = nullptr;
+    obj.protocol_.reset();
 }
 
 Protocol_Sender::~Protocol_Sender()
@@ -71,13 +63,17 @@ Protocol_Sender::~Protocol_Sender()
 
 void Protocol_Sender::release()
 {
-    protocol_ = nullptr;
+    protocol_.reset();
 }
 
 QByteArray Protocol_Sender::pop_packet()
 {
-    QByteArray data = protocol_->prepare_packet(msg_);
-    protocol_ = nullptr;
+    QByteArray data;
+    if (protocol_)
+    {
+        data = protocol_->prepare_packet(msg_);
+        protocol_.reset();
+    }
     return data;
 }
 

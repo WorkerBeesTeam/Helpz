@@ -4,12 +4,13 @@
 #include <chrono>
 #include <mutex>
 
-#include <Helpz/apply_parse.h>
-#include <Helpz/net_protocol_sender.h>
-#include <Helpz/net_fragmented_message.h>
-
 #include <QBuffer>
 #include <QLoggingCategory>
+
+#include <Helpz/apply_parse.h>
+#include <Helpz/net_protocol_writer.h>
+#include <Helpz/net_protocol_sender.h>
+#include <Helpz/net_fragmented_message.h>
 
 namespace Helpz {
 namespace Network {
@@ -26,26 +27,6 @@ enum ReservedCommands {
 };
 }
 
-class Protocol;
-
-class Protocol_Writer
-{
-public:
-    virtual ~Protocol_Writer() = default;
-
-    const QString& title() const;
-    void set_title(const QString& title);
-
-    std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time() const;
-    void set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value);
-
-    virtual void write(QByteArray&& data) = 0;
-    virtual void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) = 0;
-private:
-    QString title_;
-    std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time_;
-};
-
 /**
  * @brief The Protocol class
  *
@@ -58,12 +39,18 @@ public:
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
 
     enum Flags {
+        RESERVED                    = 0x0400,
+
+        REPEATED                    = 0x0800,
         FRAGMENT_QUERY              = 0x1000,
         FRAGMENT                    = 0x2000,
         ANSWER                      = 0x4000,
         COMPRESSED                  = 0x8000,
-        ALL_FLAGS                   = FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
+
+        ALL_FLAGS                   = RESERVED | REPEATED | FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
     };
+
+    bool use_repeated_flag_ = true;
 
     template<typename... Args>
     void parse_out(QIODevice& data_dev, Args&... args)
@@ -130,15 +117,13 @@ public:
 
     QString title() const;
 
-    std::shared_ptr<Protocol_Writer> writer_pointer();
-
     void reset_msg_id();
 
     virtual bool operator ==(const Protocol&) const { return false; }
 
-    Protocol_Writer* writer();
-    const Protocol_Writer* writer() const;
-    void set_writer(Protocol_Writer* protocol_writer);
+    std::shared_ptr<Protocol_Writer> writer();
+    std::shared_ptr<const Protocol_Writer> writer() const;
+    void set_writer(std::shared_ptr<Protocol_Writer> protocol_writer);
 
     typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;
 
@@ -148,12 +133,12 @@ public:
     Protocol_Sender send_answer(uint16_t cmd, std::optional<uint8_t> msg_id);
     void send_byte(uint16_t cmd, char byte);
     void send_array(uint16_t cmd, const QByteArray &buff);
-    void send_message(Message_Item message, uint32_t pos = 0);
+    void send_message(Message_Item message, uint32_t pos = 0, bool is_repeated = false);
 
 public:
-    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0);
+    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0, bool add_repeated_flag = false);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
-    void process_bytes(std::shared_ptr<Protocol_Writer> self_pointer, const uint8_t* data, size_t size);
+    void process_bytes(const uint8_t* data, size_t size);
 
     /**
      * @brief ready_write
@@ -166,8 +151,6 @@ protected:
 
     virtual void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) = 0;
     virtual void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) = 0;
-
-    Protocol_Writer* protocol_writer_;
 
 //    friend class Protocol_Sender;
 private:
@@ -197,9 +180,9 @@ private:
 
     std::vector<Fragmented_Message> fragmented_messages_;
     std::map<Time_Point,Message_Item> waiting_messages_;
-    std::mutex waiting_messages_mutex_;
+    mutable std::mutex mutex_;
 
-    std::shared_ptr<Protocol_Writer> writer_pointer_;
+    std::shared_ptr<Protocol_Writer> protocol_writer_;
 //    std::vector<std::size_t> packet_end_position_;
 };
 

@@ -7,7 +7,7 @@ namespace Helpz {
 namespace DTLS {
 
 class Client_Controller;
-class Client_Node final : public Node
+class Client_Node final : public Node, public std::enable_shared_from_this<Client_Node>
 {
 public:
     Client_Node(Client_Controller* controller, Socket* socket);
@@ -19,6 +19,8 @@ public:
     bool is_reconnect_needed();
 
 private:
+    std::shared_ptr<Node> get_shared() override;
+
     std::shared_ptr<Network::Protocol> create_protocol() override;
 
     bool ping_flag_;
