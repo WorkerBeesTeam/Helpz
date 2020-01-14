@@ -4,8 +4,6 @@
 #include <chrono>
 #include <mutex>
 
-#include <boost/thread/shared_mutex.hpp>
-
 #include <QBuffer>
 #include <QLoggingCategory>
 
@@ -181,7 +179,7 @@ private:
     std::atomic<Time_Point> last_msg_send_time_;
 
     std::vector<Fragmented_Message> fragmented_messages_;
-    boost::shared_mutex fragmented_msg_mutex_;
+    std::mutex fragmented_msg_mutex_;
 
     std::map<Time_Point,Message_Item> waiting_messages_;
     mutable std::recursive_mutex mutex_;

@@ -26,7 +26,7 @@ HEADERS += \
     net_protocol_writer.h \
     net_message_item.h
 
-LIBS += -lHelpzBase -lboost_thread
+LIBS += -lHelpzBase
 
 VER_MAJ = 1
 VER_MIN = 3

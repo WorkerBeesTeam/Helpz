@@ -1,5 +1,3 @@
-#include <boost/thread/shared_lock_guard.hpp>
-
 #include <QDebug>
 
 #include "net_protocol.h"
@@ -548,12 +546,16 @@ void Protocol::process_wait_list(void *data)
         {
             Time_Point now = std::chrono::system_clock::now();
 
-            boost::shared_lock lock(fragmented_msg_mutex_);
-            for (const Fragmented_Message& msg: fragmented_messages_)
+            std::lock_guard lock(fragmented_msg_mutex_);
+            for (Fragmented_Message& msg: fragmented_messages_)
             {
                 if (!msg.is_parts_empty()
                     && now - msg.last_part_time_ >= std::chrono::milliseconds(1500))
                 {
+                    msg.max_fragment_size_ /= 2;
+                    if (msg.max_fragment_size_ < 32)
+                        msg.max_fragment_size_ = 32;
+
                     auto msg_out = send(msg.cmd_);
                     msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
                     msg_out << msg.id_ << msg.get_next_part();
