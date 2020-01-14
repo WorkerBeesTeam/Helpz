@@ -25,7 +25,7 @@ public:
 private:
     void on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint, void* data) override;
 
-//    Client* client_;
+    Client* client_;
     std::shared_ptr<Client_Node> node_;
     Create_Client_Protocol_Func_T create_protocol_func_;
 };

@@ -19,7 +19,6 @@ Protocol::Protocol() :
 
 QString Protocol::title() const
 {
-    std::lock_guard lock(mutex_);
     return protocol_writer_ ? protocol_writer_->title() : QString{};
 }
 
@@ -31,19 +30,16 @@ void Protocol::reset_msg_id()
 
 std::shared_ptr<Protocol_Writer> Protocol::writer()
 {
-    std::lock_guard lock(mutex_);
     return protocol_writer_;
 }
 
 std::shared_ptr<const Protocol_Writer> Protocol::writer() const
 {
-    std::lock_guard lock(mutex_);
     return protocol_writer_;
 }
 
 void Protocol::set_writer(std::shared_ptr<Protocol_Writer> protocol_writer)
 {
-    std::lock_guard lock(mutex_);
     protocol_writer_ = std::move(protocol_writer);
 }
 
@@ -332,7 +328,6 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
         if (uint8_t(next_rx_msg_id_ - it->second) > (std::numeric_limits<int8_t>::max() / 2))
         {
             is_fragment_msg_deleted = false;
-            std::lock_guard lock(fragmented_msg_mutex_);
             fragmented_messages_.erase(std::remove_if(fragmented_messages_.begin(), fragmented_messages_.end(), [&is_fragment_msg_deleted, &it](const Fragmented_Message& msg)
             {
                 if (msg == it->second)
@@ -410,7 +405,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
-            std::lock_guard lock(fragmented_msg_mutex_);
             std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
 
             if (full_size >= HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
@@ -454,9 +448,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                 if (flags & ANSWER)
                 {
                     Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
-
-                    std::lock_guard lock(mutex_); // В pop_waiting_answer тоже блокируется
-
                     if (waiting_msg.answer_func_)
                     {
                         waiting_msg.answer_func_(*msg.data_device_);
@@ -469,7 +460,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                 }
                 else
                 {
-                    std::lock_guard lock(mutex_);
                     process_message(msg_id, cmd, *msg.data_device_);
                 }
                 fragmented_messages_.erase(it);
@@ -499,8 +489,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                 data.remove(0, 1);
 
                 QBuffer buffer(&data);
-
-                std::lock_guard lock(mutex_);
                 msg.answer_func_(buffer);
             }
         }
@@ -518,8 +506,6 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
         else
         {
             QBuffer buffer(&data);
-
-            std::lock_guard lock(mutex_);
             process_message(msg_id, cmd, buffer);
         }
     }
@@ -546,7 +532,6 @@ void Protocol::process_wait_list(void *data)
         {
             Time_Point now = std::chrono::system_clock::now();
 
-            std::lock_guard lock(fragmented_msg_mutex_);
             for (Fragmented_Message& msg: fragmented_messages_)
             {
                 if (!msg.is_parts_empty()
@@ -585,10 +570,7 @@ void Protocol::process_wait_list(void *data)
             qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg.id_.value_or(0);
 
             if (msg.timeout_func_)
-            {
-                std::lock_guard lock(mutex_);
                 msg.timeout_func_();
-            }
         }
     }
 }

@@ -208,7 +208,7 @@ void Server_Controller::records_thread_run()
         records_queue_.pop();
         lock.unlock();
 
-        if (record.node_)
+        if (record.node_ && record.buffer_)
         {
             auto proto = record.node_->protocol();
             if (proto)

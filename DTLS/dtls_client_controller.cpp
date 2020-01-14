@@ -9,8 +9,9 @@ namespace DTLS {
 
 Client_Controller::Client_Controller(Tools *dtls_tools, Client *client, const Create_Client_Protocol_Func_T& create_protocol_func) :
     Controller{ dtls_tools },
+    client_{client},
     node_{ new Client_Node{this, client} },
-    create_protocol_func_(create_protocol_func)
+    create_protocol_func_{create_protocol_func}
 {
 }
 
@@ -36,12 +37,15 @@ void Client_Controller::process_data(std::shared_ptr<Node> &/*node*/, std::uniqu
 
 void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*remote_endpoint*/, void *data)
 {
-    std::shared_ptr<Network::Protocol> proto = node_->protocol();
-    if (proto)
+    client_->get_io_context()->post([this, data]()
     {
-        std::lock_guard node_lock(node_->mutex_);
-        proto->process_wait_list(data);
-    }
+        std::shared_ptr<Network::Protocol> proto = node_->protocol();
+        if (proto)
+        {
+            std::lock_guard node_lock(node_->mutex_);
+            proto->process_wait_list(data);
+        }
+    });
 }
 
 } // namespace DTLS

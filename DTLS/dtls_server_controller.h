@@ -60,6 +60,7 @@ private:
         std::unique_ptr<uint8_t[]> buffer_;
         std::size_t size_;
     };
+
     bool records_thread_break_flag_;
     std::vector<std::thread> records_thread_list_;
     std::queue<Record_Item> records_queue_;
