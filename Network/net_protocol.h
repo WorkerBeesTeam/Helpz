@@ -161,7 +161,7 @@ private:
     void process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size);
 
 public:
-    void process_wait_list();
+    void process_wait_list(void* data);
 
 private:
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
@@ -179,8 +179,9 @@ private:
     std::atomic<Time_Point> last_msg_send_time_;
 
     std::vector<Fragmented_Message> fragmented_messages_;
+
     std::map<Time_Point,Message_Item> waiting_messages_;
-    mutable std::mutex mutex_;
+    mutable std::recursive_mutex mutex_;
 
     std::shared_ptr<Protocol_Writer> protocol_writer_;
 //    std::vector<std::size_t> packet_end_position_;

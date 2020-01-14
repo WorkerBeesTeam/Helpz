@@ -26,7 +26,7 @@ public:
 
     Tools* dtls_tools();
 
-    void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point);
+    void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point, void* data);
 
     virtual std::shared_ptr<Node> get_node(const udp::endpoint& remote_endpoint) = 0;
     virtual void process_data(std::shared_ptr<Node>& node, std::unique_ptr<uint8_t[]>&& data, std::size_t size) = 0;

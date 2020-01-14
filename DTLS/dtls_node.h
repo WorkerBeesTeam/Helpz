@@ -37,7 +37,7 @@ public:
 protected:
     virtual std::shared_ptr<Node> get_shared() = 0;
 
-    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point) override;
+    void add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point, void* data = nullptr) override;
 
     virtual std::shared_ptr<Network::Protocol> create_protocol();
     virtual void tls_record_received(Botan::u64bit, const uint8_t data[], size_t size) override;

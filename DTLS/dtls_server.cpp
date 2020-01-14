@@ -14,6 +14,11 @@ Server::Server(Tools *dtls_tools, boost::asio::io_context *io_context, uint16_t 
     cleaning_timer_.async_wait(std::bind(&Server::cleaning, this, std::placeholders::_1));
 }
 
+uint16_t Server::get_local_port() const
+{
+    return socket_->local_endpoint().port();
+}
+
 std::shared_ptr<Server_Node> Server::find_client(std::function<bool (const Network::Protocol *)> check_protocol_func) const
 {
     return controller()->find_client(check_protocol_func);

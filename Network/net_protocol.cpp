@@ -19,7 +19,6 @@ Protocol::Protocol() :
 
 QString Protocol::title() const
 {
-    std::lock_guard lock(mutex_);
     return protocol_writer_ ? protocol_writer_->title() : QString{};
 }
 
@@ -31,19 +30,16 @@ void Protocol::reset_msg_id()
 
 std::shared_ptr<Protocol_Writer> Protocol::writer()
 {
-    std::lock_guard lock(mutex_);
     return protocol_writer_;
 }
 
 std::shared_ptr<const Protocol_Writer> Protocol::writer() const
 {
-    std::lock_guard lock(mutex_);
     return protocol_writer_;
 }
 
 void Protocol::set_writer(std::shared_ptr<Protocol_Writer> protocol_writer)
 {
-    std::lock_guard lock(mutex_);
     protocol_writer_ = std::move(protocol_writer);
 }
 
@@ -199,9 +195,7 @@ void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t m
 void Protocol::process_bytes(const uint8_t* data, size_t size)
 {
     if (size == 0)
-    {
         return;
-    }
 
     {
         auto writer_ptr = writer();
@@ -210,9 +204,7 @@ void Protocol::process_bytes(const uint8_t* data, size_t size)
     }
 
     if (device_.size() != 0)
-    {
         qDebug(Log) << "POSIBLE FRAGMENTED TLS BECOSE ALREADY SIZE:" << device_.size() << "AND NEW PACKET:" << size;
-    }
 
 //    packet_end_position_.push(size);
     device_.seek(device_.size());
@@ -425,7 +417,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             if (it == fragmented_messages_.end())
             {
                 uint32_t max_fragment_size = pos > 0 ? pos : HELPZ_MAX_MESSAGE_DATA_SIZE;
-                it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size, full_size < 1000000);
+                it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size, full_size);
             }
             Fragmented_Message &msg = *it;
 
@@ -441,17 +433,17 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             if (!ds.atEnd())
             {
                 uint32_t data_pos = ds.device()->pos();
-                msg.data_device_->seek(pos);
-                msg.data_device_->write(data.constData() + data_pos, data.size() - data_pos);
+                msg.add_data(pos, data.constData() + data_pos, data.size() - data_pos);
             }
 
-            lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
             auto msg_out = send(cmd);
             msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
-            msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+            msg_out << msg_id;
 
-            if (msg.data_device_->pos() == full_size)
+            if (msg.is_parts_empty())
             {
+                msg_out << full_size << msg.max_fragment_size_;
+
                 msg.data_device_->seek(0);
                 if (flags & ANSWER)
                 {
@@ -474,7 +466,19 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             }
             else
             {
+                Time_Point now = std::chrono::system_clock::now();
+                lost_msg_list_.push_back(std::make_pair(now, msg_id));
+                msg.last_part_time_ = now;
+
+                msg_out << msg.get_next_part();
                 msg.data_device_->close();
+
+                auto writer_ptr = writer();
+                if (writer_ptr)
+                {
+                    intptr_t value = FRAGMENT;
+                    writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1500), reinterpret_cast<void*>(value));
+                }
             }
         }
         else
@@ -519,8 +523,33 @@ void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, u
     }
 }
 
-void Protocol::process_wait_list()
+void Protocol::process_wait_list(void *data)
 {
+    if (data)
+    {
+        intptr_t value = reinterpret_cast<intptr_t>(data);
+        if (value == FRAGMENT)
+        {
+            Time_Point now = std::chrono::system_clock::now();
+
+            for (Fragmented_Message& msg: fragmented_messages_)
+            {
+                if (!msg.is_parts_empty()
+                    && now - msg.last_part_time_ >= std::chrono::milliseconds(1500))
+                {
+                    msg.max_fragment_size_ /= 2;
+                    if (msg.max_fragment_size_ < 32)
+                        msg.max_fragment_size_ = 32;
+
+                    auto msg_out = send(msg.cmd_);
+                    msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+                    msg_out << msg.id_ << msg.get_next_part();
+                }
+            }
+            return;
+        }
+    }
+
     std::vector<Message_Item> messages = pop_waiting_messages();
 
     Time_Point now = std::chrono::system_clock::now();
@@ -541,9 +570,7 @@ void Protocol::process_wait_list()
             qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg.id_.value_or(0);
 
             if (msg.timeout_func_)
-            {
                 msg.timeout_func_();
-            }
         }
     }
 }
