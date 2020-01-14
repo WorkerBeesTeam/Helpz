@@ -128,9 +128,9 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     }
 }
 
-void Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point)
+void Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point, void *data)
 {
-    controller_->add_timeout_at(receiver_endpoint(), time_point);
+    controller_->add_timeout_at(receiver_endpoint(), time_point, data);
 }
 
 std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }

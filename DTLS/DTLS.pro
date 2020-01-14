@@ -47,7 +47,7 @@ win32 {
     QMAKE_LFLAGS += -fstack-protector
 }
 LIBS += -L$${OUT_PWD}/..
-LIBS += -lbotan-2 -lHelpzNetwork -lHelpzDB -lboost_system -lboost_thread
+LIBS += -lbotan-2 -lHelpzNetwork -lHelpzDB -lHelpzDBMeta -lboost_system -lboost_thread
 
 VER_MAJ = 1
 VER_MIN = 5

@@ -18,13 +18,13 @@ namespace DTLS {
 class Client_Thread_Config
 {
 public:
-    Client_Thread_Config(const std::string& tls_police_file_name, const std::string &host, const std::string &port,
-                         const std::vector<std::string> &next_protocols, uint32_t reconnect_interval_sec = 30);
+    Client_Thread_Config(const std::string& tls_police_file_name = {}, const std::string &host = {}, const std::string &port = {},
+                         const std::vector<std::string> &next_protocols = {}, uint32_t reconnect_interval_sec = 30);
     Client_Thread_Config(const Client_Thread_Config&) = delete;
     Client_Thread_Config(Client_Thread_Config&&) = default;
 
     Create_Client_Protocol_Func_T create_protocol_func() const;
-    void set_create_protocol_func(Create_Client_Protocol_Func_T &&create_protocol_func);
+    void set_create_protocol_func(Create_Client_Protocol_Func_T create_protocol_func);
 
     std::chrono::seconds reconnect_interval() const;
     void set_reconnect_interval(const std::chrono::seconds &reconnect_interval);

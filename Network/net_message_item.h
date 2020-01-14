@@ -4,6 +4,7 @@
 #include <memory>
 #include <chrono>
 #include <functional>
+#include <optional>
 
 #include <QIODevice>
 

@@ -18,7 +18,7 @@ Create_Client_Protocol_Func_T Client_Thread_Config::create_protocol_func() const
     return create_protocol_func_;
 }
 
-void Client_Thread_Config::set_create_protocol_func(Create_Client_Protocol_Func_T &&create_protocol_func)
+void Client_Thread_Config::set_create_protocol_func(Create_Client_Protocol_Func_T create_protocol_func)
 {
     create_protocol_func_ = std::move(create_protocol_func);
 }

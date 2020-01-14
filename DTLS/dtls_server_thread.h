@@ -17,13 +17,16 @@ namespace DTLS {
 class Server_Thread_Config
 {
 public:
-    Server_Thread_Config(uint16_t port, const std::string& tls_police_file_name, const std::string& certificate_file_name, const std::string& certificate_key_file_name,
+    Server_Thread_Config(uint16_t port = 0,
+                         const std::string& tls_police_file_name = std::string{},
+                         const std::string& certificate_file_name = std::string{},
+                         const std::string& certificate_key_file_name = std::string{},
                          uint32_t cleaning_timeout_sec = 3 * 60, uint16_t receive_thread_count = 5, uint16_t record_thread_count = 5, int main_thread_priority = -1);
     Server_Thread_Config(Server_Thread_Config&&) = default;
     Server_Thread_Config(const Server_Thread_Config&) = delete;
 
-    Create_Server_Protocol_Func_T&& create_protocol_func();
-    void set_create_protocol_func(Create_Server_Protocol_Func_T &&create_protocol_func);
+    Create_Server_Protocol_Func_T create_protocol_func();
+    void set_create_protocol_func(Create_Server_Protocol_Func_T create_protocol_func);
 
     std::chrono::seconds cleaning_timeout() const;
     void set_cleaning_timeout(const std::chrono::seconds &cleaning_timeout);

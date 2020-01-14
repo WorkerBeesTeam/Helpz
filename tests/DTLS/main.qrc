@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>dtls.key</file>
+        <file>dtls.pem</file>
+        <file>tls_policy.conf</file>
+    </qresource>
+</RCC>

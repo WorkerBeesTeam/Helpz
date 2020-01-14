@@ -15,7 +15,7 @@ class Protocol_Timer_Emiter
 {
 public:
     virtual ~Protocol_Timer_Emiter() = default;
-    virtual void on_protocol_timeout(boost::asio::ip::udp::endpoint endpoint) = 0;
+    virtual void on_protocol_timeout(boost::asio::ip::udp::endpoint endpoint, void* data) = 0;
 };
 
 class Protocol_Timer
@@ -26,7 +26,7 @@ public:
 
     typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;
 
-    void add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint);
+    void add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint, void* data);
 private:
     void run();
 
@@ -37,7 +37,12 @@ private:
     std::mutex mutex_;
     std::condition_variable cond_;
 
-    std::map<Time_Point, boost::asio::ip::udp::endpoint> items_;
+    struct Item
+    {
+        boost::asio::ip::udp::endpoint endpoint_;
+        void* data_;
+    };
+    std::map<Time_Point, Item> items_;
 };
 
 } // namespace Network
