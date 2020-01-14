@@ -220,7 +220,7 @@ void Server_Controller::records_thread_run()
     }
 }
 
-void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint)
+void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remote_endpoint, void *data)
 {
     std::shared_ptr<Server_Node> node = find_client(remote_endpoint);
     if (node)
@@ -229,7 +229,7 @@ void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remot
         if (proto)
         {
             std::lock_guard node_lock(node->record_mutex_);
-            proto->process_wait_list();
+            proto->process_wait_list(data);
         }
     }
 }

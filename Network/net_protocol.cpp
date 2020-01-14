@@ -1,3 +1,5 @@
+#include <boost/thread/shared_lock_guard.hpp>
+
 #include <QDebug>
 
 #include "net_protocol.h"
@@ -199,9 +201,7 @@ void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t m
 void Protocol::process_bytes(const uint8_t* data, size_t size)
 {
     if (size == 0)
-    {
         return;
-    }
 
     {
         auto writer_ptr = writer();
@@ -210,9 +210,7 @@ void Protocol::process_bytes(const uint8_t* data, size_t size)
     }
 
     if (device_.size() != 0)
-    {
         qDebug(Log) << "POSIBLE FRAGMENTED TLS BECOSE ALREADY SIZE:" << device_.size() << "AND NEW PACKET:" << size;
-    }
 
 //    packet_end_position_.push(size);
     device_.seek(device_.size());
@@ -336,6 +334,7 @@ void Protocol::fill_lost_msg(uint8_t msg_id)
         if (uint8_t(next_rx_msg_id_ - it->second) > (std::numeric_limits<int8_t>::max() / 2))
         {
             is_fragment_msg_deleted = false;
+            std::lock_guard lock(fragmented_msg_mutex_);
             fragmented_messages_.erase(std::remove_if(fragmented_messages_.begin(), fragmented_messages_.end(), [&is_fragment_msg_deleted, &it](const Fragmented_Message& msg)
             {
                 if (msg == it->second)
@@ -413,6 +412,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
+            std::lock_guard lock(fragmented_msg_mutex_);
             std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
 
             if (full_size >= HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
@@ -425,7 +425,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             if (it == fragmented_messages_.end())
             {
                 uint32_t max_fragment_size = pos > 0 ? pos : HELPZ_MAX_MESSAGE_DATA_SIZE;
-                it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size, full_size < 1000000);
+                it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size, full_size);
             }
             Fragmented_Message &msg = *it;
 
@@ -441,21 +441,24 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             if (!ds.atEnd())
             {
                 uint32_t data_pos = ds.device()->pos();
-                msg.data_device_->seek(pos);
-                msg.data_device_->write(data.constData() + data_pos, data.size() - data_pos);
+                msg.add_data(pos, data.constData() + data_pos, data.size() - data_pos);
             }
 
-            lost_msg_list_.push_back(std::make_pair(std::chrono::system_clock::now(), msg_id));
             auto msg_out = send(cmd);
             msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
-            msg_out << msg_id << static_cast<uint32_t>(msg.data_device_->pos()) << msg.max_fragment_size_;
+            msg_out << msg_id;
 
-            if (msg.data_device_->pos() == full_size)
+            if (msg.is_parts_empty())
             {
+                msg_out << full_size << msg.max_fragment_size_;
+
                 msg.data_device_->seek(0);
                 if (flags & ANSWER)
                 {
                     Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
+
+                    std::lock_guard lock(mutex_); // В pop_waiting_answer тоже блокируется
+
                     if (waiting_msg.answer_func_)
                     {
                         waiting_msg.answer_func_(*msg.data_device_);
@@ -468,13 +471,26 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                 }
                 else
                 {
+                    std::lock_guard lock(mutex_);
                     process_message(msg_id, cmd, *msg.data_device_);
                 }
                 fragmented_messages_.erase(it);
             }
             else
             {
+                Time_Point now = std::chrono::system_clock::now();
+                lost_msg_list_.push_back(std::make_pair(now, msg_id));
+                msg.last_part_time_ = now;
+
+                msg_out << msg.get_next_part();
                 msg.data_device_->close();
+
+                auto writer_ptr = writer();
+                if (writer_ptr)
+                {
+                    intptr_t value = FRAGMENT;
+                    writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1500), reinterpret_cast<void*>(value));
+                }
             }
         }
         else
@@ -485,6 +501,8 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
                 data.remove(0, 1);
 
                 QBuffer buffer(&data);
+
+                std::lock_guard lock(mutex_);
                 msg.answer_func_(buffer);
             }
         }
@@ -502,6 +520,8 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
         else
         {
             QBuffer buffer(&data);
+
+            std::lock_guard lock(mutex_);
             process_message(msg_id, cmd, buffer);
         }
     }
@@ -519,8 +539,30 @@ void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, u
     }
 }
 
-void Protocol::process_wait_list()
+void Protocol::process_wait_list(void *data)
 {
+    if (data)
+    {
+        intptr_t value = reinterpret_cast<intptr_t>(data);
+        if (value == FRAGMENT)
+        {
+            Time_Point now = std::chrono::system_clock::now();
+
+            boost::shared_lock lock(fragmented_msg_mutex_);
+            for (const Fragmented_Message& msg: fragmented_messages_)
+            {
+                if (!msg.is_parts_empty()
+                    && now - msg.last_part_time_ >= std::chrono::milliseconds(1500))
+                {
+                    auto msg_out = send(msg.cmd_);
+                    msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+                    msg_out << msg.id_ << msg.get_next_part();
+                }
+            }
+            return;
+        }
+    }
+
     std::vector<Message_Item> messages = pop_waiting_messages();
 
     Time_Point now = std::chrono::system_clock::now();
@@ -542,6 +584,7 @@ void Protocol::process_wait_list()
 
             if (msg.timeout_func_)
             {
+                std::lock_guard lock(mutex_);
                 msg.timeout_func_();
             }
         }

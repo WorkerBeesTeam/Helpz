@@ -20,9 +20,9 @@ Tools *Controller::dtls_tools()
 }
 
 void Controller::add_timeout_at(const boost::asio::ip::udp::endpoint &remote_endpoint,
-                                std::chrono::time_point<std::chrono::system_clock> time_point)
+                                std::chrono::time_point<std::chrono::system_clock> time_point, void *data)
 {
-    protocol_timer_.add(time_point, remote_endpoint);
+    protocol_timer_.add(time_point, remote_endpoint, data);
 }
 
 

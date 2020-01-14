@@ -4,7 +4,6 @@
 #include <memory>
 #include <chrono>
 #include <functional>
-#include <optional>
 
 /*#if (__cplusplus > 201402L) && !defined(__ANDROID__)
 #include <optional>

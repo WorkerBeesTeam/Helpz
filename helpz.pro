@@ -8,13 +8,20 @@ SUBDIRS = \
 
 Service.depends = Base
 Database.depends = DBMeta
-DTLS.depends = Network
 
 !nobotanandproto {
-    SUBDIRS += \
-        DTLS \
-        Network
+    SUBDIRS += Network DTLS
     Network.depends = Base
+    DTLS.depends = Network
+
+    CONFIG(debug, debug|release) {
+        SUBDIRS += tests
+        tests.depends = DTLS
+
+        CONFIG ~= s/-O[0123s]//g
+        CONFIG += -O0
+    }
+
 } else {
     message('nobotanandproto FOUND');
 }

@@ -34,13 +34,13 @@ void Client_Controller::process_data(std::shared_ptr<Node> &/*node*/, std::uniqu
     node_->process_received_data(std::move(data), size);
 }
 
-void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*remote_endpoint*/)
+void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*remote_endpoint*/, void *data)
 {
     std::shared_ptr<Network::Protocol> proto = node_->protocol();
     if (proto)
     {
         std::lock_guard node_lock(node_->mutex_);
-        proto->process_wait_list();
+        proto->process_wait_list(data);
     }
 }
 

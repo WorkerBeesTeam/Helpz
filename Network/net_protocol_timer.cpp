@@ -28,17 +28,17 @@ Protocol_Timer::~Protocol_Timer()
     delete thread_;
 }
 
-void Protocol_Timer::add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint)
+void Protocol_Timer::add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint, void *data)
 {
     std::lock_guard lock(mutex_);
-    items_.emplace(time_point, endpoint);
+    items_.emplace(time_point, Item{endpoint, data});
     new_timeout_flag_ = true;
     cond_.notify_one();
 }
 
 void Protocol_Timer::run()
 {
-    std::queue<boost::asio::ip::udp::endpoint> clients;
+    std::queue<Item> clients;
     auto pred_func = [this]() { return break_flag_ || new_timeout_flag_; };
     bool timeout;
 
@@ -74,7 +74,7 @@ void Protocol_Timer::run()
             {
                 if (expires_close >= it->first)
                 {
-                    clients.push(it->second);
+                    clients.push(std::move(it->second));
                     it = items_.erase(it);
                 }
                 else
@@ -88,7 +88,7 @@ void Protocol_Timer::run()
 
         while (clients.size())
         {
-            emiter_->on_protocol_timeout(clients.front());
+            emiter_->on_protocol_timeout(clients.front().endpoint_, clients.front().data_);
             clients.pop();
         }
     }
