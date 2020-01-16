@@ -472,19 +472,24 @@ void Protocol::internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t f
             }
             else
             {
+                msg.data_device_->close();
+
                 Time_Point now = std::chrono::system_clock::now();
                 lost_msg_list_.push_back(std::make_pair(now, msg_id));
                 msg.last_part_time_ = now;
 
-                msg_out << msg.get_next_part();
-                msg.data_device_->close();
+                const QPair<uint32_t, uint32_t> next_part = msg.get_next_part();
+                msg_out << next_part;
 
                 auto writer_ptr = writer();
                 if (writer_ptr)
                 {
                     intptr_t value = FRAGMENT;
-                    writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1500), reinterpret_cast<void*>(value));
+                    writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1505), reinterpret_cast<void*>(value));
                 }
+
+                qCDebug(DetailLog).noquote() << title() << "Send fragment query msg" << msg_id
+                                             << "full" << full_size << "part" << next_part;
             }
         }
         else
@@ -537,6 +542,7 @@ void Protocol::process_wait_list(void *data)
         if (value == FRAGMENT)
         {
             Time_Point now = std::chrono::system_clock::now();
+            auto writer_ptr = writer();
 
             for (Fragmented_Message& msg: fragmented_messages_)
             {
@@ -548,10 +554,21 @@ void Protocol::process_wait_list(void *data)
                         msg.max_fragment_size_ = 32;
 
                     lost_msg_list_.push_back(std::make_pair(now, msg.id_));
+                    msg.last_part_time_ = now;
+
+                    const QPair<uint32_t, uint32_t> next_part = msg.get_next_part();
 
                     auto msg_out = send(msg.cmd_);
                     msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
-                    msg_out << msg.id_ << msg.get_next_part();
+                    msg_out << msg.id_ << next_part;
+
+                    if (writer_ptr)
+                    {
+                        intptr_t value = FRAGMENT;
+                        writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1505), reinterpret_cast<void*>(value));
+                    }
+
+                    qCDebug(DetailLog).noquote() << title() << "Send fragment query msg" << msg.id_ << "part" << next_part;
                 }
             }
             return;
