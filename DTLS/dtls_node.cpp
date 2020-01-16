@@ -65,17 +65,31 @@ std::string Node::address() const
     return title_s.str();
 }
 
-void Node::write(QByteArray&& data)
+void Node::write(const QByteArray& data)
 {
-    auto* ctrl = controller_;
-    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active())
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
 
-    socket_->get_io_context()->post([ctrl, endpoint, data]()
+//    auto* ctrl = controller_;
+//    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+
+//    socket_->get_io_context()->post([ctrl, endpoint, data]()
+//    {
+//        auto node = ctrl->get_node(endpoint);
+//        if (node)
+//            node->send(data);
+    //    });
+}
+
+void Node::write(Network::Message_Item message)
+{
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active() && protocol_)
     {
-        auto node = ctrl->get_node(endpoint);
-        if (node)
-            node->send(data);
-    });
+        const QByteArray data = protocol_->prepare_packet_to_send(std::move(message));
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+    }
 }
 
 void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size)
@@ -212,13 +226,6 @@ bool Node::tls_session_established(const Botan::TLS::Session &session)
     }
 
     return true;
-}
-
-void Node::send(const QByteArray& data)
-{
-    std::lock_guard lock(mutex_);
-    if (dtls_ && dtls_->is_active())
-        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
 }
 
 } // namespace DTLS

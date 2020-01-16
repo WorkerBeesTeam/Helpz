@@ -54,7 +54,7 @@ QByteArray Client_Protocol::test_send_file()
 {
     QString file_name = qApp->applicationDirPath() + "/test_file.dat"; //"/usr/lib/libcc1.so.0.0.0";
     QFile::remove(file_name);
-    std::shared_ptr<QFile> device(new QFile(file_name));
+    std::unique_ptr<QFile> device(new QFile(file_name));
     if (!device->open(QIODevice::ReadWrite))
         throw std::runtime_error("Can't open file: " + device->errorString().toStdString());
 
@@ -85,14 +85,14 @@ void Client_Protocol::ready_write()
 //    test_message_with_answer();
 }
 
-void Client_Protocol::process_message(uint8_t msg_id, uint16_t cmd, QIODevice &data_dev)
+void Client_Protocol::process_message(uint8_t msg_id, uint8_t cmd, QIODevice &data_dev)
 {
-    std::cout << "process_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
+    std::cout << "process_message #" << int(msg_id) << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
 }
 
-void Client_Protocol::process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice &data_dev)
+void Client_Protocol::process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice &data_dev)
 {
-    std::cout << "process_answer_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
+    std::cout << "process_answer_message #" << int(msg_id) << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
 }
 
 } // namespace Helpz

@@ -26,8 +26,8 @@ public:
 private:
 
     void ready_write() override;
-    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override;
-    void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override;
+    void process_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override;
+    void process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override;
 };
 
 } // namespace Helpz

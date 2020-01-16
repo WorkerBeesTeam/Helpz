@@ -8,7 +8,7 @@
 namespace Helpz {
 namespace Network {
 
-Fragmented_Message::Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size, uint32_t full_size) :
+Fragmented_Message::Fragmented_Message(uint8_t id, uint8_t cmd, uint32_t max_fragment_size, uint32_t full_size) :
     id_(id), cmd_(cmd), max_fragment_size_(max_fragment_size)
 {
     if (full_size < 1000000)

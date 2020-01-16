@@ -42,11 +42,11 @@ private:
     FileMetaInfo file_info_;
 
     void ready_write() override;
-    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override;
-    void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override;
+    void process_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override;
+    void process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override;
 
     void process_simple(QString value1);
-    void process_answered(bool value1, uint32_t value2, uint16_t cmd, uint8_t msg_id);
+    void process_answered(bool value1, uint32_t value2, uint8_t cmd, uint8_t msg_id);
     void process_file_meta(FileMetaInfo info);
     void process_file(QIODevice& data_dev);
 

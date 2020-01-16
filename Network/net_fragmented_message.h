@@ -10,7 +10,7 @@ namespace Network {
 
 struct Fragmented_Message
 {
-    Fragmented_Message(uint8_t id, uint16_t cmd, uint32_t max_fragment_size, uint32_t full_size);
+    Fragmented_Message(uint8_t id, uint8_t cmd, uint32_t max_fragment_size, uint32_t full_size);
 
     Fragmented_Message(Fragmented_Message&& o);
     Fragmented_Message& operator =(Fragmented_Message&& o);
@@ -27,8 +27,7 @@ struct Fragmented_Message
     bool is_parts_empty() const;
     QPair<uint32_t, uint32_t> get_next_part() const;
 
-    uint8_t id_;
-    uint16_t cmd_;
+    uint8_t id_, cmd_;
     uint32_t max_fragment_size_;
     QIODevice* data_device_;
 
