@@ -11,7 +11,8 @@ namespace Network {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
 
-Protocol_Sender::Protocol_Sender(std::shared_ptr<Protocol> p, uint16_t command, std::optional<uint8_t> answer_id, std::shared_ptr<QIODevice> device_ptr, std::chrono::milliseconds resend_timeout) :
+Protocol_Sender::Protocol_Sender(std::shared_ptr<Protocol> p, uint8_t command, std::optional<uint8_t> answer_id,
+                                 std::unique_ptr<QIODevice> device_ptr, std::chrono::milliseconds resend_timeout) :
     QDataStream(device_ptr.get()),
     protocol_(std::move(p)), msg_{command, std::move(answer_id), std::move(device_ptr), std::move(resend_timeout)}
 {
@@ -26,12 +27,6 @@ Protocol_Sender::Protocol_Sender(std::shared_ptr<Protocol> p, uint16_t command, 
         device()->open(QIODevice::ReadWrite);
     }
     setVersion(Protocol::DATASTREAM_VERSION);
-
-    if (msg_.cmd_ & Protocol::ALL_FLAGS)
-    {
-        qCCritical(Log) << "ERROR: Try to send bad cmd with setted flags. cmd:" << msg_.cmd_;
-        msg_.cmd_ &= ~Protocol::ALL_FLAGS;
-    }
 }
 
 Protocol_Sender::Protocol_Sender(Protocol_Sender &&obj) noexcept :
@@ -47,15 +42,8 @@ Protocol_Sender::~Protocol_Sender()
 {
     if (protocol_ && msg_.data_device_)
     {
-        uint32_t start_pos = 0;
-
-        if (msg_.data_device_->size() > msg_.fragment_size_)
-        {
-            start_pos = std::numeric_limits<uint32_t>::max();
-            msg_.end_time_ = std::chrono::system_clock::now() + std::chrono::minutes(3);
-        }
-
-        protocol_->send_message(std::move(msg_), start_pos);
+        msg_.data_device_->seek(msg_.data_device_->size());
+        protocol_->send_message(std::move(msg_));
     }
 
     setDevice(nullptr);
@@ -66,23 +54,12 @@ void Protocol_Sender::release()
     protocol_.reset();
 }
 
-QByteArray Protocol_Sender::pop_packet()
-{
-    QByteArray data;
-    if (protocol_)
-    {
-        data = protocol_->prepare_packet(msg_);
-        protocol_.reset();
-    }
-    return data;
-}
-
 void Protocol_Sender::set_fragment_size(uint32_t fragment_size)
 {
     msg_.fragment_size_ = fragment_size;
 }
 
-void Protocol_Sender::set_data_device(std::shared_ptr<QIODevice> data_dev, uint32_t fragment_size)
+void Protocol_Sender::set_data_device(std::unique_ptr<QIODevice> data_dev, uint32_t fragment_size)
 {
     if (!data_dev)
     {

@@ -39,18 +39,16 @@ public:
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
 
     enum Flags {
-        RESERVED                    = 0x0400,
+        RESERVED                    = 0x04,
 
-        REPEATED                    = 0x0800,
-        FRAGMENT_QUERY              = 0x1000,
-        FRAGMENT                    = 0x2000,
-        ANSWER                      = 0x4000,
-        COMPRESSED                  = 0x8000,
+        REPEATED                    = 0x08,
+        FRAGMENT_QUERY              = 0x10,
+        FRAGMENT                    = 0x20,
+        ANSWER                      = 0x40,
+        COMPRESSED                  = 0x80,
 
-        ALL_FLAGS                   = RESERVED | REPEATED | FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
+        FLAGS_ALL                   = RESERVED | REPEATED | FRAGMENT_QUERY | FRAGMENT | ANSWER | COMPRESSED
     };
-
-    bool use_repeated_flag_ = true;
 
     template<typename... Args>
     void parse_out(QIODevice& data_dev, Args&... args)
@@ -129,14 +127,14 @@ public:
 
     Time_Point last_msg_send_time() const;
 
-    Protocol_Sender send(uint16_t cmd);
-    Protocol_Sender send_answer(uint16_t cmd, std::optional<uint8_t> msg_id);
-    void send_byte(uint16_t cmd, char byte);
-    void send_array(uint16_t cmd, const QByteArray &buff);
-    void send_message(Message_Item message, uint32_t pos = 0, bool is_repeated = false);
+    Protocol_Sender send(uint8_t cmd);
+    Protocol_Sender send_answer(uint8_t cmd, std::optional<uint8_t> msg_id);
+    void send_byte(uint8_t cmd, char byte);
+    void send_array(uint8_t cmd, const QByteArray &buff);
+    void send_message(Message_Item msg);
 
 public:
-    QByteArray prepare_packet(const Message_Item& msg, uint32_t pos = 0, bool add_repeated_flag = false);
+    QByteArray prepare_packet_to_send(Message_Item&& msg);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
     void process_bytes(const uint8_t* data, size_t size);
 
@@ -149,15 +147,15 @@ public:
     virtual void lost_msg_detected(uint8_t /*msg_id*/, uint8_t /*expected*/) {}
 protected:
 
-    virtual void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) = 0;
-    virtual void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) = 0;
+    virtual void process_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) = 0;
+    virtual void process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) = 0;
 
 //    friend class Protocol_Sender;
 private:
     bool process_stream();
     bool is_lost_message(uint8_t msg_id);
     void fill_lost_msg(uint8_t msg_id);
-    void internal_process_message(uint8_t msg_id, uint16_t cmd, uint16_t flags, const char* data_ptr, uint32_t data_size);
+    void internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t flags, const char* data_ptr, uint32_t data_size);
     void process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size);
 
 public:
@@ -166,7 +164,7 @@ public:
 private:
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();
-    Message_Item pop_waiting_answer(uint8_t answer_id, uint16_t cmd);
+    Message_Item pop_waiting_answer(uint8_t answer_id, uint8_t cmd);
     Message_Item pop_waiting_message(std::function<bool(const Message_Item&)> check_func);
 
     uint8_t next_rx_msg_id_;

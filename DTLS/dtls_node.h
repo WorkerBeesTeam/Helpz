@@ -31,7 +31,8 @@ public:
 
     std::string address() const;
 
-    void write(QByteArray&& data) override;
+    void write(const QByteArray& data) override;
+    void write(Network::Message_Item message) override;
 
     void process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size);
 protected:
@@ -55,7 +56,6 @@ protected:
     std::unique_ptr<Botan::TLS::Channel> dtls_;
     Controller* controller_;
 private:
-    void send(const QByteArray& data);
 
     Socket* socket_;
     std::shared_ptr<Network::Protocol> protocol_;
