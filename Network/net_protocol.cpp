@@ -147,6 +147,9 @@ QByteArray Protocol::prepare_packet(const Message_Item &msg, uint32_t pos, bool 
             cmd |= FRAGMENT;
             ds << static_cast<uint32_t>(msg.data_device_->size());
 
+            qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << msg.id_.value_or(0)
+                                         << "full" << msg.data_device_->size() << "pos" << pos << "size" << msg.fragment_size_;
+
             if (pos != std::numeric_limits<uint32_t>::max())
             {
                 ds << pos;
@@ -308,16 +311,19 @@ bool Protocol::process_stream()
 
 bool Protocol::is_lost_message(uint8_t msg_id)
 {
-    for (auto it = lost_msg_list_.begin(); it != lost_msg_list_.end(); ++it)
+    bool finded = false;
+    for (auto it = lost_msg_list_.begin(); it != lost_msg_list_.end(); )
     {
         if (it->second == msg_id)
         {
             qCDebug(DetailLog).noquote() << title() << "Find lost message" << msg_id;
-            lost_msg_list_.erase(it);
-            return true;
+            it = lost_msg_list_.erase(it);
+            finded = true;
         }
+        else
+            ++it;
     }
-    return false;
+    return finded;
 }
 
 void Protocol::fill_lost_msg(uint8_t msg_id)
@@ -540,6 +546,8 @@ void Protocol::process_wait_list(void *data)
                     msg.max_fragment_size_ /= 2;
                     if (msg.max_fragment_size_ < 32)
                         msg.max_fragment_size_ = 32;
+
+                    lost_msg_list_.push_back(std::make_pair(now, msg.id_));
 
                     auto msg_out = send(msg.cmd_);
                     msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
