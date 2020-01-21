@@ -65,8 +65,8 @@ QVector<T> db_build_list(Base& db, const Container<uint32_t>& id_vect, const QSt
     return db_build_list<T>(db, suffix, db_name);
 }
 
-template<typename T>
-T db_build_item(Base& db, uint32_t id, const QString& db_name = QString())
+template<typename T, typename ID_T>
+T db_build_item(Base& db, ID_T id, const QString& db_name = QString())
 {
     QString suffix = "WHERE ";
     if (!T::table_short_name().isEmpty())
