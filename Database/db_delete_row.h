@@ -2,6 +2,7 @@
 #define HELPZ_DATABASE_DELETE_ROW_H
 
 #include <vector>
+#include <functional>
 
 #include <QString>
 
@@ -27,16 +28,21 @@ class Base;
 class Delete_Row_Helper
 {
 public:
-    Delete_Row_Helper(Base* obj, const QString& id);
+    using FILL_WHERE_FUNC_T = std::function<void(const Delete_Row_Info&, QString&)>;
+
+    Delete_Row_Helper(Base* obj, const QString& id, FILL_WHERE_FUNC_T fill_where_func = nullptr);
+
     bool del(const QString& table_name, const std::vector<Delete_Row_Info>& delete_rows_info, const QString& pk_name = "id");
 
 private:
     void del_impl(const Delete_Row_Info& del_parent);
 
+    bool exec_ok_;
+
     Base* obj_;
     QString id_;
 
-    bool exec_ok_;
+    FILL_WHERE_FUNC_T fill_where_func_;
 };
 
 } // namespace Database

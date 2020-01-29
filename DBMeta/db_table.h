@@ -16,6 +16,9 @@ public:
     Table& operator=(Table&&) = default;
     Table& operator=(const Table&) = default;
 
+    static QString common_prefix();
+    static void set_common_prefix(const QString& prefix);
+
     bool operator !() const;
 
     const QString& name() const;
@@ -31,6 +34,8 @@ public:
 private:
     QString name_, short_name_;
     QStringList field_names_;
+
+    static QString common_prefix_;
 };
 
 template<typename T>

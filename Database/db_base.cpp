@@ -70,8 +70,8 @@ Base::Base(const Connection_Info& info, const QString &name) :
     }
 }
 
-Base::Base(QSqlDatabase& db) :
-    Base{Connection_Info(db), db.connectionName()}
+Base::Base(QSqlDatabase& db, const QString &prefix) :
+    Base{Connection_Info(db, prefix), db.connectionName()}
 {
 }
 
@@ -87,12 +87,12 @@ Base::~Base()
 }
 
 QString Base::connection_name() const { return connection_name_; }
-void Base::set_connection_name(const QString &name)
+void Base::set_connection_name(const QString &name, const QString &prefix)
 {
     close();
 
     connection_name_ = name;
-    info_ = Connection_Info{database()};
+    info_ = Connection_Info{database(), prefix};
 
     if (connection_name_.isEmpty())
     {
@@ -270,8 +270,8 @@ bool Base::update(const Table &table, const QVariantList &values, const QString 
 QString Base::update_query(const Table &table, int values_size, const QString &where, const std::vector<uint> &field_ids) const
 {
     auto escapedFields = escape_fields(table, field_ids);
-    if (!table || escapedFields.isEmpty() ||
-            (where.count('?') + escapedFields.size()) != values_size)
+    if (!table || escapedFields.isEmpty()
+        || (where.count('?') + escapedFields.size()) != values_size)
     {
         return {};
     }
@@ -284,9 +284,7 @@ QString Base::update_query(const Table &table, int values_size, const QString &w
 
     QString sql = QString("UPDATE %1 SET %2").arg(table.name()).arg(params.join(','));
     if (!where.isEmpty())
-    {
         sql += " WHERE " + where;
-    }
     return sql;
 }
 
@@ -294,9 +292,7 @@ QSqlQuery Base::del(const QString &table_name, const QString &where, const QVari
 {
     QString sql = del_query(table_name, where);
     if (!sql.isEmpty())
-    {
         return exec(sql, values);
-    }
 
     return QSqlQuery{};
 }
@@ -304,15 +300,11 @@ QSqlQuery Base::del(const QString &table_name, const QString &where, const QVari
 QString Base::del_query(const QString &table_name, const QString &where) const
 {
     if (table_name.isEmpty())
-    {
         return {};
-    }
 
     QString sql = "DELETE FROM " + table_name;
     if (!where.isEmpty())
-    {
         sql += " WHERE " + where;
-    }
     return sql;
 }
 
@@ -326,7 +318,7 @@ QString Base::truncate_query(const QString &table_name) const
     return "TRUNCATE TABLE " + table_name + ';';
 }
 
-quint32 Base::row_count(const QString &table_name, const QString &where, const QVariantList &values)
+uint32_t Base::row_count(const QString &table_name, const QString &where, const QVariantList &values)
 {
     if (table_name.isEmpty())
     {
@@ -355,6 +347,19 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
         {
             QSqlQuery query(database());
             query.prepare(sql);
+
+            if (!sql.startsWith("SELECT", Qt::CaseInsensitive))
+            {
+                std::cerr << "SQL: " << sql.toStdString() << std::endl;
+//                return exec("SELECT 1");
+
+                if (sql.indexOf("das_device_item_value") != -1
+                    || sql.indexOf("das_dig_mode_item") != -1
+                    || sql.indexOf("das_dig_param_value") != -1)
+                {
+                    std::cerr << "Is das_scheme_group_user" << std::endl;
+                }
+            }
 
             for (const QVariant& val: values)
                 query.addBindValue(val);

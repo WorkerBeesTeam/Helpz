@@ -1,8 +1,8 @@
 #include "db_builder.h"
 
-namespace Dai {
+namespace Das {
 namespace Database {
 
 
 } // namespace Database
-} // namespace Dai
+} // namespace Das

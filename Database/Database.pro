@@ -18,5 +18,5 @@ HEADERS += db_base.h \
 LIBS += -lHelpzDBMeta
 
 VER_MAJ = 1
-VER_MIN = 5
+VER_MIN = 6
 include(../helpz_install.pri)

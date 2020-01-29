@@ -50,5 +50,5 @@ LIBS += -L$${OUT_PWD}/..
 LIBS += -lbotan-2 -lHelpzNetwork -lHelpzDB -lHelpzDBMeta -lboost_system -lboost_thread
 
 VER_MAJ = 1
-VER_MIN = 5
+VER_MIN = 6
 include(../helpz_install.pri)

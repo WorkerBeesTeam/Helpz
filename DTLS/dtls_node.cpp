@@ -98,9 +98,7 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     {
         std::lock_guard lock(mutex_);
         if (!dtls_)
-        {
             return;
-        }
 
         bool first_active = !dtls_->is_active();
 

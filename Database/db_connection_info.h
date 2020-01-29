@@ -16,9 +16,9 @@ public:
     static void set_common(const Connection_Info& info);
 
     Connection_Info(const QString &db_name, const QString &login, const QString &password,
-                   const QString &host = "localhost", int port = -1,
+                   const QString &host = "localhost", int port = -1, const QString& prefix = QString(),
                    const QString &driver_name = "QMYSQL", const QString& connect_options = QString());
-    Connection_Info(const QSqlDatabase &db);
+    Connection_Info(const QSqlDatabase &db, const QString& prefix /*= common().prefix()*/);
     Connection_Info(Connection_Info&&) = default;
     Connection_Info(const Connection_Info&) = default;
     Connection_Info& operator=(Connection_Info&&) = default;
@@ -48,9 +48,12 @@ public:
     QString password() const;
     void set_password(const QString& password);
 
+    QString prefix() const;
+    void set_prefix(const QString& prefix);
+
 private:
     int port_; // Not uint16 becose -1 default
-    QString driver_name_, connect_options_, host_, db_name_, login_, password_;
+    QString driver_name_, connect_options_, host_, db_name_, login_, password_, prefix_;
 };
 
 } // namespace Database

@@ -5,8 +5,13 @@
 
 #include <QVariant>
 
+#include <Helpz/db_table.h>
+
 namespace Helpz {
 namespace Database {
+
+template<typename T>
+bool is_table_use_common_prefix() { return true; }
 
 template<typename T, typename FT, typename AT>
 void db_set_value_from_variant(T& obj, void (FT::*setter)(AT), const QVariant& value)
@@ -39,6 +44,9 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
     };                                                          \
     static QString table_name()                                 \
     {                                                           \
+        using namespace Helpz::Database;                        \
+        if (is_table_use_common_prefix<T>())                    \
+            return Table::common_prefix() + t_name;             \
         return t_name;                                          \
     }                                                           \
     static QString table_short_name()                           \
@@ -89,6 +97,10 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define HELPZ_DB_COL_NAME_9(A, GT, ST, ...)   COL_##A, HELPZ_DB_COL_NAME_8(__VA_ARGS__)
 #define HELPZ_DB_COL_NAME_10(A, GT, ST, ...)  COL_##A, HELPZ_DB_COL_NAME_9(__VA_ARGS__)
 #define HELPZ_DB_COL_NAME_11(A, GT, ST, ...)  COL_##A, HELPZ_DB_COL_NAME_10(__VA_ARGS__)
+#define HELPZ_DB_COL_NAME_12(A, GT, ST, ...)  COL_##A, HELPZ_DB_COL_NAME_11(__VA_ARGS__)
+#define HELPZ_DB_COL_NAME_13(A, GT, ST, ...)  COL_##A, HELPZ_DB_COL_NAME_12(__VA_ARGS__)
+#define HELPZ_DB_COL_NAME_14(A, GT, ST, ...)  COL_##A, HELPZ_DB_COL_NAME_13(__VA_ARGS__)
+#define HELPZ_DB_COL_NAME_15(A, GT, ST, ...)  COL_##A, HELPZ_DB_COL_NAME_14(__VA_ARGS__)
 
 #define HELPZ_DB_QUOTE_1(A, GT, ST)           #A
 #define HELPZ_DB_QUOTE_2(A, GT, ST, ...)      #A, HELPZ_DB_QUOTE_1(__VA_ARGS__)
@@ -101,6 +113,10 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define HELPZ_DB_QUOTE_9(A, GT, ST, ...)      #A, HELPZ_DB_QUOTE_8(__VA_ARGS__)
 #define HELPZ_DB_QUOTE_10(A, GT, ST, ...)     #A, HELPZ_DB_QUOTE_9(__VA_ARGS__)
 #define HELPZ_DB_QUOTE_11(A, GT, ST, ...)     #A, HELPZ_DB_QUOTE_10(__VA_ARGS__)
+#define HELPZ_DB_QUOTE_12(A, GT, ST, ...)     #A, HELPZ_DB_QUOTE_11(__VA_ARGS__)
+#define HELPZ_DB_QUOTE_13(A, GT, ST, ...)     #A, HELPZ_DB_QUOTE_12(__VA_ARGS__)
+#define HELPZ_DB_QUOTE_14(A, GT, ST, ...)     #A, HELPZ_DB_QUOTE_13(__VA_ARGS__)
+#define HELPZ_DB_QUOTE_15(A, GT, ST, ...)     #A, HELPZ_DB_QUOTE_14(__VA_ARGS__)
 
 #define HELPZ_DB_GETTER_CASE_IMPL(A, O, F)    case COL_##A: return O.F;
 #define HELPZ_DB_GETTER_CASE_1(O, A, GT, ST, ...)     HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)
@@ -114,6 +130,10 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define HELPZ_DB_GETTER_CASE_9(O, A, GT, ST, ...)     HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_8(O, __VA_ARGS__)
 #define HELPZ_DB_GETTER_CASE_10(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_9(O, __VA_ARGS__)
 #define HELPZ_DB_GETTER_CASE_11(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_10(O, __VA_ARGS__)
+#define HELPZ_DB_GETTER_CASE_12(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_11(O, __VA_ARGS__)
+#define HELPZ_DB_GETTER_CASE_13(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_12(O, __VA_ARGS__)
+#define HELPZ_DB_GETTER_CASE_14(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_13(O, __VA_ARGS__)
+#define HELPZ_DB_GETTER_CASE_15(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_14(O, __VA_ARGS__)
 
 #define HELPZ_DB_SETTER_CASE_IMPL(A, T, O, F, V)    case COL_##A: ::Helpz::Database::db_set_value_from_variant(O, &T::F, V); break;
 #define HELPZ_DB_SETTER_CASE_1(T, O, V, A, GT, ST, ...)     HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)
@@ -127,5 +147,9 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define HELPZ_DB_SETTER_CASE_9(T, O, V, A, GT, ST, ...)     HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_8(T, O, V, __VA_ARGS__)
 #define HELPZ_DB_SETTER_CASE_10(T, O, V, A, GT, ST, ...)    HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_9(T, O, V, __VA_ARGS__)
 #define HELPZ_DB_SETTER_CASE_11(T, O, V, A, GT, ST, ...)    HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_10(T, O, V, __VA_ARGS__)
+#define HELPZ_DB_SETTER_CASE_12(T, O, V, A, GT, ST, ...)    HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_11(T, O, V, __VA_ARGS__)
+#define HELPZ_DB_SETTER_CASE_13(T, O, V, A, GT, ST, ...)    HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_12(T, O, V, __VA_ARGS__)
+#define HELPZ_DB_SETTER_CASE_14(T, O, V, A, GT, ST, ...)    HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_13(T, O, V, __VA_ARGS__)
+#define HELPZ_DB_SETTER_CASE_15(T, O, V, A, GT, ST, ...)    HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_14(T, O, V, __VA_ARGS__)
 
 #endif // HELPZ_DATABASE_META_H
