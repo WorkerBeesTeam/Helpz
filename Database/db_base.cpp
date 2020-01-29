@@ -348,19 +348,6 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
             QSqlQuery query(database());
             query.prepare(sql);
 
-            if (!sql.startsWith("SELECT", Qt::CaseInsensitive))
-            {
-                std::cerr << "SQL: " << sql.toStdString() << std::endl;
-//                return exec("SELECT 1");
-
-                if (sql.indexOf("das_device_item_value") != -1
-                    || sql.indexOf("das_dig_mode_item") != -1
-                    || sql.indexOf("das_dig_param_value") != -1)
-                {
-                    std::cerr << "Is das_scheme_group_user" << std::endl;
-                }
-            }
-
             for (const QVariant& val: values)
                 query.addBindValue(val);
 
