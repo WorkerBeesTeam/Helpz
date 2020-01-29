@@ -261,10 +261,10 @@ bool Base::replace(const Table &table, const QVariantList &values, QVariant *id_
     return insert(table, values, id_out, QString(), field_ids, "REPLACE");
 }
 
-bool Base::update(const Table &table, const QVariantList &values, const QString &where, const std::vector<uint> &field_ids)
+QSqlQuery Base::update(const Table &table, const QVariantList &values, const QString &where, const std::vector<uint> &field_ids)
 {
     QString sql = update_query(table, values.size(), where, field_ids);
-    return !sql.isEmpty() && exec(sql, values).isActive();
+    return exec(sql, values);
 }
 
 QString Base::update_query(const Table &table, int values_size, const QString &where, const std::vector<uint> &field_ids) const
@@ -337,6 +337,9 @@ uint32_t Base::row_count(const QString &table_name, const QString &where, const 
 
 QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *id_out)
 {
+    if (sql.isEmpty())
+        return QSqlQuery();
+
     QSqlError lastError;
     ushort attempts_count = 3;
     do

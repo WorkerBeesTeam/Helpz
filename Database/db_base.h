@@ -63,7 +63,7 @@ public:
     QString insert_query(const Table& table, int values_size, const QString& suffix = QString(), const std::vector<uint>& field_ids = {}, const QString& method = "INSERT") const;
     bool replace(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
 
-    bool update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
+    QSqlQuery update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
     QString update_query(const Table& table, int values_size, const QString& where, const std::vector<uint>& field_ids = {}) const;
 
     QSqlQuery del(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
