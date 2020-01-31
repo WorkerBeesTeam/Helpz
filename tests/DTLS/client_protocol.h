@@ -21,7 +21,7 @@ public:
     static std::shared_ptr<Helpz::Network::Protocol> create(const std::string& app_protocol);
 
     std::future<void> test_simple_message(const QString& text);
-    std::future<QString> test_message_with_answer(quint32 value2);
+    std::future<QString> test_message_with_answer(uint32_t value2);
     QByteArray test_send_file();
 private:
 

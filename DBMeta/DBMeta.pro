@@ -10,5 +10,5 @@ HEADERS += \
     db_meta.h
 
 VER_MAJ = 1
-VER_MIN = 3
+VER_MIN = 4
 include(../helpz_install.pri)

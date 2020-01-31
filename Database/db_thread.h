@@ -19,7 +19,7 @@ class Base;
 class Thread
 {
 public:
-    Thread(Connection_Info info, std::size_t thread_count = 1, int priority = -1);
+    Thread(Connection_Info info = Connection_Info::common(), std::size_t thread_count = 1, int priority = -1);
     Thread(std::shared_ptr<Base> db, int priority = -1);
     ~Thread();
 

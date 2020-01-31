@@ -107,7 +107,7 @@ Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
         size_t check_val = Botan::make_uint16(x[0], x[1]);
         m_session_key.assign(x.begin() + 2, x.end());
 
-        db_->insert(tableMetadata, {QByteArray((const char*)salt.data(), salt.size()), (quint32)iterations, (quint32)check_val});
+        db_->insert(tableMetadata, {QByteArray((const char*)salt.data(), salt.size()), (uint32_t)iterations, (uint32_t)check_val});
     }
 
     qRegisterMetaType<Botan::TLS::Session*>("Botan::TLS::Session*");
@@ -207,7 +207,7 @@ void Session_Manager_SQL::prune_session_cache() {
     {
         db_->del(sessionsTable->name(),
                  "session_id in (select session_id from tls_sessions limit " +
-                 QString::number(quint32(sessions - m_max_sessions)) + ")");
+                 QString::number(uint32_t(sessions - m_max_sessions)) + ")");
     }
 }
 

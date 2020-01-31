@@ -1,5 +1,5 @@
-#ifndef DAI_TST_MAIN_H
-#define DAI_TST_MAIN_H
+#ifndef HELPZ_TST_MAIN_H
+#define HELPZ_TST_MAIN_H
 
 #include <Helpz/dtls_server_thread.h>
 #include <Helpz/dtls_client_thread.h>
@@ -38,4 +38,4 @@ private:
 
 } // namespace Helpz
 
-#endif // DAI_TST_MAIN_H
+#endif // HELPZ_TST_MAIN_H

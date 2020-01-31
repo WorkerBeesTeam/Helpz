@@ -73,7 +73,7 @@ private Q_SLOTS:
     }
 };
 
-} // namespace Dai
+} // namespace Helpz
 
 QTEST_MAIN(Helpz::Network_Test)
 

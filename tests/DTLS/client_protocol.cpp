@@ -29,7 +29,7 @@ std::future<void> Client_Protocol::test_simple_message(const QString &text)
     return promise.get_future();
 }
 
-std::future<QString> Client_Protocol::test_message_with_answer(quint32 value2)
+std::future<QString> Client_Protocol::test_message_with_answer(uint32_t value2)
 {
     static std::promise<QString> promise;
     promise = std::promise<QString>();
