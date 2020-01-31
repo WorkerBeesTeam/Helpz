@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     {
         port = argv[1];
     }
-    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", port, {"dai/1.1"}, 5};
+    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", port, {"helpz_test/1.1"}, 5};
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 

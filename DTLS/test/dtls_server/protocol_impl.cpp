@@ -138,10 +138,10 @@ std::string protocol_base::tls_server_choose_app_protocol(const std::vector<std:
     for (const std::string& proto: client_protos) {
         std::cout << ' ' << proto;
         if (proto_ver.empty()) {
-            if (proto == "dai/1.1") {
+            if (proto == "helpz_test/1.1") {
                 version_ = 11;
                 proto_ver = proto;
-            } else if (proto == "dai/1.0") {
+            } else if (proto == "helpz_test/1.0") {
                 version_ = 10;
                 proto_ver = proto;
             }

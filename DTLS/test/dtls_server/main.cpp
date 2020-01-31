@@ -105,12 +105,12 @@ int main(int argc, char *argv[])
         qDebug() << "create_protocol";
         for (const std::string& proto: client_protos)
         {
-            if (proto == "dai/1.1")
+            if (proto == "helpz_test/1.1")
             {
                 *choose_out = proto;
                 return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});
             }
-            else if (proto == "dai/1.0")
+            else if (proto == "helpz_test/1.0")
             {
                 *choose_out = proto;
                 return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});

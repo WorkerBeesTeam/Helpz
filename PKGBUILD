@@ -5,7 +5,7 @@ pkgrel=1
 arch=('x86_64')
 depends=()
 
-pkgdesc="Daidev Helpz package"
+pkgdesc="Helpz package"
 license=('custom')
 source=("root.tar.gz")
 md5sums=('SKIP') # TODO: make it?
