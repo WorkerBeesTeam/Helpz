@@ -1,3 +1,5 @@
+#include <Helpz/db_table.h>
+
 #include "db_connection_info.h"
 
 namespace Helpz {
@@ -5,14 +7,20 @@ namespace Database {
 
 /*static*/ Connection_Info Connection_Info::common_;
 /*static*/ const Connection_Info& Connection_Info::common() { return common_; }
-/*static*/ void Connection_Info::set_common(const Connection_Info& info) { common_ = info; }
+/*static*/ void Connection_Info::set_common(const Connection_Info& info)
+{
+    common_ = info;
+    Table::set_common_prefix(info.prefix());
+}
 
-Connection_Info::Connection_Info(const QString &db_name, const QString &login, const QString &password, const QString &host, int port, const QString &driver_name, const QString &connect_options) :
-    port_(port), driver_name_(driver_name), connect_options_(connect_options), host_(host), db_name_(db_name), login_(login), password_(password) {}
+Connection_Info::Connection_Info(const QString &db_name, const QString &login, const QString &password, const QString &host, int port, const QString &prefix, const QString &driver_name, const QString &connect_options) :
+    port_(port), driver_name_(driver_name), connect_options_(connect_options),
+    host_(host), db_name_(db_name), login_(login), password_(password), prefix_(prefix) {}
 
-Connection_Info::Connection_Info(const QSqlDatabase &db) :
+Connection_Info::Connection_Info(const QSqlDatabase &db, const QString &prefix) :
     port_(db.port()), driver_name_(db.driverName()), connect_options_(db.connectOptions()),
-    host_(db.hostName()), db_name_(db.databaseName()), login_(db.userName()), password_(db.password()) {}
+    host_(db.hostName()), db_name_(db.databaseName()), login_(db.userName()), password_(db.password()),
+    prefix_(prefix) {}
 
 Connection_Info::Connection_Info() : port_(-1) {}
 
@@ -55,6 +63,9 @@ void Connection_Info::set_login(const QString& login) { login_ = login; }
 
 QString Connection_Info::password() const { return password_; }
 void Connection_Info::set_password(const QString& password) { password_ = password; }
+
+QString Connection_Info::prefix() const { return prefix_; }
+void Connection_Info::set_prefix(const QString& prefix) { prefix_ = prefix; }
 
 } // namespace Database
 } // namespace Helpz

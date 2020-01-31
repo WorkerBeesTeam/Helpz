@@ -12,7 +12,7 @@ QDataStream &operator >>(QDataStream &ds, FileMetaInfo &info)
 
 /*static*/ std::string Server_Protocol::name()
 {
-    return "dai_test/1.0";
+    return "das_test/1.0";
 }
 
 std::future<QString> Server_Protocol::get_simple_future()

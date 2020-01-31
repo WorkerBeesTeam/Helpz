@@ -27,11 +27,11 @@ public:
     static QString get_q_array(int fields_count, int row_count);
 
     Base(const Connection_Info &info = Connection_Info::common(), const QString& name = QString());
-    Base(QSqlDatabase &db);
+    Base(QSqlDatabase &db, const QString& prefix /*= common().prefix()*/);
     ~Base();
 
     QString connection_name() const;
-    void set_connection_name(const QString& name);
+    void set_connection_name(const QString& name, const QString& prefix /*= common().prefix()*/);
 
     Connection_Info connection_info() const;
     void set_connection_info(const Connection_Info& info);
@@ -63,7 +63,7 @@ public:
     QString insert_query(const Table& table, int values_size, const QString& suffix = QString(), const std::vector<uint>& field_ids = {}, const QString& method = "INSERT") const;
     bool replace(const Table &table, const QVariantList& values, QVariant *id_out = nullptr, const std::vector<uint> &field_ids = {});
 
-    bool update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
+    QSqlQuery update(const Table &table, const QVariantList& values, const QString& where, const std::vector<uint> &field_ids = {});
     QString update_query(const Table& table, int values_size, const QString& where, const std::vector<uint>& field_ids = {}) const;
 
     QSqlQuery del(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
@@ -72,7 +72,7 @@ public:
     QSqlQuery truncate(const QString& table_name);
     QString truncate_query(const QString& table_name) const;
 
-    quint32 row_count(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
+    uint32_t row_count(const QString& table_name, const QString& where = QString(), const QVariantList &values = QVariantList());
 
     QSqlQuery exec(const QString& sql, const QVariantList &values = QVariantList(), QVariant *id_out = nullptr);
 private:
