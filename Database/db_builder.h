@@ -7,7 +7,7 @@
 #include <Helpz/db_base.h>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 /* Examples:
  * Device device; db_fill_item(query, device);
@@ -141,7 +141,7 @@ T db_build_item(Base& db, ID_T id, const QString& db_name = QString())
     return {};
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_BUILDER_H

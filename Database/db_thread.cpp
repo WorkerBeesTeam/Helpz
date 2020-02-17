@@ -9,7 +9,7 @@
 Q_DECLARE_LOGGING_CATEGORY(DBLog)
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 Thread::Thread(Connection_Info info, std::size_t thread_count, int priority) :
     break_flag_(false)
@@ -94,10 +94,10 @@ void Thread::open_and_run(const Connection_Info& info)
 {
     std::stringstream s;
     s << "pending_queries_" << std::this_thread::get_id();
-    run(std::make_shared<Helpz::Database::Base>(info, QString::fromStdString(s.str())));
+    run(std::make_shared<Helpz::DB::Base>(info, QString::fromStdString(s.str())));
 }
 
-void Thread::run(std::shared_ptr<Helpz::Database::Base> db)
+void Thread::run(std::shared_ptr<Helpz::DB::Base> db)
 {
     std::unique_lock lock(mutex_, std::defer_lock);
     while (!break_flag_)
@@ -154,5 +154,5 @@ void Thread::run(std::shared_ptr<Helpz::Database::Base> db)
     }
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz

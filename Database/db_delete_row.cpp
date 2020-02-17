@@ -3,7 +3,7 @@
 #include "db_delete_row.h"
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 Delete_Row_Info::Delete_Row_Info(const QString& table_name, const QString& field_name, const std::vector<Delete_Row_Info>& childs, bool set_null, const QString& pk_name) :
     table_name_(table_name), field_name_(field_name), pk_name_(pk_name), childs_(childs), set_null_(set_null) {}
@@ -78,5 +78,5 @@ void Delete_Row_Helper::del_impl(const Delete_Row_Info& del_parent)
     }
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
