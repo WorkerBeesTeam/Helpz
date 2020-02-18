@@ -15,7 +15,7 @@ namespace Helpz {
 
 Q_LOGGING_CATEGORY(DBLog, "database", QtInfoMsg)
 
-namespace Database {
+namespace DB {
 
 /*static*/ QString Base::odbc_driver()
 {
@@ -179,7 +179,7 @@ QSqlDatabase Base::database() const
 bool Base::is_silent() const { return silent_; }
 void Base::set_silent(bool sailent) { silent_ = sailent; }
 
-bool Base::create_table(const Helpz::Database::Table &table, const QStringList &types)
+bool Base::create_table(const Helpz::DB::Table &table, const QStringList &types)
 {
     if (!table || table.field_names().size() != types.size())
     {
@@ -438,5 +438,5 @@ QStringList Base::escape_fields(const Table &table, const std::vector<uint> &fie
     return escapedFields;
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz

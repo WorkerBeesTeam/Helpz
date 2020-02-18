@@ -5,7 +5,7 @@
 #include <QSqlDatabase>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 class Connection_Info
 {
@@ -56,7 +56,7 @@ private:
     QString driver_name_, connect_options_, host_, db_name_, login_, password_, prefix_;
 };
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_CONNECTION_INFO_H

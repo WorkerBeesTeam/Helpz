@@ -16,7 +16,7 @@ namespace Helpz {
 
 Q_DECLARE_LOGGING_CATEGORY(DBLog)
 
-namespace Database {
+namespace DB {
 
 class Base
 {
@@ -84,7 +84,7 @@ private:
     Connection_Info info_;
 };
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_BASE_H

@@ -7,7 +7,7 @@
 #include <QString>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 class Delete_Row_Info
 {
@@ -45,7 +45,7 @@ private:
     FILL_WHERE_FUNC_T fill_where_func_;
 };
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_DELETE_ROW_H

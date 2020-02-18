@@ -16,7 +16,7 @@
 
 namespace Helpz {
 
-namespace Database {
+namespace DB {
 class Base;
 }
 
@@ -40,7 +40,7 @@ public:
       */
       Session_Manager_SQL(const std::string& passphrase,
                           Botan::RandomNumberGenerator& rng,
-                          const Database::Connection_Info &info = {":memory:", {}, {}, {}, -1, "QSQLITE"},
+                          const DB::Connection_Info &info = {":memory:", {}, {}, {}, -1, "QSQLITE"},
                           size_t max_sessions = 1000,
                           std::chrono::seconds session_lifetime = std::chrono::seconds(7200));
 
@@ -75,7 +75,7 @@ private:
       void prune_session_cache();
       bool check_db_thread_diff();
 
-      std::shared_ptr<Database::Base> db_;
+      std::shared_ptr<DB::Base> db_;
       Botan::secure_vector<uint8_t> m_session_key;
       Botan::RandomNumberGenerator& m_rng;
       size_t m_max_sessions;

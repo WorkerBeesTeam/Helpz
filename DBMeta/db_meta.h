@@ -8,7 +8,7 @@
 #include <Helpz/db_table.h>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 template<typename T>
 bool is_table_use_common_prefix() { return true; }
@@ -27,7 +27,7 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
     (obj.*member_value) = value.value<VALUE_TYPE>();
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #define DB_A(A) A, A(), set_##A
@@ -44,7 +44,7 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
     };                                                          \
     static QString table_name()                                 \
     {                                                           \
-        using namespace Helpz::Database;                        \
+        using namespace Helpz::DB;                              \
         if (is_table_use_common_prefix<T>())                    \
             return Table::common_prefix() + t_name;             \
         return t_name;                                          \
@@ -135,7 +135,7 @@ void db_set_value_from_variant(T& obj, AT FT::*member_value, const QVariant& val
 #define HELPZ_DB_GETTER_CASE_14(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_13(O, __VA_ARGS__)
 #define HELPZ_DB_GETTER_CASE_15(O, A, GT, ST, ...)    HELPZ_DB_GETTER_CASE_IMPL(A, O, GT)   HELPZ_DB_GETTER_CASE_14(O, __VA_ARGS__)
 
-#define HELPZ_DB_SETTER_CASE_IMPL(A, T, O, F, V)    case COL_##A: ::Helpz::Database::db_set_value_from_variant(O, &T::F, V); break;
+#define HELPZ_DB_SETTER_CASE_IMPL(A, T, O, F, V)    case COL_##A: ::Helpz::DB::db_set_value_from_variant(O, &T::F, V); break;
 #define HELPZ_DB_SETTER_CASE_1(T, O, V, A, GT, ST, ...)     HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)
 #define HELPZ_DB_SETTER_CASE_2(T, O, V, A, GT, ST, ...)     HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_1(T, O, V, __VA_ARGS__)
 #define HELPZ_DB_SETTER_CASE_3(T, O, V, A, GT, ST, ...)     HELPZ_DB_SETTER_CASE_IMPL(A, T, O, ST, V)   HELPZ_DB_SETTER_CASE_2(T, O, V, __VA_ARGS__)

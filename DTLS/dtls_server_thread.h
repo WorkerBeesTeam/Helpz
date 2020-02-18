@@ -21,7 +21,8 @@ public:
                          const std::string& tls_police_file_name = std::string{},
                          const std::string& certificate_file_name = std::string{},
                          const std::string& certificate_key_file_name = std::string{},
-                         uint32_t cleaning_timeout_sec = 3 * 60, uint16_t receive_thread_count = 5, uint16_t record_thread_count = 5, int main_thread_priority = -1);
+                         uint32_t cleaning_timeout_sec = 3 * 60, uint16_t receive_thread_count = 5,
+                         uint16_t record_thread_count = 5, int main_thread_priority = -1);
     Server_Thread_Config(Server_Thread_Config&&) = default;
     Server_Thread_Config(const Server_Thread_Config&) = delete;
 
