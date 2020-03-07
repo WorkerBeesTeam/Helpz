@@ -38,6 +38,7 @@ public:
     void release();
 
     void set_fragment_size(uint32_t fragment_size);
+    void set_min_compress_size(uint32_t min_compress_size);
 
     void set_data_device(std::unique_ptr<QIODevice> data_dev, uint32_t fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE);
     Protocol_Sender &answer(std::function<void(QIODevice &)> answer_func);

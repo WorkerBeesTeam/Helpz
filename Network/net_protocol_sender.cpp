@@ -57,6 +57,11 @@ void Protocol_Sender::set_fragment_size(uint32_t fragment_size)
     msg_.set_fragment_size(fragment_size);
 }
 
+void Protocol_Sender::set_min_compress_size(uint32_t min_compress_size)
+{
+    msg_.set_min_compress_size(min_compress_size);
+}
+
 void Protocol_Sender::set_data_device(std::unique_ptr<QIODevice> data_dev, uint32_t fragment_size)
 {
     if (!data_dev)
