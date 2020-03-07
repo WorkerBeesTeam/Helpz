@@ -4,14 +4,14 @@ namespace Helpz {
 namespace Network {
 
 Message_Item::Message_Item() :
-    cmd_(0), flags_(0), fragment_size_(HELPZ_MAX_MESSAGE_DATA_SIZE)
+    cmd_(0), flags_(0), fragment_size_(HELPZ_MAX_MESSAGE_DATA_SIZE), min_compress_size_(512)
 {
 }
 
 Message_Item::Message_Item(uint8_t command, std::optional<uint8_t> answer_id, std::unique_ptr<QIODevice> &&device_ptr,
                            std::chrono::milliseconds resend_timeout) :
     answer_id_{std::move(answer_id)}, resend_timeout_(resend_timeout),
-    data_device_{std::move(device_ptr)}, cmd_(command), flags_(0), fragment_size_(HELPZ_MAX_MESSAGE_DATA_SIZE)
+    data_device_{std::move(device_ptr)}, cmd_(command), flags_(0), fragment_size_(HELPZ_MAX_MESSAGE_DATA_SIZE), min_compress_size_(512)
 {
 }
 
@@ -40,6 +40,9 @@ void Message_Item::set_fragment_size(uint32_t size)
     if (fragment_size_ > HELPZ_MAX_PACKET_DATA_SIZE)
         fragment_size_ = HELPZ_MAX_PACKET_DATA_SIZE;
 }
+
+uint32_t Message_Item::min_compress_size() const { return min_compress_size_; }
+void Message_Item::set_min_compress_size(uint32_t min_compress_size) { min_compress_size_ = min_compress_size; }
 
 } // namespace Network
 } // namespace Helpz

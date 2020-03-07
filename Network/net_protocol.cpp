@@ -141,7 +141,7 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
         add_raw_data_to_packet(data, 0, msg.fragment_size(), msg.data_device_.get());
     }
 
-    if (data.size() > 512)
+    if (static_cast<uint32_t>(data.size()) > msg.min_compress_size())
     {
         flags |= COMPRESSED;
         data = qCompress(data);

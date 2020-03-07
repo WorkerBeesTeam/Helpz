@@ -41,9 +41,12 @@ struct Message_Item
     uint32_t fragment_size() const;
     void set_fragment_size(uint32_t size);
 
+    uint32_t min_compress_size() const;
+    void set_min_compress_size(uint32_t min_compress_size);
+
 private:
     uint8_t cmd_, flags_;
-    uint32_t fragment_size_;
+    uint32_t fragment_size_, min_compress_size_;
 };
 
 } // namespace Network
