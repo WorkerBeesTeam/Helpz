@@ -616,7 +616,10 @@ void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, u
         send_message(std::move(msg));
     }
     else
+    {
+        qCDebug(DetailLog).noquote() << title() << "Send remove unknown fragment" << fragmanted_msg_id;
         send(Cmd::REMOVE_FRAGMENT) << fragmanted_msg_id;
+    }
 }
 
 void Protocol::process_wait_list(void *data)

@@ -42,7 +42,7 @@ private:
     {
         qDebug().noquote() << title() << "CONNECTED";
     }
-    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
+    void process_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override
     {
         // Maybe you want call server->remove_copy(this); after authentication process done.
 
@@ -57,7 +57,7 @@ private:
             break;
         }
     }
-    void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
+    void process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override
     {
         qDebug().noquote() << title() << "process_answer_message #" << int(msg_id) << cmd << "size" << data_dev.size();
     }

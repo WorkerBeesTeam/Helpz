@@ -45,7 +45,7 @@ public:
     {
         QString file_name = qApp->applicationDirPath() + "/test_file.dat"; //"/usr/lib/libcc1.so.0.0.0";
         QFile::remove(file_name);
-        std::shared_ptr<QFile> device(new QFile(file_name));
+        std::unique_ptr<QFile> device(new QFile(file_name));
         if (!device->open(QIODevice::ReadWrite))
         {
             std::cerr << "Can't open file: " << device->errorString().toStdString() << std::endl;
@@ -80,11 +80,11 @@ private:
         test_simple_message();
         test_message_with_answer();
     }
-    void process_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
+    void process_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override
     {
         std::cout << "process_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
     }
-    void process_answer_message(uint8_t msg_id, uint16_t cmd, QIODevice& data_dev) override
+    void process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice& data_dev) override
     {
         std::cout << "process_answer_message #" << int(msg_id) << ' ' << cmd << " size " << data_dev.size() << std::endl;
     }
