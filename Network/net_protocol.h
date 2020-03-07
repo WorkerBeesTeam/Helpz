@@ -3,6 +3,8 @@
 
 #include <chrono>
 #include <mutex>
+#include <queue>
+#include <atomic>
 
 #include <QBuffer>
 #include <QLoggingCategory>
@@ -11,6 +13,85 @@
 #include <Helpz/net_protocol_writer.h>
 #include <Helpz/net_protocol_sender.h>
 #include <Helpz/net_fragmented_message.h>
+
+namespace MCmd {
+
+    Q_NAMESPACE
+
+enum TCommand_Type {
+    AUTH = 16, // Helpz::Network::Cmd::USER_COMMAND,
+    NO_AUTH,
+
+    VERSION,
+    TIME_INFO,
+
+    RESTART,
+    WRITE_TO_ITEM,
+    WRITE_TO_ITEM_FILE,
+    SET_MODE,           // if inform ?
+    CHANGE_STATUS,      // if inform ?
+    SET_DIG_PARAM_VALUES,   // if inform ?
+    EXEC_SCRIPT_COMMAND,
+
+    GET_SCHEME,
+    MODIFY_SCHEME,
+
+    LOG_DATA_REQUEST, // LogType[1] log_type
+    LOG_PACK, // LogType[1] log_type
+
+    DEVICE_ITEM_VALUES,
+    GROUP_STATUSES,
+
+    STREAM_TOGGLE,
+    STREAM_DATA,
+
+    /*
+        cmdCreateDevice,
+        cmdSetInform,
+    */
+
+    // Enum end
+    COMMAND_TYPE_COUNT
+};
+Q_ENUM_NS(TCommand_Type)
+
+
+enum TStructure_Type
+{
+    ST_UNKNOWN,
+    ST_DEVICE,
+    ST_PLUGIN_TYPE,
+    ST_DEVICE_ITEM,
+    ST_DEVICE_ITEM_TYPE,
+    ST_SAVE_TIMER,
+    ST_SECTION,
+    ST_DEVICE_ITEM_GROUP,
+    ST_DIG_TYPE,
+    ST_DIG_MODE_TYPE,
+    ST_DIG_PARAM_TYPE,
+    ST_DIG_STATUS_TYPE,
+    ST_DIG_STATUS_CATEGORY,
+    ST_DIG_PARAM,
+    ST_SIGN_TYPE,
+    ST_CODES,
+    ST_TRANSLATION,
+    ST_AUTH_GROUP,
+    ST_AUTH_GROUP_PERMISSION,
+    ST_USER,
+    ST_USER_GROUP,
+
+    ST_DEVICE_ITEM_VALUE,
+    ST_DIG_MODE,
+    ST_DIG_PARAM_VALUE,
+
+    ST_COUNT,
+    ST_ITEM_FLAG = 0x40,
+    ST_HASH_FLAG = 0x80,
+    ST_FLAGS = ST_ITEM_FLAG | ST_HASH_FLAG
+};
+Q_ENUM_NS(TStructure_Type)
+
+} // namespace MCmd
 
 namespace Helpz {
 namespace Network {
@@ -22,6 +103,7 @@ namespace Cmd {
 enum ReservedCommands {
     ZERO = 0,
     PING,
+    REMOVE_FRAGMENT,
 
     USER_COMMAND = 16
 };
@@ -36,6 +118,7 @@ enum ReservedCommands {
 class Protocol
 {
 public:
+
     enum { DATASTREAM_VERSION = QDataStream::Qt_5_6 };
 
     enum Flags {
@@ -152,7 +235,7 @@ protected:
 
 //    friend class Protocol_Sender;
 private:
-    bool process_stream();
+    bool process_stream(bool is_first_call);
     bool is_lost_message(uint8_t msg_id);
     void fill_lost_msg(uint8_t msg_id);
     void internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t flags, const char* data_ptr, uint32_t data_size);
@@ -165,24 +248,24 @@ private:
     void add_to_waiting(Time_Point time_point, Message_Item&& message);
     std::vector<Message_Item> pop_waiting_messages();
     Message_Item pop_waiting_answer(uint8_t answer_id, uint8_t cmd);
+    Message_Item pop_waiting_fragment(uint8_t fragmanted_msg_id);
     Message_Item pop_waiting_message(std::function<bool(const Message_Item&)> check_func);
 
-    uint8_t next_rx_msg_id_;
-    std::atomic<uint8_t> next_tx_msg_id_;
-    std::vector<std::pair<Time_Point,uint8_t>> lost_msg_list_;
+    std::atomic<uint8_t> next_rx_msg_id_, next_tx_msg_id_;
+    std::map<uint8_t, Time_Point> lost_msg_list_;
 
     QBuffer device_;
     QDataStream msg_stream_;
 
     std::atomic<Time_Point> last_msg_send_time_;
 
-    std::vector<Fragmented_Message> fragmented_messages_;
+    std::map<uint8_t, Fragmented_Message> fragmented_messages_;
 
-    std::map<Time_Point,Message_Item> waiting_messages_;
+    std::map<Time_Point, Message_Item> waiting_messages_;
     mutable std::recursive_mutex mutex_;
 
     std::shared_ptr<Protocol_Writer> protocol_writer_;
-//    std::vector<std::size_t> packet_end_position_;
+    std::queue<std::size_t> packet_end_position_;
 };
 
 } // namespace Network

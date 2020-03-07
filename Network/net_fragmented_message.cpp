@@ -59,10 +59,9 @@ Fragmented_Message::~Fragmented_Message()
     }
 }
 
-bool Fragmented_Message::operator ==(uint8_t id) const
-{
-    return id_ == id;
-}
+bool Fragmented_Message::operator <(const Fragmented_Message &o) const { return id_ < o.id_; }
+bool Fragmented_Message::operator <(uint8_t id) const { return id_ < id; }
+bool Fragmented_Message::operator ==(uint8_t id) const { return id_ == id; }
 
 void Fragmented_Message::add_data(uint32_t pos, const char *data, uint32_t len)
 {

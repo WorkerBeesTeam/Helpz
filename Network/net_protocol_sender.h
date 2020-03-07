@@ -43,6 +43,7 @@ public:
     Protocol_Sender &answer(std::function<void(QIODevice &)> answer_func);
     Protocol_Sender &timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration,
                              std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000});
+    Protocol_Sender &finally(std::function<void(bool)> func);
 
     template<typename T>
     QDataStream& operator <<(const T& item) { return static_cast<QDataStream&>(*this) << item; }

@@ -23,9 +23,7 @@ Protocol_Sender::Protocol_Sender(std::shared_ptr<Protocol> p, uint8_t command, s
     }
 
     if (!device()->isOpen())
-    {
         device()->open(QIODevice::ReadWrite);
-    }
     setVersion(Protocol::DATASTREAM_VERSION);
 }
 
@@ -56,18 +54,16 @@ void Protocol_Sender::release()
 
 void Protocol_Sender::set_fragment_size(uint32_t fragment_size)
 {
-    msg_.fragment_size_ = fragment_size;
+    msg_.set_fragment_size(fragment_size);
 }
 
 void Protocol_Sender::set_data_device(std::unique_ptr<QIODevice> data_dev, uint32_t fragment_size)
 {
     if (!data_dev)
-    {
         return;
-    }
 
     setDevice(nullptr);
-    msg_.fragment_size_ = fragment_size;
+    msg_.set_fragment_size(fragment_size);
     msg_.data_device_ = std::move(data_dev);
     setDevice(msg_.data_device_.get());
 }
@@ -78,9 +74,7 @@ Protocol_Sender& Protocol_Sender::answer(std::function<void(QIODevice&)> answer_
     msg_.answer_func_ = std::move(answer_func);
     auto now = std::chrono::system_clock::now();
     if (msg_.end_time_ < now)
-    {
         msg_.end_time_ = now + std::chrono::seconds(10);
-    }
     return *this;
 }
 Protocol_Sender& Protocol_Sender::timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration, std::chrono::milliseconds resend_timeout)
@@ -88,6 +82,12 @@ Protocol_Sender& Protocol_Sender::timeout(std::function<void()> timeout_func, st
     msg_.timeout_func_ = std::move(timeout_func);
     msg_.end_time_ = std::chrono::system_clock::now() + timeout_duration;
     msg_.resend_timeout_ = resend_timeout;
+    return *this;
+}
+
+Protocol_Sender &Protocol_Sender::finally(std::function<void (bool)> func)
+{
+    msg_.finally_func_ = std::move(func);
     return *this;
 }
 

@@ -20,6 +20,8 @@ struct Fragmented_Message
 
     ~Fragmented_Message();
 
+    bool operator <(const Fragmented_Message& o) const;
+    bool operator <(uint8_t id) const;
     bool operator ==(uint8_t id) const;
 
     void add_data(uint32_t pos, const char *data, uint32_t len);

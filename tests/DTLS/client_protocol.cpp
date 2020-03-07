@@ -87,12 +87,12 @@ void Client_Protocol::ready_write()
 
 void Client_Protocol::process_message(uint8_t msg_id, uint8_t cmd, QIODevice &data_dev)
 {
-    std::cout << "process_message #" << int(msg_id) << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
+    std::cout << "process_message #" << msg_id << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
 }
 
 void Client_Protocol::process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice &data_dev)
 {
-    std::cout << "process_answer_message #" << int(msg_id) << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
+    std::cout << "process_answer_message #" << msg_id << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
 }
 
 } // namespace Helpz

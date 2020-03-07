@@ -107,7 +107,7 @@ Session_Manager_SQL::Session_Manager_SQL(const std::string& passphrase,
         size_t check_val = Botan::make_uint16(x[0], x[1]);
         m_session_key.assign(x.begin() + 2, x.end());
 
-        db_->insert(tableMetadata, {QByteArray((const char*)salt.data(), salt.size()), (uint32_t)iterations, (uint32_t)check_val});
+        db_->insert(tableMetadata, {QByteArray((const char*)salt.data(), static_cast<int>(salt.size())), (uint32_t)iterations, (uint32_t)check_val});
     }
 
     qRegisterMetaType<Botan::TLS::Session*>("Botan::TLS::Session*");
@@ -153,13 +153,13 @@ size_t Session_Manager_SQL::remove_all() {
 void Session_Manager_SQL::save(const Botan::TLS::Session& session) {
     auto session_vec = session.encrypt(m_session_key, m_rng);
 
-    const int timeval = std::chrono::duration_cast<std::chrono::seconds>(session.start_time().time_since_epoch()).count();
+    const long int timeval = std::chrono::duration_cast<std::chrono::seconds>(session.start_time().time_since_epoch()).count();
 
     QVariantList values{QString::fromStdString(Botan::hex_encode(session.session_id())),
-                       timeval,
+                       static_cast<int>(timeval),
                        QString::fromStdString(session.server_info().hostname()),
                        session.server_info().port(),
-                       QByteArray((const char*)session_vec.data(), session_vec.size())};
+                       QByteArray((const char*)session_vec.data(), static_cast<int>(session_vec.size()))};
     if (check_db_thread_diff())
         save_signal(values);
     else
@@ -197,7 +197,7 @@ void Session_Manager_SQL::save_slot(const QVariantList &values) {
 
 void Session_Manager_SQL::prune_session_cache() {
     // First expire old sessions
-    const int timeval = std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - m_session_lifetime).time_since_epoch()).count();
+    const long int timeval = std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - m_session_lifetime).time_since_epoch()).count();
     db_->del(sessionsTable->name(), "session_start <= " + QString::number(timeval));
 
     const size_t sessions = db_->row_count("tls_sessions");
