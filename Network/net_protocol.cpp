@@ -238,6 +238,15 @@ void Protocol::process_bytes(const uint8_t* data, size_t size)
          * то нужно удалить из него первый пакет и попробовать заново.
          */
 
+        // Отбрасываем удачно обработанные пакеты
+        std::size_t pos = device_.pos();
+        while(!packet_end_position_.empty() && packet_end_position_.front() <= pos)
+        {
+            pos -= packet_end_position_.front();
+            packet_end_position_.pop();
+        }
+
+        // Отбрасываем не удачно обработанный пакет
         device_.seek(0);
         device_.buffer().remove(0, static_cast<int>(packet_end_position_.front()));
         packet_end_position_.pop();
@@ -323,18 +332,26 @@ bool Protocol::process_stream(bool is_first_call)
         if (buffer_size == 0xffffffff)
             buffer_size = 0;
 
-        if (!checksum_ok || buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
+        if (buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
         {
-            if (!device_.atEnd())
-                device_.seek(device_.size());
+            qCWarning(Log) << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
+                           << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
+                           << "expected:" << checksum;
 
-            if (!checksum_ok && is_first_call)
+            device_.seek(device_.size());
+            return true;
+        }
+        else if (!checksum_ok) // Drop message if checksum bad or too high size
+        {
+            device_.seek(pos);
+
+            if (is_first_call)
             {
                 qCWarning(Log) << "Message corrupt, checksum isn't same."
                                << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                                << "expected:" << checksum;
             }
-            return checksum_ok;
+            return false;
         }
         else if (device_.bytesAvailable() < buffer_size) // else if all ok, but not enough bytes
         {
@@ -423,7 +440,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
     {
         if (is_lost_message(msg_id))
             qCDebug(DetailLog).noquote() << title() << "Find lost message" << msg_id;
-        else
+        else if (flags & REPEATED)
         {
             if (DetailLog().isDebugEnabled())
             {
