@@ -87,7 +87,7 @@ void DTLS_Test::check_client_connected()
 
 void DTLS_Test::check_server_client_connected()
 {
-    auto node = server_thread_->server()->find_client([](const Helpz::Network::Protocol* ) { return true; });
+    auto node = server_thread_->server()->find_client([](const Helpz::Net::Protocol* ) { return true; });
     QVERIFY(node);
     std::shared_ptr<Server_Protocol> server_protocol = std::dynamic_pointer_cast<Server_Protocol>(node->protocol());
     QVERIFY(server_protocol);
@@ -200,7 +200,7 @@ std::shared_ptr<Client_Protocol> DTLS_Test::get_client_protocol()
 
 std::shared_ptr<Server_Protocol> DTLS_Test::get_server_protocol()
 {
-    auto node = server_thread_->server()->find_client([](const Helpz::Network::Protocol* ) { return true; });
+    auto node = server_thread_->server()->find_client([](const Helpz::Net::Protocol* ) { return true; });
     if (node)
         return std::dynamic_pointer_cast<Server_Protocol>(node->protocol());
     return {};

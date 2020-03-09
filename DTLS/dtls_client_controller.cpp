@@ -15,7 +15,7 @@ Client_Controller::Client_Controller(Tools *dtls_tools, Client *client, const Cr
 {
 }
 
-std::shared_ptr<Network::Protocol> Client_Controller::create_protocol(const std::string &app_proto)
+std::shared_ptr<Net::Protocol> Client_Controller::create_protocol(const std::string &app_proto)
 {
     if (create_protocol_func_)
     {
@@ -39,7 +39,7 @@ void Client_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint /*rem
 {
     client_->get_io_context()->post([this, data]()
     {
-        std::shared_ptr<Network::Protocol> proto = node_->protocol();
+        std::shared_ptr<Net::Protocol> proto = node_->protocol();
         if (proto)
         {
             std::lock_guard node_lock(node_->mutex_);

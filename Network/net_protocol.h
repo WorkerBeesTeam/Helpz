@@ -19,7 +19,7 @@ namespace MCmd {
     Q_NAMESPACE
 
 enum TCommand_Type {
-    AUTH = 16, // Helpz::Network::Cmd::USER_COMMAND,
+    AUTH = 16, // Helpz::Net::Cmd::USER_COMMAND,
     NO_AUTH,
 
     VERSION,
@@ -94,7 +94,7 @@ Q_ENUM_NS(TStructure_Type)
 } // namespace MCmd
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
 Q_DECLARE_LOGGING_CATEGORY(DetailLog)
@@ -104,6 +104,7 @@ enum ReservedCommands {
     ZERO = 0,
     PING,
     REMOVE_FRAGMENT,
+    CLOSE,
 
     USER_COMMAND = 16
 };
@@ -268,7 +269,7 @@ private:
     std::queue<std::size_t> packet_end_position_;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_PROTOCOL_H

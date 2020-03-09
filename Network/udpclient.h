@@ -4,7 +4,7 @@
 #include <QHostAddress>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 class UDPClient
 {
@@ -22,7 +22,7 @@ protected:
     quint16 m_port;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_UDPCLIENT_H

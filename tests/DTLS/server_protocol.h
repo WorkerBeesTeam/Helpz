@@ -16,7 +16,7 @@ struct FileMetaInfo
 
 QDataStream& operator >>(QDataStream& ds, FileMetaInfo& info);
 
-class Server_Protocol : public Helpz::Network::Protocol
+class Server_Protocol : public Helpz::Net::Protocol
 {
 public:
     static std::string name();
@@ -28,12 +28,12 @@ public:
 
     void reset_promises();
 
-    bool operator ==(const Helpz::Network::Protocol& o) const override;
+    bool operator ==(const Helpz::Net::Protocol& o) const override;
 
-    static std::shared_ptr<Helpz::Network::Protocol> create(const std::vector<std::string> &client_protos, std::string* choose_out);
+    static std::shared_ptr<Helpz::Net::Protocol> create(const std::vector<std::string> &client_protos, std::string* choose_out);
 private:
     enum Message_Type {
-        MSG_UNKNOWN = Helpz::Network::Cmd::USER_COMMAND,
+        MSG_UNKNOWN = Helpz::Net::Cmd::USER_COMMAND,
         MSG_SIMPLE,
         MSG_ANSWERED,
         MSG_FILE_META,

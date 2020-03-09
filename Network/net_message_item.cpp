@@ -1,7 +1,7 @@
 #include "net_message_item.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Message_Item::Message_Item() :
     cmd_(0), flags_(0), fragment_size_(HELPZ_MAX_MESSAGE_DATA_SIZE), min_compress_size_(512)
@@ -44,5 +44,5 @@ void Message_Item::set_fragment_size(uint32_t size)
 uint32_t Message_Item::min_compress_size() const { return min_compress_size_; }
 void Message_Item::set_min_compress_size(uint32_t min_compress_size) { min_compress_size_ = min_compress_size; }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

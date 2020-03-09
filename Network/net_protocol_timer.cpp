@@ -4,7 +4,7 @@
 #include "net_protocol_timer.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Protocol_Timer::Protocol_Timer(Protocol_Timer_Emiter *emiter) :
     emiter_(emiter),
@@ -94,5 +94,5 @@ void Protocol_Timer::run()
     }
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

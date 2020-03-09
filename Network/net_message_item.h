@@ -11,7 +11,7 @@
 #include <Helpz/net_defs.h>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 struct Message_Item
 {
@@ -49,7 +49,7 @@ private:
     uint32_t fragment_size_, min_compress_size_;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_MESSAGE_ITEM_H

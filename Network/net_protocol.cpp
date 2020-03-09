@@ -6,7 +6,7 @@
 #include "net_protocol.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_LOGGING_CATEGORY(Log, "net")
 Q_LOGGING_CATEGORY(DetailLog, "net.detail", QtInfoMsg)
@@ -116,6 +116,9 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
             qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << msg.id_.value_or(0)
                                          << "full" << msg.data_device_->size() << "pos" << msg.data_device_->pos() << "size" << msg.fragment_size();
 
+            uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
+            ds << pos;
+
             if (msg.data_device_->atEnd())
             {
                 ds << msg.fragment_size();
@@ -123,13 +126,11 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
                 const auto now = std::chrono::system_clock::now();
                 if (msg.end_time_ < now)
                     msg.end_time_ = now + std::chrono::seconds(10);
+
+                pos = 0;
             }
-            else
-            {
-                uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
-                ds << pos;
-                add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
-            }
+
+            add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
         }
         else
         {
@@ -488,7 +489,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         Helpz::parse_out(DATASTREAM_VERSION, data, fragment_id);
         fragmented_messages_.erase(fragment_id);
     }
-    if (flags & FRAGMENT_QUERY)
+    else if (flags & FRAGMENT_QUERY)
     {
         apply_parse(data, &Protocol::process_fragment_query);
     }
@@ -506,6 +507,10 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
+            uint32_t max_fragment_size;
+            if (full_size == pos)
+                Helpz::parse_out(ds, max_fragment_size);
+
             std::map<uint8_t, Fragmented_Message>::iterator it = fragmented_messages_.find(msg_id);
 
             if (full_size >= HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
@@ -518,7 +523,9 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 
             if (it == fragmented_messages_.end())
             {
-                uint32_t max_fragment_size = pos > 0 ? pos : HELPZ_MAX_MESSAGE_DATA_SIZE;
+                if (max_fragment_size == 0 || max_fragment_size > HELPZ_MAX_PACKET_DATA_SIZE)
+                    max_fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE;
+
                 Fragmented_Message msg{msg_id, cmd, max_fragment_size, full_size};
                 it = fragmented_messages_.emplace(msg_id, std::move(msg)).first;
             }
@@ -755,5 +762,5 @@ Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Ite
     return {};
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

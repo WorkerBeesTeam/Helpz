@@ -22,7 +22,7 @@ using std::experimental::optional;
 #include <Helpz/net_message_item.h>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 class Protocol;
 
@@ -55,7 +55,7 @@ private:
     friend class Protocol;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_PROTOCOL_SENDER_H

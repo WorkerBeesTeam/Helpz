@@ -21,7 +21,7 @@ public:
 private:
     std::shared_ptr<Node> get_shared() override;
 
-    std::shared_ptr<Network::Protocol> create_protocol() override;
+    std::shared_ptr<Net::Protocol> create_protocol() override;
 
     bool ping_flag_;
 

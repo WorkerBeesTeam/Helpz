@@ -17,8 +17,8 @@ public:
 
     uint16_t get_local_port() const;
 
-    std::shared_ptr<Server_Node> find_client(std::function<bool(const Network::Protocol *)> check_protocol_func) const;
-    void remove_copy(Network::Protocol *client);
+    std::shared_ptr<Server_Node> find_client(std::function<bool(const Net::Protocol *)> check_protocol_func) const;
+    void remove_copy(Net::Protocol *client);
 private:
     void cleaning(const boost::system::error_code &err);
     const Server_Controller* controller() const;

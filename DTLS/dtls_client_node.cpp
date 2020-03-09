@@ -49,7 +49,7 @@ bool Client_Node::is_reconnect_needed()
             if (!ping_flag_)
             {
                 ping_flag_ = true;
-                proto->send(Network::Cmd::PING).timeout(nullptr, std::chrono::seconds(10), std::chrono::seconds(1));
+                proto->send(Net::Cmd::PING).timeout(nullptr, std::chrono::seconds(10), std::chrono::seconds(1));
                 return false;
             }
         }
@@ -62,7 +62,7 @@ std::shared_ptr<Node> Client_Node::get_shared()
     return shared_from_this();
 }
 
-std::shared_ptr<Network::Protocol> Client_Node::create_protocol()
+std::shared_ptr<Net::Protocol> Client_Node::create_protocol()
 {
     return controller()->create_protocol(application_protocol());
 }

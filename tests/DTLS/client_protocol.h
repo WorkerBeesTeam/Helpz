@@ -7,18 +7,18 @@
 
 namespace Helpz {
 
-class Client_Protocol : public Helpz::Network::Protocol
+class Client_Protocol : public Helpz::Net::Protocol
 {
 public:
     enum Message_Type {
-        MSG_UNKNOWN = Helpz::Network::Cmd::USER_COMMAND,
+        MSG_UNKNOWN = Helpz::Net::Cmd::USER_COMMAND,
         MSG_SIMPLE,
         MSG_ANSWERED,
         MSG_FILE_META,
         MSG_FILE,
     };
 
-    static std::shared_ptr<Helpz::Network::Protocol> create(const std::string& app_protocol);
+    static std::shared_ptr<Helpz::Net::Protocol> create(const std::string& app_protocol);
 
     std::future<void> test_simple_message(const QString& text);
     std::future<QString> test_message_with_answer(uint32_t value2);

@@ -7,7 +7,7 @@
 #include "net_protocol_sender.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
 
@@ -96,5 +96,5 @@ Protocol_Sender &Protocol_Sender::finally(std::function<void (bool)> func)
     return *this;
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
