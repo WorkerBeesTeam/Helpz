@@ -1,7 +1,4 @@
-#include <thread>
-
 #include <QDebug>
-#include <QMetaEnum>
 
 #include "net_protocol.h"
 
@@ -163,28 +160,15 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
 
     if (DetailLog().isDebugEnabled())
     {
-        static QMetaEnum metaEnum = QMetaEnum::fromType<MCmd::TCommand_Type>();
         auto dbg = qDebug(DetailLog).noquote()
                 << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now)
-                << "tt:" << tt.time_since_epoch().count()
-                << metaEnum.valueToKey(msg.cmd());
+                << "tt:" << tt.time_since_epoch().count();
 
         if (flags & REPEATED) dbg << "REPEATED";
         if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
         if (flags & FRAGMENT) dbg << "FRAGMENT";
         if (flags & ANSWER) dbg << "ANSWER " << int (*data.constData());
         if (flags & COMPRESSED) dbg << "COMPRESSED";
-
-        if (msg.cmd() == MCmd::TCommand_Type::GET_SCHEME && data.size())
-        {
-            const uint8_t ct = static_cast<uint8_t>(*(data.constData() + (flags & ANSWER ? 1 : 0)));
-            dbg << "struct:" << int(uint8_t(ct & ~MCmd::TStructure_Type::ST_FLAGS));
-            static QMetaEnum metaEnum2 = QMetaEnum::fromType<MCmd::TStructure_Type>();
-            const char* text = metaEnum2.valueToKey(ct & ~MCmd::TStructure_Type::ST_FLAGS);
-            if (text && *text) dbg << text;
-            if (ct & MCmd::TStructure_Type::ST_ITEM_FLAG) dbg << "is_items";
-            if (ct & MCmd::TStructure_Type::ST_HASH_FLAG) dbg << "is_hash";
-        }
     }
 
     if (msg.end_time_ > now)
@@ -306,28 +290,15 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (DetailLog().isDebugEnabled())
         {
-            static QMetaEnum metaEnum = QMetaEnum::fromType<MCmd::TCommand_Type>();
             auto dbg = qDebug(DetailLog).noquote()
                     << title() << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
-                    << "avail:" << device_.bytesAvailable() << packet_end_position_.size()
-                    << metaEnum.valueToKey(cmd);
+                    << "avail:" << device_.bytesAvailable() << packet_end_position_.size();
 
             if (flags & REPEATED) dbg << "REPEATED";
             if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
             if (flags & FRAGMENT) dbg << "FRAGMENT";
             if (flags & ANSWER) dbg << "ANSWER " << int (*(device_.buffer().constData() + pos + 9));
             if (flags & COMPRESSED) dbg << "COMPRESSED";
-
-            if (cmd == MCmd::TCommand_Type::GET_SCHEME && device_.bytesAvailable() > 0)
-            {
-                const uint8_t ct = static_cast<uint8_t>(*(device_.buffer().constData() + pos + 9 + (flags & ANSWER ? 1 : 0)));
-                dbg << "struct:" << int(uint8_t(ct & ~MCmd::TStructure_Type::ST_FLAGS));
-                static QMetaEnum metaEnum2 = QMetaEnum::fromType<MCmd::TStructure_Type>();
-                const char* text = metaEnum2.valueToKey(ct & ~MCmd::TStructure_Type::ST_FLAGS);
-                if (text && *text) dbg << text;
-                if (ct & MCmd::TStructure_Type::ST_ITEM_FLAG) dbg << "is_items";
-                if (ct & MCmd::TStructure_Type::ST_HASH_FLAG) dbg << "is_hash";
-            }
         }
 
         if (buffer_size == 0xffffffff)
