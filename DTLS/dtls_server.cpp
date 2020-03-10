@@ -19,12 +19,12 @@ uint16_t Server::get_local_port() const
     return socket_->local_endpoint().port();
 }
 
-std::shared_ptr<Server_Node> Server::find_client(std::function<bool (const Network::Protocol *)> check_protocol_func) const
+std::shared_ptr<Server_Node> Server::find_client(std::function<bool (const Net::Protocol *)> check_protocol_func) const
 {
     return controller()->find_client(check_protocol_func);
 }
 
-void Server::remove_copy(Network::Protocol *client)
+void Server::remove_copy(Net::Protocol *client)
 {
     controller()->remove_copy(client);
 }

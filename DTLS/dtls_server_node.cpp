@@ -45,7 +45,7 @@ void Server_Node::tls_alert(Botan::TLS::Alert alert)
 std::string Server_Node::tls_server_choose_app_protocol(const std::vector<std::string> &client_protos)
 {
     std::string app_protocol;
-    std::shared_ptr<Network::Protocol> protocol = controller()->create_protocol(client_protos, &app_protocol);
+    std::shared_ptr<Net::Protocol> protocol = controller()->create_protocol(client_protos, &app_protocol);
     if (protocol)
     {
         set_protocol(std::move(protocol));

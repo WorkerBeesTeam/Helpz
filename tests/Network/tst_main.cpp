@@ -31,7 +31,7 @@ private Q_SLOTS:
     void fragment_message_parts_test()
     {
         char data[100];
-        Helpz::Network::Fragmented_Message msg(1, 1, 1, 100);
+        Helpz::Net::Fragmented_Message msg(1, 1, 1, 100);
         msg.data_device_->open(QIODevice::ReadWrite);
         using T = std::vector<std::pair<uint32_t, uint32_t>>;
 

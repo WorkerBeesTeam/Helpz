@@ -1,12 +1,9 @@
-#include <thread>
-
 #include <QDebug>
-#include <QMetaEnum>
 
 #include "net_protocol.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_LOGGING_CATEGORY(Log, "net")
 Q_LOGGING_CATEGORY(DetailLog, "net.detail", QtInfoMsg)
@@ -116,6 +113,9 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
             qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << msg.id_.value_or(0)
                                          << "full" << msg.data_device_->size() << "pos" << msg.data_device_->pos() << "size" << msg.fragment_size();
 
+            uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
+            ds << pos;
+
             if (msg.data_device_->atEnd())
             {
                 ds << msg.fragment_size();
@@ -123,13 +123,11 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
                 const auto now = std::chrono::system_clock::now();
                 if (msg.end_time_ < now)
                     msg.end_time_ = now + std::chrono::seconds(10);
+
+                pos = 0;
             }
-            else
-            {
-                uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
-                ds << pos;
-                add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
-            }
+
+            add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
         }
         else
         {
@@ -141,7 +139,7 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
         add_raw_data_to_packet(data, 0, msg.fragment_size(), msg.data_device_.get());
     }
 
-    if (data.size() > 512)
+    if (static_cast<uint32_t>(data.size()) > msg.min_compress_size())
     {
         flags |= COMPRESSED;
         data = qCompress(data);
@@ -162,28 +160,15 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
 
     if (DetailLog().isDebugEnabled())
     {
-        static QMetaEnum metaEnum = QMetaEnum::fromType<MCmd::TCommand_Type>();
         auto dbg = qDebug(DetailLog).noquote()
                 << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now)
-                << "tt:" << tt.time_since_epoch().count()
-                << metaEnum.valueToKey(msg.cmd());
+                << "tt:" << tt.time_since_epoch().count();
 
         if (flags & REPEATED) dbg << "REPEATED";
         if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
         if (flags & FRAGMENT) dbg << "FRAGMENT";
         if (flags & ANSWER) dbg << "ANSWER " << int (*data.constData());
         if (flags & COMPRESSED) dbg << "COMPRESSED";
-
-        if (msg.cmd() == MCmd::TCommand_Type::GET_SCHEME && data.size())
-        {
-            const uint8_t ct = static_cast<uint8_t>(*(data.constData() + (flags & ANSWER ? 1 : 0)));
-            dbg << "struct:" << int(uint8_t(ct & ~MCmd::TStructure_Type::ST_FLAGS));
-            static QMetaEnum metaEnum2 = QMetaEnum::fromType<MCmd::TStructure_Type>();
-            const char* text = metaEnum2.valueToKey(ct & ~MCmd::TStructure_Type::ST_FLAGS);
-            if (text && *text) dbg << text;
-            if (ct & MCmd::TStructure_Type::ST_ITEM_FLAG) dbg << "is_items";
-            if (ct & MCmd::TStructure_Type::ST_HASH_FLAG) dbg << "is_hash";
-        }
     }
 
     if (msg.end_time_ > now)
@@ -238,6 +223,15 @@ void Protocol::process_bytes(const uint8_t* data, size_t size)
          * то нужно удалить из него первый пакет и попробовать заново.
          */
 
+        // Отбрасываем удачно обработанные пакеты
+        std::size_t pos = device_.pos();
+        while(!packet_end_position_.empty() && packet_end_position_.front() <= pos)
+        {
+            pos -= packet_end_position_.front();
+            packet_end_position_.pop();
+        }
+
+        // Отбрасываем не удачно обработанный пакет
         device_.seek(0);
         device_.buffer().remove(0, static_cast<int>(packet_end_position_.front()));
         packet_end_position_.pop();
@@ -296,45 +290,40 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (DetailLog().isDebugEnabled())
         {
-            static QMetaEnum metaEnum = QMetaEnum::fromType<MCmd::TCommand_Type>();
             auto dbg = qDebug(DetailLog).noquote()
                     << title() << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
-                    << "avail:" << device_.bytesAvailable() << packet_end_position_.size()
-                    << metaEnum.valueToKey(cmd);
+                    << "avail:" << device_.bytesAvailable() << packet_end_position_.size();
 
             if (flags & REPEATED) dbg << "REPEATED";
             if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
             if (flags & FRAGMENT) dbg << "FRAGMENT";
             if (flags & ANSWER) dbg << "ANSWER " << int (*(device_.buffer().constData() + pos + 9));
             if (flags & COMPRESSED) dbg << "COMPRESSED";
-
-            if (cmd == MCmd::TCommand_Type::GET_SCHEME && device_.bytesAvailable() > 0)
-            {
-                const uint8_t ct = static_cast<uint8_t>(*(device_.buffer().constData() + pos + 9 + (flags & ANSWER ? 1 : 0)));
-                dbg << "struct:" << int(uint8_t(ct & ~MCmd::TStructure_Type::ST_FLAGS));
-                static QMetaEnum metaEnum2 = QMetaEnum::fromType<MCmd::TStructure_Type>();
-                const char* text = metaEnum2.valueToKey(ct & ~MCmd::TStructure_Type::ST_FLAGS);
-                if (text && *text) dbg << text;
-                if (ct & MCmd::TStructure_Type::ST_ITEM_FLAG) dbg << "is_items";
-                if (ct & MCmd::TStructure_Type::ST_HASH_FLAG) dbg << "is_hash";
-            }
         }
 
         if (buffer_size == 0xffffffff)
             buffer_size = 0;
 
-        if (!checksum_ok || buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
+        if (buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
         {
-            if (!device_.atEnd())
-                device_.seek(device_.size());
+            qCWarning(Log) << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
+                           << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
+                           << "expected:" << checksum;
 
-            if (!checksum_ok && is_first_call)
+            device_.seek(device_.size());
+            return true;
+        }
+        else if (!checksum_ok) // Drop message if checksum bad or too high size
+        {
+            device_.seek(pos);
+
+            if (is_first_call)
             {
                 qCWarning(Log) << "Message corrupt, checksum isn't same."
                                << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                                << "expected:" << checksum;
             }
-            return checksum_ok;
+            return false;
         }
         else if (device_.bytesAvailable() < buffer_size) // else if all ok, but not enough bytes
         {
@@ -423,7 +412,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
     {
         if (is_lost_message(msg_id))
             qCDebug(DetailLog).noquote() << title() << "Find lost message" << msg_id;
-        else
+        else if (flags & REPEATED)
         {
             if (DetailLog().isDebugEnabled())
             {
@@ -471,7 +460,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         Helpz::parse_out(DATASTREAM_VERSION, data, fragment_id);
         fragmented_messages_.erase(fragment_id);
     }
-    if (flags & FRAGMENT_QUERY)
+    else if (flags & FRAGMENT_QUERY)
     {
         apply_parse(data, &Protocol::process_fragment_query);
     }
@@ -489,6 +478,10 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
+            uint32_t max_fragment_size;
+            if (full_size == pos)
+                Helpz::parse_out(ds, max_fragment_size);
+
             std::map<uint8_t, Fragmented_Message>::iterator it = fragmented_messages_.find(msg_id);
 
             if (full_size >= HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
@@ -501,7 +494,9 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 
             if (it == fragmented_messages_.end())
             {
-                uint32_t max_fragment_size = pos > 0 ? pos : HELPZ_MAX_MESSAGE_DATA_SIZE;
+                if (max_fragment_size == 0 || max_fragment_size > HELPZ_MAX_PACKET_DATA_SIZE)
+                    max_fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE;
+
                 Fragmented_Message msg{msg_id, cmd, max_fragment_size, full_size};
                 it = fragmented_messages_.emplace(msg_id, std::move(msg)).first;
             }
@@ -616,7 +611,10 @@ void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, u
         send_message(std::move(msg));
     }
     else
+    {
+        qCDebug(DetailLog).noquote() << title() << "Send remove unknown fragment" << fragmanted_msg_id;
         send(Cmd::REMOVE_FRAGMENT) << fragmanted_msg_id;
+    }
 }
 
 void Protocol::process_wait_list(void *data)
@@ -735,5 +733,5 @@ Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Ite
     return {};
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

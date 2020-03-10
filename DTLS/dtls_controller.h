@@ -16,7 +16,7 @@ Q_DECLARE_LOGGING_CATEGORY(Log)
 
 class Tools;
 class Node;
-class Controller : public Network::Protocol_Timer_Emiter
+class Controller : public Net::Protocol_Timer_Emiter
 {
 public:
     using udp = boost::asio::ip::udp;
@@ -26,7 +26,7 @@ public:
 
     Tools* dtls_tools();
 
-    void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::time_point<std::chrono::system_clock> time_point, void* data);
+    void add_timeout_at(const udp::endpoint& remote_endpoint, std::chrono::system_clock::time_point time_point, void* data);
 
     virtual std::shared_ptr<Node> get_node(const udp::endpoint& remote_endpoint) = 0;
     virtual void process_data(std::shared_ptr<Node>& node, std::unique_ptr<uint8_t[]>&& data, std::size_t size) = 0;
@@ -34,7 +34,7 @@ protected:
 
     Tools* dtls_tools_;
 
-    Network::Protocol_Timer protocol_timer_;
+    Net::Protocol_Timer protocol_timer_;
 };
 
 } // namespace DTLS

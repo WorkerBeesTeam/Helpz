@@ -11,7 +11,7 @@ class QEventLoop;
 QT_END_NAMESPACE
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 class WaitHelper {
 public:
@@ -28,7 +28,7 @@ private:
     QTimer* m_timer;
 };
 
-typedef std::map<quint16, std::shared_ptr<Helpz::Network::WaitHelper>> WaiterMap;
+typedef std::map<quint16, std::shared_ptr<Helpz::Net::WaitHelper>> WaiterMap;
 class Waiter {
 public:
     Waiter(quint16 cmd, WaiterMap& waitHelper_map, int msecTimeout = 5000);
@@ -37,12 +37,12 @@ public:
     operator bool() const;
 
     WaiterMap& wait_map;
-    std::shared_ptr<Helpz::Network::WaitHelper> helper;
+    std::shared_ptr<Helpz::Net::WaitHelper> helper;
 private:
     WaiterMap::iterator it;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_WAITHELPER_H

@@ -6,9 +6,9 @@
 
 namespace Helpz {
 
-/*static*/ std::shared_ptr<Helpz::Network::Protocol> Client_Protocol::create(const std::string &/*app_protocol*/)
+/*static*/ std::shared_ptr<Helpz::Net::Protocol> Client_Protocol::create(const std::string &/*app_protocol*/)
 {
-    return std::shared_ptr<Helpz::Network::Protocol>(new Client_Protocol{});
+    return std::shared_ptr<Helpz::Net::Protocol>(new Client_Protocol{});
 }
 
 std::future<void> Client_Protocol::test_simple_message(const QString &text)

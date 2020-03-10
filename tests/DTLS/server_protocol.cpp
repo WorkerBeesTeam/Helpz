@@ -44,25 +44,25 @@ void Server_Protocol::reset_promises()
     promise_file_ = std::promise<QByteArray>();
 }
 
-bool Server_Protocol::operator ==(const Helpz::Network::Protocol &o) const
+bool Server_Protocol::operator ==(const Helpz::Net::Protocol &o) const
 {
     (void)o;
     // Need for remove copy clients
     return false;
 }
 
-std::shared_ptr<Helpz::Network::Protocol> Server_Protocol::create(const std::vector<std::string> &client_protos, std::string *choose_out)
+std::shared_ptr<Helpz::Net::Protocol> Server_Protocol::create(const std::vector<std::string> &client_protos, std::string *choose_out)
 {
     for (const std::string& proto: client_protos)
     {
         if (proto == name())
         {
             *choose_out = proto;
-            return std::shared_ptr<Helpz::Network::Protocol>(new Server_Protocol{});
+            return std::shared_ptr<Helpz::Net::Protocol>(new Server_Protocol{});
         }
     }
     qCritical() << "Unsuported protocol";
-    return std::shared_ptr<Helpz::Network::Protocol>{};
+    return std::shared_ptr<Helpz::Net::Protocol>{};
 }
 
 void Server_Protocol::ready_write()

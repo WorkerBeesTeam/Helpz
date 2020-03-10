@@ -34,17 +34,17 @@ void Node::close()
     }
 }
 
-std::shared_ptr<Network::Protocol> Node::protocol()
+std::shared_ptr<Net::Protocol> Node::protocol()
 {
     return protocol_;
 }
 
-void Node::set_protocol(std::shared_ptr<Network::Protocol>&& protocol)
+void Node::set_protocol(std::shared_ptr<Net::Protocol>&& protocol)
 {
     protocol_ = std::move(protocol);
     if (protocol_)
     {
-        protocol_->set_writer(std::static_pointer_cast<Network::Protocol_Writer>(get_shared()));
+        protocol_->set_writer(std::static_pointer_cast<Net::Protocol_Writer>(get_shared()));
     }
 }
 
@@ -82,7 +82,7 @@ void Node::write(const QByteArray& data)
     //    });
 }
 
-void Node::write(Network::Message_Item message)
+void Node::write(Net::Message_Item message)
 {
     std::lock_guard lock(mutex_);
     if (dtls_ && dtls_->is_active() && protocol_)
@@ -140,12 +140,12 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     }
 }
 
-void Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point, void *data)
+void Node::add_timeout_at(std::chrono::system_clock::time_point time_point, void *data)
 {
     controller_->add_timeout_at(receiver_endpoint(), time_point, data);
 }
 
-std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }
+std::shared_ptr<Net::Protocol> Node::create_protocol() { return {}; }
 
 void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {

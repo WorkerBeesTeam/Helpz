@@ -14,87 +14,8 @@
 #include <Helpz/net_protocol_sender.h>
 #include <Helpz/net_fragmented_message.h>
 
-namespace MCmd {
-
-    Q_NAMESPACE
-
-enum TCommand_Type {
-    AUTH = 16, // Helpz::Network::Cmd::USER_COMMAND,
-    NO_AUTH,
-
-    VERSION,
-    TIME_INFO,
-
-    RESTART,
-    WRITE_TO_ITEM,
-    WRITE_TO_ITEM_FILE,
-    SET_MODE,           // if inform ?
-    CHANGE_STATUS,      // if inform ?
-    SET_DIG_PARAM_VALUES,   // if inform ?
-    EXEC_SCRIPT_COMMAND,
-
-    GET_SCHEME,
-    MODIFY_SCHEME,
-
-    LOG_DATA_REQUEST, // LogType[1] log_type
-    LOG_PACK, // LogType[1] log_type
-
-    DEVICE_ITEM_VALUES,
-    GROUP_STATUSES,
-
-    STREAM_TOGGLE,
-    STREAM_DATA,
-
-    /*
-        cmdCreateDevice,
-        cmdSetInform,
-    */
-
-    // Enum end
-    COMMAND_TYPE_COUNT
-};
-Q_ENUM_NS(TCommand_Type)
-
-
-enum TStructure_Type
-{
-    ST_UNKNOWN,
-    ST_DEVICE,
-    ST_PLUGIN_TYPE,
-    ST_DEVICE_ITEM,
-    ST_DEVICE_ITEM_TYPE,
-    ST_SAVE_TIMER,
-    ST_SECTION,
-    ST_DEVICE_ITEM_GROUP,
-    ST_DIG_TYPE,
-    ST_DIG_MODE_TYPE,
-    ST_DIG_PARAM_TYPE,
-    ST_DIG_STATUS_TYPE,
-    ST_DIG_STATUS_CATEGORY,
-    ST_DIG_PARAM,
-    ST_SIGN_TYPE,
-    ST_CODES,
-    ST_TRANSLATION,
-    ST_AUTH_GROUP,
-    ST_AUTH_GROUP_PERMISSION,
-    ST_USER,
-    ST_USER_GROUP,
-
-    ST_DEVICE_ITEM_VALUE,
-    ST_DIG_MODE,
-    ST_DIG_PARAM_VALUE,
-
-    ST_COUNT,
-    ST_ITEM_FLAG = 0x40,
-    ST_HASH_FLAG = 0x80,
-    ST_FLAGS = ST_ITEM_FLAG | ST_HASH_FLAG
-};
-Q_ENUM_NS(TStructure_Type)
-
-} // namespace MCmd
-
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
 Q_DECLARE_LOGGING_CATEGORY(DetailLog)
@@ -104,6 +25,7 @@ enum ReservedCommands {
     ZERO = 0,
     PING,
     REMOVE_FRAGMENT,
+    CLOSE,
 
     USER_COMMAND = 16
 };
@@ -268,7 +190,7 @@ private:
     std::queue<std::size_t> packet_end_position_;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_PROTOCOL_H

@@ -7,7 +7,7 @@
 #include "net_protocol_sender.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_DECLARE_LOGGING_CATEGORY(Log)
 
@@ -57,6 +57,11 @@ void Protocol_Sender::set_fragment_size(uint32_t fragment_size)
     msg_.set_fragment_size(fragment_size);
 }
 
+void Protocol_Sender::set_min_compress_size(uint32_t min_compress_size)
+{
+    msg_.set_min_compress_size(min_compress_size);
+}
+
 void Protocol_Sender::set_data_device(std::unique_ptr<QIODevice> data_dev, uint32_t fragment_size)
 {
     if (!data_dev)
@@ -91,5 +96,5 @@ Protocol_Sender &Protocol_Sender::finally(std::function<void (bool)> func)
     return *this;
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

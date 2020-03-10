@@ -6,7 +6,7 @@
 #include <QIODevice>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 struct Fragmented_Message
 {
@@ -38,7 +38,7 @@ struct Fragmented_Message
     std::vector<std::pair<uint32_t, uint32_t>> part_vect_;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_FRAGMENTED_MESSAGE_H
