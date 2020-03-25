@@ -74,6 +74,7 @@ void Server_Controller::remove_copy(Net::Protocol *client)
             {
                 qCDebug(Log).noquote() << it->second->title() << "same. Erase it.";
                 proto->before_remove_copy();
+                it->second->close();
                 it = clients_.erase(it);
             }
             else
@@ -109,6 +110,7 @@ void Server_Controller::remove_frozen_clients(std::chrono::seconds frozen_timeou
             if ((now - it->second->last_msg_recv_time()) > frozen_timeout)
             {
                 qCDebug(Log).noquote() << it->second->title() << "timeout. Erase it.";
+                it->second->close();
                 it = clients_.erase(it);
             }
             else
