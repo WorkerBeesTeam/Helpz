@@ -6,7 +6,8 @@ TARGET = Base
 SOURCES += \
     logging.cpp \
     consolereader.cpp \
-    base_version.cpp
+    base_version.cpp \
+    data_stream.cpp
 
 HEADERS += \
     logging.h \
@@ -15,7 +16,8 @@ HEADERS += \
     simplethread.h \
     settingshelper.h \
     fake_integer_sequence.h \
-    apply_parse.h
+    apply_parse.h \
+    data_stream.h
 
 VER_MAJ = 1
 VER_MIN = 2

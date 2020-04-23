@@ -19,7 +19,7 @@ public:
     void set_last_msg_recv_time(std::chrono::time_point<std::chrono::system_clock> value);
 
     virtual void write(const QByteArray& data) = 0;
-    virtual void write(Message_Item message) = 0;
+    virtual void write(std::shared_ptr<Message_Item> message) = 0;
     virtual void add_timeout_at(std::chrono::system_clock::time_point time_point, void* data = nullptr) = 0;
 
     virtual std::shared_ptr<Protocol> protocol() = 0;

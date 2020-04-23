@@ -136,10 +136,10 @@ public:
     Protocol_Sender send_answer(uint8_t cmd, std::optional<uint8_t> msg_id);
     void send_byte(uint8_t cmd, char byte);
     void send_array(uint8_t cmd, const QByteArray &buff);
-    void send_message(Message_Item msg);
+    void send_message(std::shared_ptr<Message_Item> msg);
 
 public:
-    QByteArray prepare_packet_to_send(Message_Item&& msg);
+    QByteArray prepare_packet_to_send(std::shared_ptr<Message_Item> msg_ptr);
     void add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device);
     void process_bytes(const uint8_t* data, size_t size);
 
@@ -167,11 +167,11 @@ public:
     void process_wait_list(void* data);
 
 private:
-    void add_to_waiting(Time_Point time_point, Message_Item&& message);
-    std::vector<Message_Item> pop_waiting_messages();
-    Message_Item pop_waiting_answer(uint8_t answer_id, uint8_t cmd);
-    Message_Item pop_waiting_fragment(uint8_t fragmanted_msg_id);
-    Message_Item pop_waiting_message(std::function<bool(const Message_Item&)> check_func);
+    void add_to_waiting(Time_Point time_point, std::shared_ptr<Message_Item> message);
+    std::vector<std::shared_ptr<Message_Item>> pop_waiting_messages();
+    std::shared_ptr<Message_Item> pop_waiting_answer(uint8_t answer_id, uint8_t cmd);
+    std::shared_ptr<Message_Item> pop_waiting_fragment(uint8_t fragmanted_msg_id);
+    std::shared_ptr<Message_Item> pop_waiting_message(std::function<bool(const Message_Item&)> check_func);
 
     std::atomic<uint8_t> next_rx_msg_id_, next_tx_msg_id_;
     std::map<uint8_t, Time_Point> lost_msg_list_;
@@ -183,7 +183,7 @@ private:
 
     std::map<uint8_t, Fragmented_Message> fragmented_messages_;
 
-    std::map<Time_Point, Message_Item> waiting_messages_;
+    std::map<Time_Point, std::shared_ptr<Message_Item>> waiting_messages_;
     mutable std::recursive_mutex mutex_;
 
     std::shared_ptr<Protocol_Writer> protocol_writer_;

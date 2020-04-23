@@ -31,10 +31,13 @@ public:
 
     std::string address() const;
 
-    void write(const QByteArray& data) override;
-    void write(Net::Message_Item message) override;
-
     void process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size);
+
+    void write(const QByteArray& data) override;
+    void write(std::shared_ptr<Net::Message_Item> message) override;
+private:
+    void write_impl(const QByteArray& data);
+    void write_impl(std::shared_ptr<Net::Message_Item> message);
 protected:
     virtual std::shared_ptr<Node> get_shared() = 0;
 

@@ -67,22 +67,30 @@ Protocol_Sender Protocol::send_answer(uint8_t cmd, std::optional<uint8_t> msg_id
 void Protocol::send_byte(uint8_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint8_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
-void Protocol::send_message(Message_Item msg)
+void Protocol::send_message(std::shared_ptr<Message_Item> msg)
 {
-    if (msg.data_device_)
+    if (!msg)
+        return;
+
+    if (msg->data_device_)
     {
         auto writer_ptr = writer();
         if (writer_ptr)
             writer_ptr->write(std::move(msg));
         else
-            qCWarning(Log).noquote() << title() << "Attempt to send message, but writer is not set. cmd:" << int(msg.cmd());
+            qCWarning(Log).noquote() << title() << "Attempt to send message, but writer is not set. cmd:" << int(msg->cmd());
     }
     else
-        qCWarning(Log).noquote() << title() << "Attempt to send message without data device. cmd:" << int(msg.cmd());
+        qCWarning(Log).noquote() << title() << "Attempt to send message without data device. cmd:" << int(msg->cmd());
 }
 
-QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
+QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_ptr)
 {
+    if (!msg_ptr)
+        return {};
+
+    Message_Item& msg = *msg_ptr;
+
     if (!msg.data_device_)
     {
         qCWarning(Log).noquote() << title() << "Attempt to prepare packet without data device. cmd:" << int(msg.cmd());
@@ -178,13 +186,14 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
                     now + msg.resend_timeout_ :
                     msg.end_time_;
 
-        add_to_waiting(time_point, std::move(msg));
+        int msg_cmd = msg.cmd();
+        add_to_waiting(time_point, std::move(msg_ptr));
 
         auto writer_ptr = writer();
         if (writer_ptr)
             writer_ptr->add_timeout_at(std::move(time_point));
         else
-            qCWarning(Log).noquote() << title() << "Prepare packet, but writer is not set. cmd:" << int(msg.cmd());
+            qCWarning(Log).noquote() << title() << "Prepare packet, but writer is not set. cmd:" << msg_cmd;
     }
 
     return packet;
@@ -529,11 +538,11 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 
                 if (flags & ANSWER)
                 {
-                    Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
-                    if (waiting_msg.answer_func_)
+                    std::shared_ptr<Message_Item> waiting_msg = pop_waiting_answer(answer_id, cmd);
+                    if (waiting_msg->answer_func_)
                     {
-                        waiting_msg.answer_func_(*msg.data_device_);
-                        waiting_msg.answer_func_ = nullptr;
+                        waiting_msg->answer_func_(*msg.data_device_);
+                        waiting_msg->answer_func_ = nullptr;
                     }
                     else
                     {
@@ -574,14 +583,14 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         }
         else
         {
-            Message_Item msg = pop_waiting_answer(answer_id, cmd);
-            if (msg.answer_func_)
+            std::shared_ptr<Message_Item> msg = pop_waiting_answer(answer_id, cmd);
+            if (msg->answer_func_)
             {
                 data.remove(0, 1);
 
                 QBuffer buffer(&data);
-                msg.answer_func_(buffer);
-                msg.answer_func_ = nullptr;
+                msg->answer_func_(buffer);
+                msg->answer_func_ = nullptr;
             }
         }
     }
@@ -601,13 +610,13 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 
 void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
 {
-    Message_Item msg = pop_waiting_fragment(fragmanted_msg_id);
-    if (msg.data_device_ && pos < msg.data_device_->size())
+    std::shared_ptr<Message_Item> msg = pop_waiting_fragment(fragmanted_msg_id);
+    if (msg->data_device_ && pos < msg->data_device_->size())
     {
-        qCDebug(DetailLog).noquote() << title() << "Process fragment query msg" << fragmanted_msg_id << "full" << msg.data_device_->size() << "pos" << pos << "size" << fragmanted_size;
+        qCDebug(DetailLog).noquote() << title() << "Process fragment query msg" << fragmanted_msg_id << "full" << msg->data_device_->size() << "pos" << pos << "size" << fragmanted_size;
 
-        msg.set_fragment_size(fragmanted_size);
-        msg.data_device_->seek(pos);
+        msg->set_fragment_size(fragmanted_size);
+        msg->data_device_->seek(pos);
         send_message(std::move(msg));
     }
     else
@@ -659,40 +668,40 @@ void Protocol::process_wait_list(void *data)
         }
     }
 
-    std::vector<Message_Item> messages = pop_waiting_messages();
+    std::vector<std::shared_ptr<Message_Item>> messages = pop_waiting_messages();
 
     Time_Point now = std::chrono::system_clock::now();
-    for (Message_Item& msg: messages)
+    for (std::shared_ptr<Message_Item>& msg: messages)
     {
-        if (msg.end_time_ > now && msg.data_device_)
+        if (msg->end_time_ > now && msg->data_device_)
         {
-            msg.set_fragment_size(msg.fragment_size() / 2);
-            msg.set_flags(msg.flags() | REPEATED, Message_Item::Only_Protocol());
+            msg->set_fragment_size(msg->fragment_size() / 2);
+            msg->set_flags(msg->flags() | REPEATED, Message_Item::Only_Protocol());
             send_message(std::move(msg));
         }
         else
         {
-            qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg.id_.value_or(0);
+            qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg->id_.value_or(0);
 
-            if (msg.timeout_func_)
-                msg.timeout_func_();
+            if (msg->timeout_func_)
+                msg->timeout_func_();
         }
     }
 }
 
-void Protocol::add_to_waiting(Time_Point time_point, Message_Item &&message)
+void Protocol::add_to_waiting(Time_Point time_point, std::shared_ptr<Message_Item> message)
 {
     std::lock_guard lock(mutex_);
 
-    uint8_t msg_id = message.id_.value_or(0);
+    uint8_t msg_id = message->id_.value_or(0);
     pop_waiting_message([msg_id](const Message_Item &item) { return item.id_.value_or(0) == msg_id; });
 
     waiting_messages_.emplace(std::move(time_point), std::move(message));
 }
 
-std::vector<Message_Item> Protocol::pop_waiting_messages()
+std::vector<std::shared_ptr<Message_Item>> Protocol::pop_waiting_messages()
 {
-    std::vector<Message_Item> messages;
+    std::vector<std::shared_ptr<Message_Item>> messages;
     std::lock_guard lock(mutex_);
 
     Time_Point now = std::chrono::system_clock::now() + std::chrono::milliseconds(20);
@@ -707,25 +716,25 @@ std::vector<Message_Item> Protocol::pop_waiting_messages()
     return messages;
 }
 
-Message_Item Protocol::pop_waiting_answer(uint8_t answer_id, uint8_t cmd)
+std::shared_ptr<Message_Item> Protocol::pop_waiting_answer(uint8_t answer_id, uint8_t cmd)
 {
     std::lock_guard lock(mutex_);
     return pop_waiting_message([answer_id, cmd](const Message_Item &item){ return item.id_.value_or(0) == answer_id && item.cmd() == cmd; });
 }
 
-Message_Item Protocol::pop_waiting_fragment(uint8_t fragmanted_msg_id)
+std::shared_ptr<Message_Item> Protocol::pop_waiting_fragment(uint8_t fragmanted_msg_id)
 {
     std::lock_guard lock(mutex_);
     return pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
 }
 
-Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Item &)> check_func)
+std::shared_ptr<Message_Item> Protocol::pop_waiting_message(std::function<bool (const Message_Item &)> check_func)
 {
     for (auto it = waiting_messages_.begin(); it != waiting_messages_.end(); ++it)
     {
-        if (check_func(it->second))
+        if (check_func(*it->second))
         {
-            Message_Item msg = std::move(it->second);
+            std::shared_ptr<Message_Item> msg = std::move(it->second);
             waiting_messages_.erase(it);
             return msg;
         }

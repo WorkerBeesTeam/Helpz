@@ -41,7 +41,8 @@ Protocol_Sender::~Protocol_Sender()
     if (protocol_ && msg_.data_device_)
     {
         msg_.data_device_->seek(msg_.data_device_->size());
-        protocol_->send_message(std::move(msg_));
+        auto const msg_ptr = std::make_shared<Message_Item>(std::move(msg_));
+        protocol_->send_message(msg_ptr);
     }
 
     setDevice(nullptr);

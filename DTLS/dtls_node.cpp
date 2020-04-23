@@ -65,33 +65,6 @@ std::string Node::address() const
     return title_s.str();
 }
 
-void Node::write(const QByteArray& data)
-{
-    std::lock_guard lock(mutex_);
-    if (dtls_ && dtls_->is_active())
-        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
-
-//    auto* ctrl = controller_;
-//    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
-
-//    socket_->get_io_context()->post([ctrl, endpoint, data]()
-//    {
-//        auto node = ctrl->get_node(endpoint);
-//        if (node)
-//            node->send(data);
-    //    });
-}
-
-void Node::write(Net::Message_Item message)
-{
-    std::lock_guard lock(mutex_);
-    if (dtls_ && dtls_->is_active() && protocol_)
-    {
-        const QByteArray data = protocol_->prepare_packet_to_send(std::move(message));
-        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
-    }
-}
-
 void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size)
 {
     try
@@ -137,6 +110,49 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     catch(...)
     {
         qCWarning(Log).noquote() << title() << "Error in receided data process_received_data";
+    }
+}
+
+void Node::write(const QByteArray& data)
+{
+    auto* ctrl = controller_;
+    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+
+    socket_->get_io_context()->post([ctrl, endpoint, data]()
+    {
+        auto node = ctrl->get_node(endpoint);
+        if (node)
+            node->write_impl(data);
+    });
+}
+
+void Node::write(std::shared_ptr<Net::Message_Item> message)
+{
+    auto* ctrl = controller_;
+    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+
+    socket_->get_io_context()->post([ctrl, endpoint, message]()
+    {
+        auto node = ctrl->get_node(endpoint);
+        if (node)
+            node->write_impl(message);
+    });
+}
+
+void Node::write_impl(const QByteArray &data)
+{
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active())
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+}
+
+void Node::write_impl(std::shared_ptr<Net::Message_Item> message)
+{
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active() && protocol_)
+    {
+        const QByteArray data = protocol_->prepare_packet_to_send(std::move(message));
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
     }
 }
 
