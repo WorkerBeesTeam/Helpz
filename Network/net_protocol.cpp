@@ -539,7 +539,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                 if (flags & ANSWER)
                 {
                     std::shared_ptr<Message_Item> waiting_msg = pop_waiting_answer(answer_id, cmd);
-                    if (waiting_msg->answer_func_)
+                    if (waiting_msg && waiting_msg->answer_func_)
                     {
                         waiting_msg->answer_func_(*msg.data_device_);
                         waiting_msg->answer_func_ = nullptr;
@@ -584,7 +584,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         else
         {
             std::shared_ptr<Message_Item> msg = pop_waiting_answer(answer_id, cmd);
-            if (msg->answer_func_)
+            if (msg && msg->answer_func_)
             {
                 data.remove(0, 1);
 
@@ -611,7 +611,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
 {
     std::shared_ptr<Message_Item> msg = pop_waiting_fragment(fragmanted_msg_id);
-    if (msg->data_device_ && pos < msg->data_device_->size())
+    if (msg && msg->data_device_ && pos < msg->data_device_->size())
     {
         qCDebug(DetailLog).noquote() << title() << "Process fragment query msg" << fragmanted_msg_id << "full" << msg->data_device_->size() << "pos" << pos << "size" << fragmanted_size;
 
@@ -673,6 +673,9 @@ void Protocol::process_wait_list(void *data)
     Time_Point now = std::chrono::system_clock::now();
     for (std::shared_ptr<Message_Item>& msg: messages)
     {
+        if (!msg)
+            continue;
+
         if (msg->end_time_ > now && msg->data_device_)
         {
             msg->set_fragment_size(msg->fragment_size() / 2);
