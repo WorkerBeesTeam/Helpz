@@ -69,6 +69,7 @@ public:
     ~Server_Thread();
 
     void stop();
+    void join();
     void set_priority(int priority);
 
     Server* server();
