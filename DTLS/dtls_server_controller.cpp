@@ -27,6 +27,8 @@ Server_Controller::~Server_Controller()
 
     {
         std::unique_lock lock(clients_mutex_);
+        for (const auto& it: clients_)
+            it.second->close();
         clients_.clear();
     }
 

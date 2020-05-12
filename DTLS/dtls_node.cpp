@@ -24,6 +24,7 @@ void Node::close()
     std::lock_guard lock(mutex_);
     if (protocol_)
     {
+        protocol_->closed();
         protocol_->set_writer(nullptr);
         protocol_.reset();
     }
