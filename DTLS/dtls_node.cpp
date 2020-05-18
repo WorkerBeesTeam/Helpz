@@ -24,6 +24,7 @@ void Node::close()
     std::lock_guard lock(mutex_);
     if (protocol_)
     {
+        protocol_->closed();
         protocol_->set_writer(nullptr);
         protocol_.reset();
     }
@@ -34,17 +35,17 @@ void Node::close()
     }
 }
 
-std::shared_ptr<Network::Protocol> Node::protocol()
+std::shared_ptr<Net::Protocol> Node::protocol()
 {
     return protocol_;
 }
 
-void Node::set_protocol(std::shared_ptr<Network::Protocol>&& protocol)
+void Node::set_protocol(std::shared_ptr<Net::Protocol>&& protocol)
 {
     protocol_ = std::move(protocol);
     if (protocol_)
     {
-        protocol_->set_writer(std::static_pointer_cast<Network::Protocol_Writer>(get_shared()));
+        protocol_->set_writer(std::static_pointer_cast<Net::Protocol_Writer>(get_shared()));
     }
 }
 
@@ -63,33 +64,6 @@ std::string Node::address() const
 {
     std::stringstream title_s; title_s << receiver_endpoint_;
     return title_s.str();
-}
-
-void Node::write(const QByteArray& data)
-{
-    std::lock_guard lock(mutex_);
-    if (dtls_ && dtls_->is_active())
-        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
-
-//    auto* ctrl = controller_;
-//    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
-
-//    socket_->get_io_context()->post([ctrl, endpoint, data]()
-//    {
-//        auto node = ctrl->get_node(endpoint);
-//        if (node)
-//            node->send(data);
-    //    });
-}
-
-void Node::write(Network::Message_Item message)
-{
-    std::lock_guard lock(mutex_);
-    if (dtls_ && dtls_->is_active() && protocol_)
-    {
-        const QByteArray data = protocol_->prepare_packet_to_send(std::move(message));
-        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
-    }
 }
 
 void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t size)
@@ -140,12 +114,55 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
     }
 }
 
-void Node::add_timeout_at(std::chrono::time_point<std::chrono::system_clock> time_point, void *data)
+void Node::write(const QByteArray& data)
+{
+    auto* ctrl = controller_;
+    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+
+    socket_->get_io_context()->post([ctrl, endpoint, data]()
+    {
+        auto node = ctrl->get_node(endpoint);
+        if (node)
+            node->write_impl(data);
+    });
+}
+
+void Node::write(std::shared_ptr<Net::Message_Item> message)
+{
+    auto* ctrl = controller_;
+    boost::asio::ip::udp::endpoint endpoint = receiver_endpoint_;
+
+    socket_->get_io_context()->post([ctrl, endpoint, message]()
+    {
+        auto node = ctrl->get_node(endpoint);
+        if (node)
+            node->write_impl(message);
+    });
+}
+
+void Node::write_impl(const QByteArray &data)
+{
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active())
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+}
+
+void Node::write_impl(std::shared_ptr<Net::Message_Item> message)
+{
+    std::lock_guard lock(mutex_);
+    if (dtls_ && dtls_->is_active() && protocol_)
+    {
+        const QByteArray data = protocol_->prepare_packet_to_send(std::move(message));
+        dtls_->send(reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+    }
+}
+
+void Node::add_timeout_at(std::chrono::system_clock::time_point time_point, void *data)
 {
     controller_->add_timeout_at(receiver_endpoint(), time_point, data);
 }
 
-std::shared_ptr<Network::Protocol> Node::create_protocol() { return {}; }
+std::shared_ptr<Net::Protocol> Node::create_protocol() { return {}; }
 
 void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {

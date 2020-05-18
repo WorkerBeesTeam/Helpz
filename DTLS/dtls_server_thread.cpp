@@ -131,9 +131,13 @@ Server_Thread::~Server_Thread()
 void Server_Thread::stop()
 {
     if (io_context_)
-    {
         io_context_->stop();
-    }
+}
+
+void Server_Thread::join()
+{
+    if (thread_.joinable())
+        thread_.join();
 }
 
 void Server_Thread::set_priority(int priority)

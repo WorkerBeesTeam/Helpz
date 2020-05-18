@@ -22,7 +22,7 @@ using std::experimental::optional;
 #include <Helpz/net_message_item.h>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 class Protocol;
 
@@ -38,11 +38,13 @@ public:
     void release();
 
     void set_fragment_size(uint32_t fragment_size);
+    void set_min_compress_size(uint32_t min_compress_size);
 
     void set_data_device(std::unique_ptr<QIODevice> data_dev, uint32_t fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE);
     Protocol_Sender &answer(std::function<void(QIODevice &)> answer_func);
     Protocol_Sender &timeout(std::function<void()> timeout_func, std::chrono::milliseconds timeout_duration,
                              std::chrono::milliseconds resend_timeout = std::chrono::milliseconds{3000});
+    Protocol_Sender &finally(std::function<void(bool)> func);
 
     template<typename T>
     QDataStream& operator <<(const T& item) { return static_cast<QDataStream&>(*this) << item; }
@@ -53,7 +55,7 @@ private:
     friend class Protocol;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NETWORK_PROTOCOL_SENDER_H

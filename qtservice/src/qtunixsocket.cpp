@@ -66,7 +66,7 @@ bool QtUnixSocket::connectTo(const QString &path)
 	size_t pathlen = strlen(path.toLatin1().constData());
         pathlen = qMin(pathlen, sizeof(addr.sun_path));
 	::memcpy(addr.sun_path, path.toLatin1().constData(), pathlen);
-	int err = ::connect(sock, (struct sockaddr *)&addr, SUN_LEN(&addr));
+    int err = ::connect(sock, (struct sockaddr *)&addr, static_cast<socklen_t>(SUN_LEN(&addr)));
         if (err != -1) {
             setSocketDescriptor(sock);
 	    ret = true;

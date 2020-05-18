@@ -4,7 +4,7 @@
 #include "waithelper.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 WaitHelper::WaitHelper(int msecTimeout) {
     m_lock = new QEventLoop;
@@ -39,13 +39,13 @@ void WaitHelper::finish(const QVariant &value) {
 QVariant WaitHelper::result() const { return m_result; }
 
 // ---------------------------------------------------------------------
-Waiter::Waiter(quint16 cmd, Helpz::Network::WaiterMap &waitHelper_map, int msecTimeout) :
+Waiter::Waiter(quint16 cmd, Helpz::Net::WaiterMap &waitHelper_map, int msecTimeout) :
     wait_map(waitHelper_map), it(wait_map.end())
 {
     if (wait_map.find(cmd) != wait_map.cend())
         return;
 
-    auto waiter = std::make_shared<Helpz::Network::WaitHelper>(msecTimeout);
+    auto waiter = std::make_shared<Helpz::Net::WaitHelper>(msecTimeout);
     auto empl = wait_map.emplace(cmd, waiter);
     if (empl.second)
     {
@@ -63,5 +63,5 @@ Waiter::operator bool() const {
     return helper && it != wait_map.end();
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

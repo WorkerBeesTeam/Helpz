@@ -58,14 +58,16 @@ isEmpty(LINK_METHOD):LINK_METHOD=ln -f -s
 }
 
 # ByMsx: for resolving headers by copying it to other directory.
+
 for(f, HEADERS) {
-  FILE_BASE = $$basename(f)
-  exists($$f) {
-    FILE_FROM = $$f
-  } else {
-    FILE_FROM = $${_PRO_FILE_PWD_}/$$f
-  }
-  RET=$$system($$LINK_METHOD $$system_quote($$system_path($$FILE_FROM)) $$system_quote($$system_path($${OUT_PWD}/../include/Helpz/$$FILE_BASE)))
+    LINK_PATH = $$system_quote($$system_path($${OUT_PWD}/../include/Helpz/$$basename(f)))
+    HEADER_PATH = $$system_quote($$system_path($${_PRO_FILE_PWD_}/$$f))
+
+    exists( $$HEADER_PATH ) {
+        RET=$$system($$LINK_METHOD $$HEADER_PATH $$LINK_PATH)
+    } else {
+        RET=$$system($$LINK_METHOD $$f $$LINK_PATH)
+    }
 }
 
 INCLUDEPATH += $${OUT_PWD}/../include

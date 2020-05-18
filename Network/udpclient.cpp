@@ -1,7 +1,7 @@
 #include "udpclient.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 void UDPClient::setHost(const QHostAddress &host) { m_host = host; }
 QHostAddress UDPClient::host() const { return m_host; }
@@ -22,5 +22,5 @@ bool UDPClient::equal(const QHostAddress& host, quint16 port) const
     return host.toIPv4Address() == m_host.toIPv4Address() && port == m_port;
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

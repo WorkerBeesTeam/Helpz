@@ -18,7 +18,7 @@ public:
            const std::shared_ptr<Tools>& tools, const Create_Client_Protocol_Func_T &create_protocol_func);
     ~Client();
 
-    std::shared_ptr<Network::Protocol> protocol();
+    std::shared_ptr<Net::Protocol> protocol();
 
     void run();
     void start_connection(const std::string& host, const std::string& port, const std::vector<std::string> &next_protocols = {});

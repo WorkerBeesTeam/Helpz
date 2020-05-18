@@ -2,11 +2,21 @@
 #define HELPZ_DATABASE_BUILDER_H
 
 #include <memory>
+#include <type_traits>
 
 #include <Helpz/db_base.h>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
+
+/* Examples:
+ * Device device; db_fill_item(query, device);
+ * Device device = db_build<Device>(query);
+ * QVector<Device> devices = db_build_list<Device>(db);
+ * auto devices = db_build_list<std::share_ptr<Device>>(db);
+ *
+ * std::set<Device> devices = db_build_list<Device, std::set>(db);
+ */
 
 template<typename T>
 void db_fill_item(const QSqlQuery& query, T& item)
@@ -17,47 +27,78 @@ void db_fill_item(const QSqlQuery& query, T& item)
 }
 
 template<typename T>
+void db_build_impl(const QSqlQuery& query, T& item)
+{
+    db_fill_item<T>(query, item);
+}
+
+template<typename T>
+void db_build_impl(const QSqlQuery& query, std::shared_ptr<T>& item)
+{
+    item = std::make_shared<T>();
+    db_fill_item<T>(query, *item);
+}
+
+template<typename T>
 T db_build(const QSqlQuery& query)
 {
     T result;
-    db_fill_item<T>(query, result);
+    db_build_impl(query, result);
     return result;
 }
 
-template<typename T>
-std::shared_ptr<T> db_build_ptr(const QSqlQuery& query)
+template<typename C, typename = void>
+struct has_reserve : std::false_type {};
+
+template<typename C>
+struct has_reserve< C, std::enable_if_t<
+                         std::is_same<
+                           decltype( std::declval<C>().reserve( std::declval<typename C::size_type>() ) ),
+                           void
+                         >::value
+                       > >
+  : std::true_type {};
+
+template< typename C >
+std::enable_if_t< !has_reserve< C >::value >
+optional_reserve( C&, std::size_t ) {}
+
+template< typename C >
+std::enable_if_t< has_reserve< C >::value >
+optional_reserve( C& c, std::size_t n )
 {
-    std::shared_ptr<T> result = std::make_shared<T>();
-    db_fill_item<T>(query, *result);
-    return result;
+    c.reserve( c.size() + n );
 }
 
-template<typename T>
-QVector<std::shared_ptr<T>> db_build_ptr_list(Base& db, const QString& suffix = QString(), const QString& db_name = QString())
+template<typename T, template<typename...> class Container = QVector>
+Container<T> db_build_list(QSqlQuery& q)
 {
-    QVector<std::shared_ptr<T>> result_vector;
-    QSqlQuery q;
-    q = db.select(db_table<T>(db_name), suffix);
-    while (q.next())
-        result_vector.push_back(db_build_ptr<T>(q));
-    return result_vector;
-}
-
-template<typename T>
-QVector<T> db_build_list(Base& db, const QString& suffix = QString(), const QString& db_name = QString())
-{
-    QVector<T> result_vector;
-    QSqlQuery q;
-    q = db.select(db_table<T>(db_name), suffix);
+    Container<T> c;
     while (q.next())
     {
-        result_vector.push_back(db_build<T>(q));
+        optional_reserve(c, 1);
+        c.insert( c.end(), db_build<T>(q) );
     }
-    return result_vector;
+    return c;
 }
 
-template<typename T, template<typename> class Container>
-QString get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t column_index = 0)
+
+template<typename T>
+struct remove_smart_pointer { using type = T; };
+
+template<typename T>
+struct remove_smart_pointer<std::shared_ptr<T>> { using type = typename T::element_type; };
+
+template<typename T, template<typename...> class Container = QVector>
+Container<T> db_build_list(Base& db, const QString& suffix = QString(), const QString& db_name = QString())
+{
+    using Item_T = typename remove_smart_pointer<T>::type;
+    QSqlQuery q = db.select(db_table<Item_T>(db_name), suffix);
+    return db_build_list<T, Container>(q);
+}
+
+template<typename T, template<typename...> class Container>
+QString db_get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t column_index = 0)
 {
     if (id_vect.empty() || static_cast<std::size_t>(T::table_column_names().size()) <= column_index)
         return {};
@@ -73,44 +114,34 @@ QString get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t co
     return suffix;
 }
 
-template<typename T, template<typename> class Container>
-QVector<T> db_build_list(Base& db, const Container<uint32_t>& id_vect, const QString& db_name = QString(), std::size_t column_index = 0)
+template<typename T, template<typename...> class Ret_Container = QVector, template<typename...> class Container>
+Ret_Container<T> db_build_list(Base& db, const Container<uint32_t>& id_vect, const QString& db_name = QString(), std::size_t column_index = 0)
 {
-    const QString suffix = get_items_list_suffix<T>(id_vect, column_index);
+    using Item_T = typename remove_smart_pointer<T>::type;
+    const QString suffix = db_get_items_list_suffix<Item_T>(id_vect, column_index);
     if (suffix.isEmpty())
         return {};
-    return db_build_list<T>(db, suffix, db_name);
-}
-
-template<typename T, template<typename> class Container>
-QVector<std::shared_ptr<T>> db_build_ptr_list(Base& db, const Container<uint32_t>& id_vect, const QString& db_name = QString(), std::size_t column_index = 0)
-{
-    const QString suffix = get_items_list_suffix<T>(id_vect, column_index);
-    if (suffix.isEmpty())
-        return {};
-    return db_build_ptr_list<T>(db, suffix, db_name);
+    return db_build_list<T, Ret_Container>(db, suffix, db_name);
 }
 
 template<typename T, typename ID_T>
 T db_build_item(Base& db, ID_T id, const QString& db_name = QString())
 {
+    using Item_T = typename remove_smart_pointer<T>::type;
+
     QString suffix = "WHERE ";
     if (!T::table_short_name().isEmpty())
-    {
-        suffix += T::table_short_name() + '.';
-    }
-    suffix += T::table_column_names().first() + '=' + QString::number(id);
+        suffix += Item_T::table_short_name() + '.';
+    suffix += Item_T::table_column_names().first() + '=' + QString::number(id);
 
-    QSqlQuery q = db.select(db_table<T>(db_name), suffix);
+    QSqlQuery q = db.select(db_table<Item_T>(db_name), suffix);
     if (q.next())
-    {
         return db_build<T>(q);
-    }
 
     return {};
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_BUILDER_H

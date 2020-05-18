@@ -3,7 +3,7 @@
 #include "net_protocol.h"
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 Q_LOGGING_CATEGORY(Log, "net")
 Q_LOGGING_CATEGORY(DetailLog, "net.detail", QtInfoMsg)
@@ -52,9 +52,7 @@ Protocol_Sender Protocol::send(uint8_t cmd)
 {
     auto ptr = writer();
     if (ptr)
-    {
         return Protocol_Sender(ptr->protocol(), cmd);
-    }
     return Protocol_Sender(std::shared_ptr<Protocol>(), cmd);
 }
 
@@ -62,41 +60,49 @@ Protocol_Sender Protocol::send_answer(uint8_t cmd, std::optional<uint8_t> msg_id
 {
     auto ptr = writer();
     if (ptr)
-    {
         return Protocol_Sender(ptr->protocol(), cmd, msg_id);
-    }
     return Protocol_Sender(std::shared_ptr<Protocol>(), cmd, msg_id);
 }
 
 void Protocol::send_byte(uint8_t cmd, char byte) { send(cmd) << byte; }
 void Protocol::send_array(uint8_t cmd, const QByteArray &buff) { send(cmd) << buff; }
 
-void Protocol::send_message(Message_Item msg)
+void Protocol::send_message(std::shared_ptr<Message_Item> msg)
 {
-    if (msg.data_device_)
+    if (!msg)
+        return;
+
+    if (msg->data_device_)
     {
         auto writer_ptr = writer();
         if (writer_ptr)
             writer_ptr->write(std::move(msg));
         else
-            qCWarning(Log).noquote() << title() << "Attempt to send message, but writer is not set. cmd:" << int(msg.cmd_);
+            qCWarning(Log).noquote() << title() << "Attempt to send message, but writer is not set. cmd:" << int(msg->cmd());
     }
     else
-        qCWarning(Log).noquote() << title() << "Attempt to send message without data device. cmd:" << int(msg.cmd_);
+        qCWarning(Log).noquote() << title() << "Attempt to send message without data device. cmd:" << int(msg->cmd());
 }
 
-QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
+QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_ptr)
 {
+    if (!msg_ptr)
+        return {};
+
+    Message_Item& msg = *msg_ptr;
+
     if (!msg.data_device_)
     {
-        qCWarning(Log).noquote() << title() << "Attempt to prepare packet without data device. cmd:" << int(msg.cmd_);
+        qCWarning(Log).noquote() << title() << "Attempt to prepare packet without data device. cmd:" << int(msg.cmd());
         return {};
     }
 
-    QByteArray packet, data;
-    uint8_t flags = msg.flags_;
+    Time_Point tt = msg.end_time_;
 
-    if (msg.answer_id_ || msg.data_device_->size() > msg.fragment_size_)
+    QByteArray packet, data;
+    uint8_t flags = msg.flags();
+
+    if (msg.answer_id_ || msg.data_device_->size() > msg.fragment_size())
     {
         QDataStream ds(&data, QIODevice::WriteOnly);
         ds.setVersion(DATASTREAM_VERSION);
@@ -107,37 +113,41 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
             ds << *msg.answer_id_;
         }
 
-        if (msg.data_device_->size() > msg.fragment_size_)
+        if (msg.data_device_->size() > msg.fragment_size())
         {
             flags |= FRAGMENT;
             ds << static_cast<uint32_t>(msg.data_device_->size());
 
             qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << msg.id_.value_or(0)
-                                         << "full" << msg.data_device_->size() << "pos" << msg.data_device_->pos() << "size" << msg.fragment_size_;
+                                         << "full" << msg.data_device_->size() << "pos" << msg.data_device_->pos() << "size" << msg.fragment_size();
+
+            uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
+            ds << pos;
 
             if (msg.data_device_->atEnd())
             {
-                ds << msg.fragment_size_;
+                ds << msg.fragment_size();
 
-                msg.end_time_ = std::chrono::system_clock::now() + std::chrono::minutes(3);
+                const auto now = std::chrono::system_clock::now();
+                if (msg.end_time_ < now)
+                    msg.end_time_ = now + std::chrono::seconds(10);
+
+                pos = 0;
             }
-            else
-            {
-                ds << static_cast<uint32_t>(msg.data_device_->pos());
-                add_raw_data_to_packet(data, msg.data_device_->pos(), msg.fragment_size_, msg.data_device_.get());
-            }
+
+            add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
         }
         else
         {
-            add_raw_data_to_packet(data, 0, msg.fragment_size_, msg.data_device_.get());
+            add_raw_data_to_packet(data, 0, msg.fragment_size(), msg.data_device_.get());
         }
     }
     else
     {
-        add_raw_data_to_packet(data, 0, msg.fragment_size_, msg.data_device_.get());
+        add_raw_data_to_packet(data, 0, msg.fragment_size(), msg.data_device_.get());
     }
 
-    if (data.size() > 512)
+    if (static_cast<uint32_t>(data.size()) > msg.min_compress_size())
     {
         flags |= COMPRESSED;
         data = qCompress(data);
@@ -148,13 +158,26 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
 
     QDataStream ds(&packet, QIODevice::WriteOnly);
     ds.setVersion(DATASTREAM_VERSION);
-    ds << uint16_t(0) << *msg.id_ << msg.cmd_ << flags << data;
+    ds << uint16_t(0) << *msg.id_ << msg.cmd() << flags << data;
 
     ds.device()->seek(0);
     ds << qChecksum(packet.constData() + 2, 7);
 
     Time_Point now = std::chrono::system_clock::now();
     last_msg_send_time_ = now;
+
+    if (DetailLog().isDebugEnabled())
+    {
+        auto dbg = qDebug(DetailLog).noquote()
+                << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now)
+                << "tt:" << tt.time_since_epoch().count();
+
+        if (flags & REPEATED) dbg << "REPEATED";
+        if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
+        if (flags & FRAGMENT) dbg << "FRAGMENT";
+        if (flags & ANSWER) dbg << "ANSWER " << int (*data.constData());
+        if (flags & COMPRESSED) dbg << "COMPRESSED";
+    }
 
     if (msg.end_time_ > now)
     {
@@ -163,13 +186,14 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
                     now + msg.resend_timeout_ :
                     msg.end_time_;
 
-        add_to_waiting(time_point, std::move(msg));
+        int msg_cmd = msg.cmd();
+        add_to_waiting(time_point, std::move(msg_ptr));
 
         auto writer_ptr = writer();
         if (writer_ptr)
             writer_ptr->add_timeout_at(std::move(time_point));
         else
-            qCWarning(Log).noquote() << title() << "Prepare packet, but writer is not set. cmd:" << int(msg.cmd_);
+            qCWarning(Log).noquote() << title() << "Prepare packet, but writer is not set. cmd:" << msg_cmd;
     }
 
     return packet;
@@ -177,8 +201,8 @@ QByteArray Protocol::prepare_packet_to_send(Message_Item&& msg)
 
 void Protocol::add_raw_data_to_packet(QByteArray& data, uint32_t pos, uint32_t max_data_size, QIODevice* device)
 {
-    uint32_t raw_size = std::min<uint32_t>(max_data_size, device->size() - pos);
-    uint8_t header_pos = data.size();
+    uint32_t raw_size = std::min<uint32_t>(max_data_size, static_cast<uint32_t>(device->size() - pos));
+    uint32_t header_pos = data.size();
     data.resize(header_pos + raw_size);
     device->seek(pos);
     device->read(data.data() + header_pos, raw_size);
@@ -195,31 +219,53 @@ void Protocol::process_bytes(const uint8_t* data, size_t size)
             writer_ptr->set_last_msg_recv_time(std::chrono::system_clock::now());
     }
 
-    if (device_.size() != 0)
-        qDebug(Log) << "POSIBLE FRAGMENTED TLS BECOSE ALREADY SIZE:" << device_.size() << "AND NEW PACKET:" << size;
-
-//    packet_end_position_.push(size);
+    packet_end_position_.push(size);
     device_.seek(device_.size());
     device_.write(reinterpret_cast<const char*>(data), size);
     device_.seek(0);
-    while (!process_stream() /* && !packet_end_position_.empty() */)
+
+    bool is_first_call = true;
+    while (!process_stream(is_first_call) && !packet_end_position_.empty())
     {
         /* Функция process_stream возвращает false только если чек-сумма используется и не совпала.
          * И если она не совпала и в текущем device_ хранится несколько пакетов,
          * то нужно удалить из него первый пакет и попробовать заново.
          */
-        break;
+
+        // Отбрасываем удачно обработанные пакеты
+        std::size_t pos = device_.pos();
+        while(!packet_end_position_.empty() && packet_end_position_.front() <= pos)
+        {
+            pos -= packet_end_position_.front();
+            packet_end_position_.pop();
+        }
+
+        // Отбрасываем не удачно обработанный пакет
+        device_.seek(0);
+        device_.buffer().remove(0, static_cast<int>(packet_end_position_.front()));
+        packet_end_position_.pop();
+
+        if (is_first_call)
+            is_first_call = false;
     }
 
-    if (device_.bytesAvailable())
+    std::size_t pos = device_.pos();
+    while(!packet_end_position_.empty() && packet_end_position_.front() <= pos)
     {
-        device_.buffer().remove(0, device_.pos());
+        pos -= packet_end_position_.front();
+        packet_end_position_.pop();
     }
+
+    if (pos && !packet_end_position_.empty())
+        packet_end_position_.front() -= pos;
+
+    if (device_.bytesAvailable())
+        device_.buffer().remove(0, static_cast<int>(device_.pos()));
     else
         device_.buffer().clear();
 }
 
-bool Protocol::process_stream()
+bool Protocol::process_stream(bool is_first_call)
 {
     /* TODO:
      * Нужно обрабатывать входящие пакеты отдельно, а не складывать их.
@@ -251,24 +297,42 @@ bool Protocol::process_stream()
         msg_stream_ >> checksum >> msg_id >> cmd >> flags >> buffer_size;
         checksum_ok = checksum == qChecksum(device_.buffer().constData() + pos + 2, 7);
 
-        if (buffer_size == 0xffffffff)
+        if (DetailLog().isDebugEnabled())
         {
-            buffer_size = 0;
+            auto dbg = qDebug(DetailLog).noquote()
+                    << title() << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
+                    << "avail:" << device_.bytesAvailable() << packet_end_position_.size();
+
+            if (flags & REPEATED) dbg << "REPEATED";
+            if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
+            if (flags & FRAGMENT) dbg << "FRAGMENT";
+            if (flags & ANSWER) dbg << "ANSWER " << int (*(device_.buffer().constData() + pos + 9));
+            if (flags & COMPRESSED) dbg << "COMPRESSED";
         }
 
-        if (!checksum_ok || buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE) // Drop message if checksum bad or too high size
+        if (buffer_size == 0xffffffff)
+            buffer_size = 0;
+
+        if (buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
         {
-            if (!device_.atEnd())
-            {
-                device_.seek(device_.size());
-            }
-            if (!checksum_ok)
+            qCWarning(Log) << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
+                           << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
+                           << "expected:" << checksum;
+
+            device_.seek(device_.size());
+            return true;
+        }
+        else if (!checksum_ok) // Drop message if checksum bad or too high size
+        {
+            device_.seek(pos);
+
+            if (is_first_call)
             {
                 qCWarning(Log) << "Message corrupt, checksum isn't same."
                                << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                                << "expected:" << checksum;
             }
-            return checksum_ok;
+            return false;
         }
         else if (device_.bytesAvailable() < buffer_size) // else if all ok, but not enough bytes
         {
@@ -297,68 +361,85 @@ bool Protocol::process_stream()
 
 bool Protocol::is_lost_message(uint8_t msg_id)
 {
-    bool finded = false;
-    for (auto it = lost_msg_list_.begin(); it != lost_msg_list_.end(); )
-    {
-        if (it->second == msg_id)
-        {
-            qCDebug(DetailLog).noquote() << title() << "Find lost message" << msg_id;
-            it = lost_msg_list_.erase(it);
-            finded = true;
-        }
-        else
-            ++it;
-    }
-    return finded;
+    auto it = lost_msg_list_.find(msg_id);
+    if (it == lost_msg_list_.end())
+        return false;
+
+    const Time_Point tp = it->second;
+    lost_msg_list_.erase(it);
+
+    return std::chrono::system_clock::now() - tp < std::chrono::seconds(10);
 }
 
 void Protocol::fill_lost_msg(uint8_t msg_id)
 {
-    bool is_fragment_msg_deleted;
+    const Time_Point now = std::chrono::system_clock::now();
+
+    const Time_Point max_tp = now - std::chrono::seconds(10);
+    const uint32_t min_id = std::numeric_limits<uint8_t>::max() + static_cast<uint8_t>(msg_id - 100);
+    const uint32_t max_id = std::numeric_limits<uint8_t>::max() + msg_id;
+
     for (auto it = lost_msg_list_.begin(); it != lost_msg_list_.end(); )
     {
-        if (uint8_t(next_rx_msg_id_ - it->second) > (std::numeric_limits<int8_t>::max() / 2))
-        {
-            is_fragment_msg_deleted = false;
-            fragmented_messages_.erase(std::remove_if(fragmented_messages_.begin(), fragmented_messages_.end(), [&is_fragment_msg_deleted, &it](const Fragmented_Message& msg)
-            {
-                if (msg == it->second)
-                {
-                    is_fragment_msg_deleted = true;
-                    return true;
-                }
-                return false;
-            }), fragmented_messages_.end());
-            it = lost_msg_list_.erase(it);
+        const uint32_t tmp_id = std::numeric_limits<uint8_t>::max() + it->first;
 
-            qCDebug(DetailLog).noquote() << title() << "Message" << it->second << "is lost. Is fragmented message:" << is_fragment_msg_deleted;
+        if (max_tp > it->second
+            || (min_id > tmp_id && tmp_id > max_id))
+        {
+            const bool is_fragmented = fragmented_messages_.erase(it->first) > 0;
+
+            if (DetailLog().isDebugEnabled())
+            {
+                auto dbg = qDebug(DetailLog).noquote() << title() << "Message" << it->first << "is lost";
+                if (max_tp > it->second)
+                    dbg << "time:" << std::chrono::duration_cast<std::chrono::milliseconds>(max_tp - it->second).count();
+                else
+                    dbg << "min_id" << min_id << "tmp_id" << tmp_id << "max_id" << max_id;
+
+                if (is_fragmented)
+                    dbg << " is_fragmented";
+            }
+
+            it = lost_msg_list_.erase(it);
         }
         else
-        {
             ++it;
-        }
     }
 
-    Time_Point now = std::chrono::system_clock::now();
+    if (msg_id > (next_rx_msg_id_ + 100))
+        next_rx_msg_id_ = static_cast<uint8_t>(msg_id - 100);
+
     while (msg_id != next_rx_msg_id_)
-    {
-        lost_msg_list_.push_back(std::make_pair(now, next_rx_msg_id_++));
-    }
+        lost_msg_list_.emplace(next_rx_msg_id_++, now);
 }
 
 void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t flags, const char *data_ptr, uint32_t data_size)
 {
-    if (flags & REPEATED || (msg_id < next_rx_msg_id_ && uint8_t(next_rx_msg_id_ - msg_id) < std::numeric_limits<int8_t>::max()))
+    if (flags & REPEATED
+        || (msg_id < next_rx_msg_id_
+            && (next_rx_msg_id_ - msg_id) < 100))
     {
-        if (!is_lost_message(msg_id))
+        if (is_lost_message(msg_id))
+            qCDebug(DetailLog).noquote() << title() << "Find lost message" << msg_id;
+        else if (flags & REPEATED)
         {
-            qCDebug(DetailLog).noquote() << title() << "Dropped message" << msg_id << "expected" << next_rx_msg_id_ << ". Cmd:" << int(cmd) << "Flags:" << int(flags) << "Size:" << data_size;
+            if (DetailLog().isDebugEnabled())
+            {
+                auto dbg = qDebug(DetailLog).noquote() << title() << "Dropped message" << msg_id << "expected" << next_rx_msg_id_
+                                                       << "Cmd:" << cmd << "Flags:" << int(flags) << "Size:" << data_size;
+                if (flags & REPEATED) dbg << "REPEATED";
+                if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
+                if (flags & FRAGMENT) dbg << "FRAGMENT";
+                if (flags & ANSWER) dbg << "ANSWER";
+                if (flags & COMPRESSED) dbg << "COMPRESSED";
+            }
             return;
         }
     }
     else
     {
-        if (msg_id > next_rx_msg_id_ || uint8_t(next_rx_msg_id_ - msg_id) > std::numeric_limits<int8_t>::max())
+        if (msg_id > next_rx_msg_id_
+            || (next_rx_msg_id_ - msg_id) > 100)
         {
             lost_msg_detected(msg_id, next_rx_msg_id_);
 
@@ -367,7 +448,8 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
             fill_lost_msg(msg_id);
         }
 
-        next_rx_msg_id_ = msg_id + 1;
+        if ((msg_id + 1) >= (next_rx_msg_id_ + 1))
+            next_rx_msg_id_ = static_cast<uint8_t>(msg_id + 1);
     }
 
     // If COMPRESSED or FRAGMENT flag is setted, then data_size can not be zero.
@@ -381,37 +463,53 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                 qUncompress(reinterpret_cast<const uchar*>(data_ptr), data_size) :
                 QByteArray(data_ptr, data_size);
 
-    if (flags & (FRAGMENT | ANSWER))
+    if (cmd == Cmd::REMOVE_FRAGMENT)
+    {
+        uint8_t fragment_id;
+        Helpz::parse_out(DATASTREAM_VERSION, data, fragment_id);
+        fragmented_messages_.erase(fragment_id);
+    }
+    else if (flags & FRAGMENT_QUERY)
+    {
+        apply_parse(data, &Protocol::process_fragment_query);
+    }
+    else if (flags & (FRAGMENT | ANSWER))
     {
         QDataStream ds(&data, QIODevice::ReadOnly);
         ds.setVersion(DATASTREAM_VERSION);
 
         uint8_t answer_id;
         if (flags & ANSWER)
-        {
             Helpz::parse_out(ds, answer_id);
-        }
 
         if (flags & FRAGMENT)
         {
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
-            std::vector<Fragmented_Message>::iterator it = std::find(fragmented_messages_.begin(), fragmented_messages_.end(), msg_id);
+            uint32_t max_fragment_size;
+            if (full_size == pos)
+                Helpz::parse_out(ds, max_fragment_size);
+
+            std::map<uint8_t, Fragmented_Message>::iterator it = fragmented_messages_.find(msg_id);
 
             if (full_size >= HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
             {
                 qCCritical(Log).noquote() << title() << "try to receive too big message:" << full_size << "max:" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE;
-                fragmented_messages_.erase(it);
+                if (fragmented_messages_.end() != it)
+                    fragmented_messages_.erase(it);
                 return;
             }
 
             if (it == fragmented_messages_.end())
             {
-                uint32_t max_fragment_size = pos > 0 ? pos : HELPZ_MAX_MESSAGE_DATA_SIZE;
-                it = fragmented_messages_.emplace(fragmented_messages_.end(), msg_id, cmd, max_fragment_size, full_size);
+                if (max_fragment_size == 0 || max_fragment_size > HELPZ_MAX_PACKET_DATA_SIZE)
+                    max_fragment_size = HELPZ_MAX_MESSAGE_DATA_SIZE;
+
+                Fragmented_Message msg{msg_id, cmd, max_fragment_size, full_size};
+                it = fragmented_messages_.emplace(msg_id, std::move(msg)).first;
             }
-            Fragmented_Message &msg = *it;
+            Fragmented_Message &msg = it->second;
 
             if (!msg.data_device_->open(QIODevice::ReadWrite))
             {
@@ -424,12 +522,12 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 
             if (!ds.atEnd())
             {
-                uint32_t data_pos = ds.device()->pos();
+                uint32_t data_pos = static_cast<uint32_t>(ds.device()->pos());
                 msg.add_data(pos, data.constData() + data_pos, data.size() - data_pos);
             }
 
             auto msg_out = send(cmd);
-            msg_out.msg_.flags_ |= FRAGMENT_QUERY;
+            msg_out.msg_.set_flags(msg_out.msg_.flags() | FRAGMENT_QUERY, Message_Item::Only_Protocol());
             msg_out << msg_id;
 
             if (msg.is_parts_empty())
@@ -437,12 +535,14 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                 msg_out << full_size << msg.max_fragment_size_;
 
                 msg.data_device_->seek(0);
+
                 if (flags & ANSWER)
                 {
-                    Message_Item waiting_msg = pop_waiting_answer(answer_id, cmd);
-                    if (waiting_msg.answer_func_)
+                    std::shared_ptr<Message_Item> waiting_msg = pop_waiting_answer(answer_id, cmd);
+                    if (waiting_msg && waiting_msg->answer_func_)
                     {
-                        waiting_msg.answer_func_(*msg.data_device_);
+                        waiting_msg->answer_func_(*msg.data_device_);
+                        waiting_msg->answer_func_ = nullptr;
                     }
                     else
                     {
@@ -454,6 +554,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                 {
                     process_message(msg_id, cmd, *msg.data_device_);
                 }
+
                 fragmented_messages_.erase(it);
             }
             else
@@ -461,7 +562,9 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                 msg.data_device_->close();
 
                 Time_Point now = std::chrono::system_clock::now();
-                lost_msg_list_.push_back(std::make_pair(now, msg_id));
+                auto emp_it = lost_msg_list_.emplace(msg_id, now);
+                if (!emp_it.second)
+                    emp_it.first->second = now;
                 msg.last_part_time_ = now;
 
                 const QPair<uint32_t, uint32_t> next_part = msg.get_next_part();
@@ -480,19 +583,16 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         }
         else
         {
-            Message_Item msg = pop_waiting_answer(answer_id, cmd);
-            if (msg.answer_func_)
+            std::shared_ptr<Message_Item> msg = pop_waiting_answer(answer_id, cmd);
+            if (msg && msg->answer_func_)
             {
                 data.remove(0, 1);
 
                 QBuffer buffer(&data);
-                msg.answer_func_(buffer);
+                msg->answer_func_(buffer);
+                msg->answer_func_ = nullptr;
             }
         }
-    }
-    else if (flags & FRAGMENT_QUERY)
-    {
-        apply_parse(data, &Protocol::process_fragment_query);
     }
     else
     {
@@ -510,14 +610,19 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
 
 void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, uint32_t fragmanted_size)
 {
-    Message_Item msg = pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
-    if (msg.data_device_ && pos < msg.data_device_->size())
+    std::shared_ptr<Message_Item> msg = pop_waiting_fragment(fragmanted_msg_id);
+    if (msg && msg->data_device_ && pos < msg->data_device_->size())
     {
-        qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << fragmanted_msg_id << "full" << msg.data_device_->size() << "pos" << pos << "size" << fragmanted_size;
+        qCDebug(DetailLog).noquote() << title() << "Process fragment query msg" << fragmanted_msg_id << "full" << msg->data_device_->size() << "pos" << pos << "size" << fragmanted_size;
 
-        msg.fragment_size_ = fragmanted_size;
-        msg.data_device_->seek(pos);
+        msg->set_fragment_size(fragmanted_size);
+        msg->data_device_->seek(pos);
         send_message(std::move(msg));
+    }
+    else
+    {
+        qCDebug(DetailLog).noquote() << title() << "Send remove unknown fragment" << fragmanted_msg_id;
+        send(Cmd::REMOVE_FRAGMENT) << fragmanted_msg_id;
     }
 }
 
@@ -531,8 +636,9 @@ void Protocol::process_wait_list(void *data)
             Time_Point now = std::chrono::system_clock::now();
             auto writer_ptr = writer();
 
-            for (Fragmented_Message& msg: fragmented_messages_)
+            for (auto& it: fragmented_messages_)
             {
+                Fragmented_Message& msg = it.second;
                 if (!msg.is_parts_empty()
                     && now - msg.last_part_time_ >= std::chrono::milliseconds(1500))
                 {
@@ -540,13 +646,13 @@ void Protocol::process_wait_list(void *data)
                     if (msg.max_fragment_size_ < 32)
                         msg.max_fragment_size_ = 32;
 
-                    lost_msg_list_.push_back(std::make_pair(now, msg.id_));
+                    lost_msg_list_.emplace(msg.id_, now);
                     msg.last_part_time_ = now;
 
                     const QPair<uint32_t, uint32_t> next_part = msg.get_next_part();
 
                     auto msg_out = send(msg.cmd_);
-                    msg_out.msg_.cmd_ |= FRAGMENT_QUERY;
+                    msg_out.msg_.set_flags(msg_out.msg_.flags() | FRAGMENT_QUERY, Message_Item::Only_Protocol());
                     msg_out << msg.id_ << next_part;
 
                     if (writer_ptr)
@@ -562,49 +668,50 @@ void Protocol::process_wait_list(void *data)
         }
     }
 
-    std::vector<Message_Item> messages = pop_waiting_messages();
+    std::vector<std::shared_ptr<Message_Item>> messages = pop_waiting_messages();
 
     Time_Point now = std::chrono::system_clock::now();
-    for (Message_Item& msg: messages)
+    for (std::shared_ptr<Message_Item>& msg: messages)
     {
-        if (msg.end_time_ > now && msg.data_device_)
+        if (!msg)
+            continue;
+
+        if (msg->end_time_ > now && msg->data_device_)
         {
-            msg.fragment_size_ /= 2;
-            if (msg.fragment_size_ < 32)
-            {
-                msg.fragment_size_ = 32;
-            }
-            msg.flags_ |= REPEATED;
+            msg->set_fragment_size(msg->fragment_size() / 2);
+            msg->set_flags(msg->flags() | REPEATED, Message_Item::Only_Protocol());
             send_message(std::move(msg));
         }
         else
         {
-            qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg.id_.value_or(0);
+            qCDebug(DetailLog).noquote() << title() << "Message timeout. msg" << msg->id_.value_or(0);
 
-            if (msg.timeout_func_)
-                msg.timeout_func_();
+            if (msg->timeout_func_)
+                msg->timeout_func_();
         }
     }
 }
 
-void Protocol::add_to_waiting(Time_Point time_point, Message_Item &&message)
+void Protocol::add_to_waiting(Time_Point time_point, std::shared_ptr<Message_Item> message)
 {
     std::lock_guard lock(mutex_);
+
+    uint8_t msg_id = message->id_.value_or(0);
+    pop_waiting_message([msg_id](const Message_Item &item) { return item.id_.value_or(0) == msg_id; });
+
     waiting_messages_.emplace(std::move(time_point), std::move(message));
 }
 
-std::vector<Message_Item> Protocol::pop_waiting_messages()
+std::vector<std::shared_ptr<Message_Item>> Protocol::pop_waiting_messages()
 {
-    std::vector<Message_Item> messages;
+    std::vector<std::shared_ptr<Message_Item>> messages;
     std::lock_guard lock(mutex_);
 
     Time_Point now = std::chrono::system_clock::now() + std::chrono::milliseconds(20);
     for (auto it = waiting_messages_.begin(); it != waiting_messages_.end(); )
     {
         if (it->first > now)
-        {
             break;
-        }
 
         messages.push_back(std::move(it->second));
         it = waiting_messages_.erase(it);
@@ -612,19 +719,25 @@ std::vector<Message_Item> Protocol::pop_waiting_messages()
     return messages;
 }
 
-Message_Item Protocol::pop_waiting_answer(uint8_t answer_id, uint8_t cmd)
-{
-    return pop_waiting_message([answer_id, cmd](const Message_Item &item){ return item.id_.value_or(0) == answer_id && item.cmd_ == cmd; });
-}
-
-Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Item &)> check_func)
+std::shared_ptr<Message_Item> Protocol::pop_waiting_answer(uint8_t answer_id, uint8_t cmd)
 {
     std::lock_guard lock(mutex_);
+    return pop_waiting_message([answer_id, cmd](const Message_Item &item){ return item.id_.value_or(0) == answer_id && item.cmd() == cmd; });
+}
+
+std::shared_ptr<Message_Item> Protocol::pop_waiting_fragment(uint8_t fragmanted_msg_id)
+{
+    std::lock_guard lock(mutex_);
+    return pop_waiting_message([fragmanted_msg_id](const Message_Item &item){ return item.id_.value_or(0) == fragmanted_msg_id; });
+}
+
+std::shared_ptr<Message_Item> Protocol::pop_waiting_message(std::function<bool (const Message_Item &)> check_func)
+{
     for (auto it = waiting_messages_.begin(); it != waiting_messages_.end(); ++it)
     {
-        if (check_func(it->second))
+        if (check_func(*it->second))
         {
-            Message_Item msg = std::move(it->second);
+            std::shared_ptr<Message_Item> msg = std::move(it->second);
             waiting_messages_.erase(it);
             return msg;
         }
@@ -632,5 +745,5 @@ Message_Item Protocol::pop_waiting_message(std::function<bool (const Message_Ite
     return {};
 }
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz

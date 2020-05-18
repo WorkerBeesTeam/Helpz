@@ -6,20 +6,26 @@
 
 #include <QString>
 
+#include <Helpz/db_table.h>
+
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 class Delete_Row_Info
 {
 public:
-    Delete_Row_Info(const QString& table_name, const QString& field_name = QString(),
-                 const std::vector<Delete_Row_Info>& childs = {}, bool set_null = false, const QString& pk_name = "id");
+    Delete_Row_Info(const Table& table, int field_index,
+                 const std::vector<Delete_Row_Info>& childs = {}, bool set_null = false, int pk_index = 0);
 
-    QString table_name_;
-    QString field_name_;
-    QString pk_name_;
-    std::vector<Delete_Row_Info> childs_;
+    QString table_name() const;
+    QString field_name() const;
+    QString pk_name() const;
+
     bool set_null_;
+    int field_i_, pk_i_;
+
+    Table table_;
+    std::vector<Delete_Row_Info> childs_;
 };
 
 typedef std::vector<Delete_Row_Info> Delete_Row_Info_List;
@@ -32,7 +38,7 @@ public:
 
     Delete_Row_Helper(Base* obj, const QString& id, FILL_WHERE_FUNC_T fill_where_func = nullptr);
 
-    bool del(const QString& table_name, const std::vector<Delete_Row_Info>& delete_rows_info, const QString& pk_name = "id");
+    bool del(const Delete_Row_Info& row_info);
 
 private:
     void del_impl(const Delete_Row_Info& del_parent);
@@ -45,7 +51,7 @@ private:
     FILL_WHERE_FUNC_T fill_where_func_;
 };
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_DELETE_ROW_H

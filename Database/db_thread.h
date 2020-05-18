@@ -13,7 +13,7 @@
 #include <Helpz/db_connection_info.h>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 class Base;
 class Thread
@@ -53,7 +53,7 @@ private:
     std::vector<std::thread> thread_list_;
 };
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_THREAD_H

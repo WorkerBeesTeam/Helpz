@@ -27,6 +27,8 @@ Server_Controller::~Server_Controller()
 
     {
         std::unique_lock lock(clients_mutex_);
+        for (const auto& it: clients_)
+            it.second->close();
         clients_.clear();
     }
 
@@ -61,11 +63,11 @@ void Server_Controller::process_data(std::shared_ptr<Node> &node, std::unique_pt
     node->process_received_data(std::move(data), size);
 }
 
-void Server_Controller::remove_copy(Network::Protocol *client)
+void Server_Controller::remove_copy(Net::Protocol *client)
 {
     if (check_copy(client))
     {
-        std::shared_ptr<Network::Protocol> proto;
+        std::shared_ptr<Net::Protocol> proto;
         std::lock_guard lock(clients_mutex_);
         for(auto it = clients_.begin(); it != clients_.end();)
         {
@@ -74,6 +76,7 @@ void Server_Controller::remove_copy(Network::Protocol *client)
             {
                 qCDebug(Log).noquote() << it->second->title() << "same. Erase it.";
                 proto->before_remove_copy();
+                it->second->close();
                 it = clients_.erase(it);
             }
             else
@@ -82,9 +85,9 @@ void Server_Controller::remove_copy(Network::Protocol *client)
     }
 }
 
-bool Server_Controller::check_copy(Network::Protocol *client)
+bool Server_Controller::check_copy(Net::Protocol *client)
 {
-    std::shared_ptr<Network::Protocol> proto;
+    std::shared_ptr<Net::Protocol> proto;
     boost::shared_lock lock(clients_mutex_);
     for (const std::pair<udp::endpoint, std::shared_ptr<Server_Node>>& it: clients_)
     {
@@ -109,6 +112,7 @@ void Server_Controller::remove_frozen_clients(std::chrono::seconds frozen_timeou
             if ((now - it->second->last_msg_recv_time()) > frozen_timeout)
             {
                 qCDebug(Log).noquote() << it->second->title() << "timeout. Erase it.";
+                it->second->close();
                 it = clients_.erase(it);
             }
             else
@@ -142,9 +146,9 @@ std::shared_ptr<Server_Node> Server_Controller::find_client(const udp::endpoint 
     return {};
 }
 
-std::shared_ptr<Server_Node> Server_Controller::find_client(std::function<bool (const Network::Protocol *)> check_protocol_func) const
+std::shared_ptr<Server_Node> Server_Controller::find_client(std::function<bool (const Net::Protocol *)> check_protocol_func) const
 {
-    std::shared_ptr<Network::Protocol> proto;
+    std::shared_ptr<Net::Protocol> proto;
     boost::shared_lock lock(clients_mutex_);
     for (const std::pair<udp::endpoint, std::shared_ptr<Server_Node>>& it: clients_)
     {
@@ -180,7 +184,7 @@ void Server_Controller::remove_client(const udp::endpoint &remote_endpoint)
     clients_.erase(remote_endpoint);
 }
 
-std::shared_ptr<Network::Protocol> Server_Controller::create_protocol(const std::vector<std::string> &client_protos, std::string *choose_out)
+std::shared_ptr<Net::Protocol> Server_Controller::create_protocol(const std::vector<std::string> &client_protos, std::string *choose_out)
 {
     return create_protocol_func_(client_protos, choose_out);
 }
@@ -225,7 +229,7 @@ void Server_Controller::on_protocol_timeout(boost::asio::ip::udp::endpoint remot
     std::shared_ptr<Server_Node> node = find_client(remote_endpoint);
     if (node)
     {
-        std::shared_ptr<Network::Protocol> proto = node->protocol();
+        std::shared_ptr<Net::Protocol> proto = node->protocol();
         if (proto)
         {
             std::lock_guard node_lock(node->record_mutex_);

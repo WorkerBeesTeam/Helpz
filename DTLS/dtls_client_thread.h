@@ -10,7 +10,7 @@
 #include <Helpz/dtls_client_controller.h>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 class Protocol;
 }
 namespace DTLS {

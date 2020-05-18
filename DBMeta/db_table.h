@@ -4,7 +4,7 @@
 #include <QStringList>
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 class Table
 {
@@ -45,12 +45,12 @@ QString db_table_name(const QString& db_name = QString())
 }
 
 template<typename T>
-Helpz::Database::Table db_table(const QString& db_name = QString())
+Helpz::DB::Table db_table(const QString& db_name = QString())
 {
     return { db_table_name<T>(db_name), T::table_short_name(), T::table_column_names() };
 }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz
 
 #endif // HELPZ_DATABASE_TABLE_H

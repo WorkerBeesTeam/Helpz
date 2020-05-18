@@ -24,7 +24,7 @@ Client::~Client()
     close();
 }
 
-std::shared_ptr<Helpz::Network::Protocol> Client::protocol()
+std::shared_ptr<Helpz::Net::Protocol> Client::protocol()
 {
     return controller()->get_node()->protocol();
 }

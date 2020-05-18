@@ -1,7 +1,7 @@
 #include "db_table.h"
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 Table::Table(const QString& name, const QString& short_name, const QStringList& field_names) :
     name_(name), short_name_(short_name), field_names_(field_names)
@@ -27,5 +27,5 @@ QStringList& Table::field_names() { return field_names_; }
 const QStringList& Table::field_names() const { return field_names_; }
 void Table::set_field_names(const QStringList& field_names) { field_names_ = field_names; }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz

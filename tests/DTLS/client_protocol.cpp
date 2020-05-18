@@ -6,9 +6,9 @@
 
 namespace Helpz {
 
-/*static*/ std::shared_ptr<Helpz::Network::Protocol> Client_Protocol::create(const std::string &/*app_protocol*/)
+/*static*/ std::shared_ptr<Helpz::Net::Protocol> Client_Protocol::create(const std::string &/*app_protocol*/)
 {
-    return std::shared_ptr<Helpz::Network::Protocol>(new Client_Protocol{});
+    return std::shared_ptr<Helpz::Net::Protocol>(new Client_Protocol{});
 }
 
 std::future<void> Client_Protocol::test_simple_message(const QString &text)
@@ -87,12 +87,12 @@ void Client_Protocol::ready_write()
 
 void Client_Protocol::process_message(uint8_t msg_id, uint8_t cmd, QIODevice &data_dev)
 {
-    std::cout << "process_message #" << int(msg_id) << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
+    std::cout << "process_message #" << msg_id << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
 }
 
 void Client_Protocol::process_answer_message(uint8_t msg_id, uint8_t cmd, QIODevice &data_dev)
 {
-    std::cout << "process_answer_message #" << int(msg_id) << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
+    std::cout << "process_answer_message #" << msg_id << ' ' << int(cmd) << " size " << data_dev.size() << std::endl;
 }
 
 } // namespace Helpz

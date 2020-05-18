@@ -3,7 +3,7 @@
 #include "db_connection_info.h"
 
 namespace Helpz {
-namespace Database {
+namespace DB {
 
 /*static*/ Connection_Info Connection_Info::common_;
 /*static*/ const Connection_Info& Connection_Info::common() { return common_; }
@@ -67,5 +67,5 @@ void Connection_Info::set_password(const QString& password) { password_ = passwo
 QString Connection_Info::prefix() const { return prefix_; }
 void Connection_Info::set_prefix(const QString& prefix) { prefix_ = prefix; }
 
-} // namespace Database
+} // namespace DB
 } // namespace Helpz

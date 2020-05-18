@@ -9,7 +9,7 @@
 #include <boost/asio/ip/udp.hpp>
 
 namespace Helpz {
-namespace Network {
+namespace Net {
 
 class Protocol_Timer_Emiter
 {
@@ -45,7 +45,7 @@ private:
     std::map<Time_Point, Item> items_;
 };
 
-} // namespace Network
+} // namespace Net
 } // namespace Helpz
 
 #endif // HELPZ_NET_PROTOCOL_TIMER_H

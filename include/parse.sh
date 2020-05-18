@@ -7,7 +7,9 @@ touch $LOCKFILE
 
 FIND_PATH=$1
 if [ -z "$1" ]; then
-    FIND_PATH=../
+    FIND_PATH=..
+elif [ "${FIND_PATH: -1}" = "/" ]; then
+    FIND_PATH=${FIND_PATH::-1}
 fi
 
 PATH_TO=$2
@@ -17,9 +19,8 @@ fi
 
 [ -d $PATH_TO/Helpz ] || mkdir -p $PATH_TO/Helpz
 rm -f $PATH_TO/Helpz/* || true
-find $FIND_PATH -name "*.h" ! -path "$FIND_PATH/include/Helpz/*" -exec ln -s ../{} $PATH_TO/Helpz/ \;
+find $FIND_PATH -name "*.h" ! -path "$FIND_PATH/include/Helpz/*" ! -path "$FIND_PATH/DTLS/test/*" -exec ln -s ../{} $PATH_TO/Helpz/ \;
 
-sleep 3
 rm -f $LOCKFILE
 
 exit 0

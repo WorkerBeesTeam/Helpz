@@ -22,7 +22,7 @@ void term_handler(int signal)
     if (signal == SIGSEGV || signal == SIGFPE)
     {
         void *array[10];
-        size_t size = backtrace(array, 10);
+        int size = backtrace(array, 10);
 
         // print out all the frames to stderr
         fprintf(stderr, "Error: signal %d:\n", signal);
