@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h> // mkdir
 
 #include "zfile.h"
 
@@ -7,23 +8,33 @@ namespace Helpz {
 
 File::File(const std::string &name) : _fd(-1), _name(name) {}
 
-File::File(const std::string &name, int open_mode, int file_attibute) : _fd(-1), _name(name) { open(open_mode, file_attibute); }
+File::File(const std::string &name, int open_mode, int permissions) : _fd(-1), _name(name) { open(open_mode, permissions); }
 
 File::~File()
 {
     close();
 }
 
-std::string File::read_all(const std::string &name, std::size_t size)
+/*static*/ bool File::exist(const std::string &name)
+{
+    return access( name.c_str(), F_OK ) != -1;
+}
+
+/*static*/ std::string File::read_all(const std::string &name, std::size_t size)
 {
     File file(name, READ_ONLY);
     return file.read_all(size);
 }
 
-bool File::write(const std::string &name, const char *data, std::size_t data_size, int open_mode, int file_attibute)
+/*static*/ bool File::write(const std::string &name, const char *data, std::size_t data_size, int open_mode, int permissions)
 {
-    File file(name, open_mode, file_attibute);
+    File file(name, open_mode, permissions);
     return file.write(data, data_size);
+}
+
+/*static*/ bool File::create_dir(const std::string &name, int permissions)
+{
+    return mkdir(name.c_str(), permissions) != -1;
 }
 
 std::string File::read_all(std::size_t size)
