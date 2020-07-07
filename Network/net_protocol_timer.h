@@ -24,6 +24,9 @@ public:
     Protocol_Timer(Protocol_Timer_Emiter* emiter);
     virtual ~Protocol_Timer();
 
+    void stop();
+    void join();
+
     typedef std::chrono::time_point<std::chrono::system_clock> Time_Point;
 
     void add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint, void* data);

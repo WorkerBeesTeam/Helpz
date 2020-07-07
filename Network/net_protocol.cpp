@@ -315,7 +315,7 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
         {
-            qCWarning(Log) << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
+            qCWarning(Log) << title() << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
                            << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                            << "expected:" << checksum;
 
@@ -328,7 +328,7 @@ bool Protocol::process_stream(bool is_first_call)
 
             if (is_first_call)
             {
-                qCWarning(Log) << "Message corrupt, checksum isn't same."
+                qCWarning(Log) << title() << "Message corrupt, checksum isn't same."
                                << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                                << "expected:" << checksum;
             }
