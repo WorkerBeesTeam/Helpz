@@ -15,17 +15,24 @@ Protocol_Timer::Protocol_Timer(Protocol_Timer_Emiter *emiter) :
 
 Protocol_Timer::~Protocol_Timer()
 {
-    if (thread_->joinable())
-    {
-        {
-            std::lock_guard lock(mutex_);
-            break_flag_ = true;
-            cond_.notify_one();
-        }
-
-        thread_->join();
-    }
+    stop();
+    join();
     delete thread_;
+}
+
+void Protocol_Timer::stop()
+{
+    {
+        std::lock_guard lock(mutex_);
+        break_flag_ = true;
+    }
+    cond_.notify_one();
+}
+
+void Protocol_Timer::join()
+{
+    if (thread_->joinable())
+        thread_->join();
 }
 
 void Protocol_Timer::add(Time_Point time_point, boost::asio::ip::udp::endpoint endpoint, void *data)
