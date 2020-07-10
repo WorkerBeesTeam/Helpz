@@ -168,7 +168,7 @@ void Logging::save(QtMsgType type, const LogContext &ctx, const QString &str)
 #endif
         if (ts_)
     {
-        *ts_ << (get_prefix(type, ctx.category(), "[hh:mm:ss dd.MM]") + str) << endl;
+        *ts_ << (get_prefix(type, ctx.category(), "[hh:mm:ss dd.MM]") + str) << Qt::endl;
         ts_->flush();
     }
 }

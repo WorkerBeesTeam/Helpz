@@ -121,21 +121,15 @@ QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_pt
             qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << msg.id_.value_or(0)
                                          << "full" << msg.data_device_->size() << "pos" << msg.data_device_->pos() << "size" << msg.fragment_size();
 
-            uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
-            ds << pos;
+            ds << static_cast<uint32_t>(msg.data_device_->pos());
 
             if (msg.data_device_->atEnd())
             {
                 ds << msg.fragment_size();
-
-                const auto now = std::chrono::system_clock::now();
-                if (msg.end_time_ < now)
-                    msg.end_time_ = now + std::chrono::seconds(10);
-
-                pos = 0;
+                msg.end_time_ = std::chrono::system_clock::now() + std::chrono::seconds(10);
             }
-
-            add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
+            else
+                add_raw_data_to_packet(data, msg.data_device_->pos(), msg.fragment_size(), msg.data_device_.get());
         }
         else
         {
@@ -500,9 +494,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
-            uint32_t max_fragment_size;
-            if (full_size == pos)
-                Helpz::parse_out(ds, max_fragment_size);
+            uint32_t max_fragment_size = full_size == pos ? Helpz::parse<uint32_t>(ds) : 0;
 
             std::map<uint8_t, Fragmented_Message>::iterator it = fragmented_messages_.find(msg_id);
 
@@ -634,6 +626,9 @@ void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, u
     }
     else
     {
+        if (msg && msg->answer_func_)
+            add_to_waiting(msg->end_time_, msg);
+
         qCDebug(DetailLog).noquote() << title() << "Send remove unknown fragment" << fragmanted_msg_id;
         send(Cmd::REMOVE_FRAGMENT) << fragmanted_msg_id;
     }
