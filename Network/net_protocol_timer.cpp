@@ -55,24 +55,16 @@ void Protocol_Timer::run()
         timeout = false;
 
         lock.lock();
-        if (items_.size())
-        {
-            timeout = !cond_.wait_until(lock, items_.begin()->first, pred_func);
-        }
-        else
-        {
+        if (items_.empty())
             cond_.wait(lock, pred_func);
-        }
+        else
+            timeout = !cond_.wait_until(lock, items_.begin()->first, pred_func);
 
         if (break_flag_)
-        {
             break;
-        }
 
         if (new_timeout_flag_)
-        {
             new_timeout_flag_ = false;
-        }
 
         if (timeout && items_.size())
         {
@@ -85,9 +77,7 @@ void Protocol_Timer::run()
                     it = items_.erase(it);
                 }
                 else
-                {
                     break;
-                }
             }
         }
 

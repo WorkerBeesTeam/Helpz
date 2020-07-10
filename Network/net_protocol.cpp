@@ -572,6 +572,13 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                     emp_it.first->second = now;
                 msg.last_part_time_ = now;
 
+                if (msg.max_fragment_size_ < HELPZ_MAX_MESSAGE_DATA_SIZE)
+                {
+                    msg.max_fragment_size_ += msg.max_fragment_size_ / 5;
+                    if (msg.max_fragment_size_ > HELPZ_MAX_MESSAGE_DATA_SIZE)
+                        msg.max_fragment_size_ = HELPZ_MAX_MESSAGE_DATA_SIZE;
+                }
+
                 const QPair<uint32_t, uint32_t> next_part = msg.get_next_part();
                 msg_out << next_part;
 
@@ -664,10 +671,7 @@ void Protocol::process_wait_list(void *data)
                     msg_out << msg.id_ << next_part;
 
                     if (writer_ptr)
-                    {
-                        intptr_t value = FRAGMENT;
                         writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1505), reinterpret_cast<void*>(value));
-                    }
 
                     qCDebug(DetailLog).noquote() << title() << "Send fragment query msg" << msg.id_ << "part" << next_part;
                 }
