@@ -124,12 +124,11 @@ QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_pt
             ds << static_cast<uint32_t>(msg.data_device_->pos());
 
             if (msg.data_device_->atEnd())
-            {
                 ds << msg.fragment_size();
-                msg.end_time_ = std::chrono::system_clock::now() + std::chrono::seconds(10);
-            }
             else
                 add_raw_data_to_packet(data, msg.data_device_->pos(), msg.fragment_size(), msg.data_device_.get());
+
+            msg.end_time_ = std::chrono::system_clock::now() + std::chrono::seconds(10);
         }
         else
         {
@@ -658,8 +657,8 @@ void Protocol::process_wait_list(void *data)
                     && now - msg.last_part_time_ >= std::chrono::milliseconds(1500))
                 {
                     msg.max_fragment_size_ /= 2;
-                    if (msg.max_fragment_size_ < 32)
-                        msg.max_fragment_size_ = 32;
+                    if (msg.max_fragment_size_ < 128)
+                        msg.max_fragment_size_ = 128;
 
                     lost_msg_list_.emplace(msg.id_, now);
                     msg.last_part_time_ = now;
