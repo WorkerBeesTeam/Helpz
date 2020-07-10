@@ -169,8 +169,9 @@ QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_pt
     if (DetailLog().isDebugEnabled())
     {
         auto dbg = qDebug(DetailLog).noquote()
-                << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now)
-                << "tt:" << tt.time_since_epoch().count();
+                << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now);
+        if (tt.time_since_epoch().count())
+            dbg << "tt:" << std::chrono::duration_cast<std::chrono::milliseconds>(tt - now).count();
 
         if (flags & REPEATED) dbg << "REPEATED";
         if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
@@ -299,8 +300,10 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (DetailLog().isDebugEnabled())
         {
-            auto dbg = qDebug(DetailLog).noquote()
-                    << title() << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
+            auto dbg = qDebug(DetailLog).noquote() << title();
+            if (!is_first_call)
+                dbg << "Research";
+            dbg << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
                     << "avail:" << device_.bytesAvailable() << packet_end_position_.size();
 
             if (flags & REPEATED) dbg << "REPEATED";
@@ -315,9 +318,11 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
         {
-            qCWarning(Log) << title() << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
-                           << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
-                           << "expected:" << checksum;
+            if (is_first_call)
+                qCWarning(Log).noquote()
+                   << title() << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
+                   << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
+                   << "expected:" << checksum;
 
             device_.seek(device_.size());
             return true;
@@ -328,7 +333,7 @@ bool Protocol::process_stream(bool is_first_call)
 
             if (is_first_call)
             {
-                qCWarning(Log) << title() << "Message corrupt, checksum isn't same."
+                qCWarning(Log).noquote() << title() << "Message corrupt, checksum isn't same."
                                << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                                << "expected:" << checksum;
             }
@@ -347,10 +352,12 @@ bool Protocol::process_stream(bool is_first_call)
         catch(const std::exception& e)
         {
             qCCritical(Log).noquote() << title() << "EXCEPTION: process_stream" << int(cmd) << e.what();
+            return false;
         }
         catch(...)
         {
             qCCritical(Log).noquote() << title() << "EXCEPTION Unknown: process_stream" << int(cmd);
+            return false;
         }
 
         device_.seek(pos + 9 + buffer_size);
@@ -459,9 +466,15 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         return;
     }
 
-    QByteArray data = flags & COMPRESSED ?
-                qUncompress(reinterpret_cast<const uchar*>(data_ptr), data_size) :
-                QByteArray(data_ptr, data_size);
+    QByteArray data;
+    if (flags & COMPRESSED)
+    {
+        data = qUncompress(reinterpret_cast<const uchar*>(data_ptr), data_size);
+        if (data.isEmpty())
+            throw std::runtime_error("Failed uncompress");
+    }
+    else
+        data.setRawData(data_ptr, data_size);
 
     if (cmd == Cmd::REMOVE_FRAGMENT)
     {
