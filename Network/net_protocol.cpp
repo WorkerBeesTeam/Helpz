@@ -344,12 +344,14 @@ bool Protocol::process_stream(bool is_first_call)
         }
         catch(const std::exception& e)
         {
-            qCCritical(Log).noquote() << title() << "EXCEPTION: process_stream" << int(cmd) << e.what();
+            if (is_first_call)
+                qCCritical(Log).noquote() << title() << "EXCEPTION: process_stream" << int(cmd) << e.what();
             return false;
         }
         catch(...)
         {
-            qCCritical(Log).noquote() << title() << "EXCEPTION Unknown: process_stream" << int(cmd);
+            if (is_first_call)
+                qCCritical(Log).noquote() << title() << "EXCEPTION Unknown: process_stream" << int(cmd);
             return false;
         }
 

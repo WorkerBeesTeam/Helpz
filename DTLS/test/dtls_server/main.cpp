@@ -19,10 +19,10 @@ QDataStream& operator >>(QDataStream& ds, FileMetaInfo& info)
     return ds >> info.name_ >> info.size_ >> info.hash_;
 }
 
-class Protocol_1_1 : public Helpz::Network::Protocol
+class Protocol_1_1 : public Helpz::Net::Protocol
 {
 public:
-    bool operator ==(const Helpz::Network::Protocol& o) const override
+    bool operator ==(const Helpz::Net::Protocol& o) const override
     {
         (void)o;
         // Need for remove copy clients
@@ -30,7 +30,7 @@ public:
     }
 private:
     enum Message_Type {
-        MSG_UNKNOWN = Helpz::Network::Cmd::USER_COMMAND,
+        MSG_UNKNOWN = Helpz::Net::Cmd::USER_COMMAND,
         MSG_SIMPLE,
         MSG_ANSWERED,
         MSG_FILE_META,
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Helpz::DTLS::Create_Server_Protocol_Func_T create_protocol = [](const std::vector<std::string> &client_protos, std::string* choose_out) -> std::shared_ptr<Helpz::Network::Protocol>
+    Helpz::DTLS::Create_Server_Protocol_Func_T create_protocol = [](const std::vector<std::string> &client_protos, std::string* choose_out) -> std::shared_ptr<Helpz::Net::Protocol>
     {
         qDebug() << "create_protocol";
         for (const std::string& proto: client_protos)
@@ -108,16 +108,16 @@ int main(int argc, char *argv[])
             if (proto == "helpz_test/1.1")
             {
                 *choose_out = proto;
-                return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});
+                return std::shared_ptr<Helpz::Net::Protocol>(new Protocol_1_1{});
             }
             else if (proto == "helpz_test/1.0")
             {
                 *choose_out = proto;
-                return std::shared_ptr<Helpz::Network::Protocol>(new Protocol_1_1{});
+                return std::shared_ptr<Helpz::Net::Protocol>(new Protocol_1_1{});
             }
         }
         qCritical() << "Unsuported protocol";
-        return std::shared_ptr<Helpz::Network::Protocol>{};
+        return std::shared_ptr<Helpz::Net::Protocol>{};
     };
 
     uint16_t port = 25590;
