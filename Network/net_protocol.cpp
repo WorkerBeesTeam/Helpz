@@ -121,21 +121,14 @@ QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_pt
             qCDebug(DetailLog).noquote() << title() << "Send fragment msg" << msg.id_.value_or(0)
                                          << "full" << msg.data_device_->size() << "pos" << msg.data_device_->pos() << "size" << msg.fragment_size();
 
-            uint32_t pos = static_cast<uint32_t>(msg.data_device_->pos());
-            ds << pos;
+            ds << static_cast<uint32_t>(msg.data_device_->pos());
 
             if (msg.data_device_->atEnd())
-            {
                 ds << msg.fragment_size();
+            else
+                add_raw_data_to_packet(data, msg.data_device_->pos(), msg.fragment_size(), msg.data_device_.get());
 
-                const auto now = std::chrono::system_clock::now();
-                if (msg.end_time_ < now)
-                    msg.end_time_ = now + std::chrono::seconds(10);
-
-                pos = 0;
-            }
-
-            add_raw_data_to_packet(data, pos, msg.fragment_size(), msg.data_device_.get());
+            msg.end_time_ = std::chrono::system_clock::now() + std::chrono::seconds(10);
         }
         else
         {
@@ -169,8 +162,9 @@ QByteArray Protocol::prepare_packet_to_send(std::shared_ptr<Message_Item> msg_pt
     if (DetailLog().isDebugEnabled())
     {
         auto dbg = qDebug(DetailLog).noquote()
-                << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now)
-                << "tt:" << tt.time_since_epoch().count();
+                << title() << "SEND id:" << (int)*msg.id_ << "cmd:" << (int)msg.cmd() << "flags:" << (int)flags << "size:" << data.size() << "wait:" << (msg.end_time_ > now);
+        if (tt.time_since_epoch().count())
+            dbg << "tt:" << std::chrono::duration_cast<std::chrono::milliseconds>(tt - now).count();
 
         if (flags & REPEATED) dbg << "REPEATED";
         if (flags & FRAGMENT_QUERY) dbg << "FRAGMENT_QUERY";
@@ -299,8 +293,10 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (DetailLog().isDebugEnabled())
         {
-            auto dbg = qDebug(DetailLog).noquote()
-                    << title() << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
+            auto dbg = qDebug(DetailLog).noquote() << title();
+            if (!is_first_call)
+                dbg << "Research";
+            dbg << "RECV id:" << (int)msg_id << "cmd:" << (int)cmd << "flags:" << (int)flags << "size:" << buffer_size << "ok:" << checksum_ok
                     << "avail:" << device_.bytesAvailable() << packet_end_position_.size();
 
             if (flags & REPEATED) dbg << "REPEATED";
@@ -315,9 +311,11 @@ bool Protocol::process_stream(bool is_first_call)
 
         if (buffer_size > HELPZ_PROTOCOL_MAX_MESSAGE_SIZE)
         {
-            qCWarning(Log) << title() << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
-                           << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
-                           << "expected:" << checksum;
+            if (is_first_call)
+                qCWarning(Log).noquote()
+                   << title() << "Message size" << buffer_size << "more then" << HELPZ_PROTOCOL_MAX_MESSAGE_SIZE
+                   << "Checksum in packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
+                   << "expected:" << checksum;
 
             device_.seek(device_.size());
             return true;
@@ -328,7 +326,7 @@ bool Protocol::process_stream(bool is_first_call)
 
             if (is_first_call)
             {
-                qCWarning(Log) << title() << "Message corrupt, checksum isn't same."
+                qCWarning(Log).noquote() << title() << "Message corrupt, checksum isn't same."
                                << "In packet:" << qChecksum(device_.buffer().constData() + pos + 2, 7)
                                << "expected:" << checksum;
             }
@@ -346,11 +344,15 @@ bool Protocol::process_stream(bool is_first_call)
         }
         catch(const std::exception& e)
         {
-            qCCritical(Log).noquote() << title() << "EXCEPTION: process_stream" << int(cmd) << e.what();
+            if (is_first_call)
+                qCCritical(Log).noquote() << title() << "EXCEPTION: process_stream" << int(cmd) << e.what();
+            return false;
         }
         catch(...)
         {
-            qCCritical(Log).noquote() << title() << "EXCEPTION Unknown: process_stream" << int(cmd);
+            if (is_first_call)
+                qCCritical(Log).noquote() << title() << "EXCEPTION Unknown: process_stream" << int(cmd);
+            return false;
         }
 
         device_.seek(pos + 9 + buffer_size);
@@ -459,9 +461,15 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
         return;
     }
 
-    QByteArray data = flags & COMPRESSED ?
-                qUncompress(reinterpret_cast<const uchar*>(data_ptr), data_size) :
-                QByteArray(data_ptr, data_size);
+    QByteArray data;
+    if (flags & COMPRESSED)
+    {
+        data = qUncompress(reinterpret_cast<const uchar*>(data_ptr), data_size);
+        if (data.isEmpty())
+            throw std::runtime_error("Failed uncompress");
+    }
+    else
+        data.setRawData(data_ptr, data_size);
 
     if (cmd == Cmd::REMOVE_FRAGMENT)
     {
@@ -487,9 +495,7 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
             uint32_t full_size, pos;
             Helpz::parse_out(ds, full_size, pos);
 
-            uint32_t max_fragment_size;
-            if (full_size == pos)
-                Helpz::parse_out(ds, max_fragment_size);
+            uint32_t max_fragment_size = full_size == pos ? Helpz::parse<uint32_t>(ds) : 0;
 
             std::map<uint8_t, Fragmented_Message>::iterator it = fragmented_messages_.find(msg_id);
 
@@ -567,6 +573,13 @@ void Protocol::internal_process_message(uint8_t msg_id, uint8_t cmd, uint8_t fla
                     emp_it.first->second = now;
                 msg.last_part_time_ = now;
 
+                if (msg.max_fragment_size_ < HELPZ_MAX_MESSAGE_DATA_SIZE)
+                {
+                    msg.max_fragment_size_ += msg.max_fragment_size_ / 5;
+                    if (msg.max_fragment_size_ > HELPZ_MAX_MESSAGE_DATA_SIZE)
+                        msg.max_fragment_size_ = HELPZ_MAX_MESSAGE_DATA_SIZE;
+                }
+
                 const QPair<uint32_t, uint32_t> next_part = msg.get_next_part();
                 msg_out << next_part;
 
@@ -621,6 +634,9 @@ void Protocol::process_fragment_query(uint8_t fragmanted_msg_id, uint32_t pos, u
     }
     else
     {
+        if (msg && msg->answer_func_)
+            add_to_waiting(msg->end_time_, msg);
+
         qCDebug(DetailLog).noquote() << title() << "Send remove unknown fragment" << fragmanted_msg_id;
         send(Cmd::REMOVE_FRAGMENT) << fragmanted_msg_id;
     }
@@ -643,8 +659,8 @@ void Protocol::process_wait_list(void *data)
                     && now - msg.last_part_time_ >= std::chrono::milliseconds(1500))
                 {
                     msg.max_fragment_size_ /= 2;
-                    if (msg.max_fragment_size_ < 32)
-                        msg.max_fragment_size_ = 32;
+                    if (msg.max_fragment_size_ < 128)
+                        msg.max_fragment_size_ = 128;
 
                     lost_msg_list_.emplace(msg.id_, now);
                     msg.last_part_time_ = now;
@@ -656,10 +672,7 @@ void Protocol::process_wait_list(void *data)
                     msg_out << msg.id_ << next_part;
 
                     if (writer_ptr)
-                    {
-                        intptr_t value = FRAGMENT;
                         writer_ptr->add_timeout_at(now + std::chrono::milliseconds(1505), reinterpret_cast<void*>(value));
-                    }
 
                     qCDebug(DetailLog).noquote() << title() << "Send fragment query msg" << msg.id_ << "part" << next_part;
                 }
