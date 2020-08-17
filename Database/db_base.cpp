@@ -5,6 +5,7 @@
 #include <QVariant>
 #include <QDebug>
 #include <QMutexLocker>
+#include <QRandomGenerator>
 
 #include <iostream>
 #include <functional>
@@ -58,7 +59,7 @@ thread_local Base base_instance;
 
 QString gen_thread_based_name()
 {
-    return QString("hz_db_%1_%2").arg(reinterpret_cast<qintptr>(QThread::currentThreadId())).arg(qrand());
+    return QString("hz_db_%1_%2").arg(reinterpret_cast<qintptr>(QThread::currentThreadId())).arg(QRandomGenerator::system()->generate());
 }
 
 Base::Base(const Connection_Info& info, const QString &name) :
@@ -367,10 +368,10 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
             QString errString;
             {
                 QTextStream ts(&errString, QIODevice::WriteOnly);
-                ts << "DriverMsg: " << lastError.type() << ' ' << lastError.text() << endl
-                   << "SQL: " << sql << endl
-                   << "Attempt: " << attempts_count << endl
-                   << "Data:";
+                ts << "DriverMsg: " << lastError.type() << ' ' << lastError.text()
+                   << "\nSQL: " << sql
+                   << "\nAttempt: " << attempts_count
+                   << "\nData:";
 
                 for (auto&& val: values)
                 {

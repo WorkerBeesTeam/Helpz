@@ -10,11 +10,11 @@
 #include <QCryptographicHash>
 #include <QFile>
 
-class Protocol : public Helpz::Network::Protocol
+class Protocol : public Helpz::Net::Protocol
 {
 public:
     enum Message_Type {
-        MSG_UNKNOWN = Helpz::Network::Cmd::USER_COMMAND,
+        MSG_UNKNOWN = Helpz::Net::Cmd::USER_COMMAND,
         MSG_SIMPLE,
         MSG_ANSWERED,
         MSG_FILE_META,
@@ -68,7 +68,10 @@ public:
         device->seek(0);
 
         send(MSG_FILE_META) << file_name << static_cast<uint32_t>(device->size()) << hash.result();
-        send(MSG_FILE).set_data_device(std::move(device));
+        send(MSG_FILE)
+                .timeout(nullptr, std::chrono::seconds(30))
+                .finally([](bool){ std::cout << "File finally\n"; })
+                .set_data_device(std::move(device));
     }
 private:
 
@@ -92,7 +95,7 @@ private:
 
 void periodic_send_thread_func(Helpz::DTLS::Client_Thread* client_thread)
 {
-    std::shared_ptr<Helpz::Network::Protocol> protocol_ptr;
+    std::shared_ptr<Helpz::Net::Protocol> protocol_ptr;
     for(int i = 0; i < 1000; ++i)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -117,17 +120,20 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Helpz::DTLS::Create_Client_Protocol_Func_T func = [](const std::string& app_protocol) -> std::shared_ptr<Helpz::Network::Protocol>
+    Helpz::DTLS::Create_Client_Protocol_Func_T func = [](const std::string& app_protocol) -> std::shared_ptr<Helpz::Net::Protocol>
     {
-        return std::shared_ptr<Helpz::Network::Protocol>(new Protocol{});
+        return std::shared_ptr<Helpz::Net::Protocol>(new Protocol{});
     };
 
     std::string port = "25590";
     if (argc >= 2)
-    {
         port = argv[1];
-    }
-    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), "localhost", port, {"helpz_test/1.1"}, 5};
+
+    std::string host = "localhost";
+    if (argc >= 3)
+        host = argv[2];
+
+    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), host, port, {"helpz_test/1.1"}, 5};
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 

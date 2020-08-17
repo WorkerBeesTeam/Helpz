@@ -141,6 +141,29 @@ T db_build_item(Base& db, ID_T id, const QString& db_name = QString())
     return {};
 }
 
+template<typename T, template<typename...> class Container, typename... Args>
+QString get_db_field_in_sql(const QString& field_name, const Container<T>& id_list, Args... ids)
+{
+    QString sql = field_name;
+    sql += (sizeof...(ids) + id_list.size() == 1) ? "=" : " IN (";
+
+    for (const uint32_t id: id_list)
+    {
+        sql += QString::number(id);
+        sql += ',';
+    }
+
+    if constexpr (sizeof...(ids))
+        sql += ((QString::number(ids) + ',') + ...);
+
+    if (sizeof...(ids) + id_list.size() == 1)
+        sql.remove(sql.size() - 1, 1);
+    else
+        sql.replace(sql.size() - 1, 1, QChar(')'));
+
+    return sql;
+}
+
 } // namespace DB
 } // namespace Helpz
 
