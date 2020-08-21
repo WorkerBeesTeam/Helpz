@@ -90,10 +90,10 @@ template<typename T>
 struct remove_smart_pointer<std::shared_ptr<T>> { using type = typename T::element_type; };
 
 template<typename T, template<typename...> class Container = QVector>
-Container<T> db_build_list(Base& db, const QString& suffix = QString(), const QString& db_name = QString())
+Container<T> db_build_list(Base& db, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const QString& db_name = QString())
 {
     using Item_T = typename remove_smart_pointer<T>::type;
-    QSqlQuery q = db.select(db_table<Item_T>(db_name), suffix);
+    QSqlQuery q = db.select(db_table<Item_T>(db_name), suffix, values);
     return db_build_list<T, Container>(q);
 }
 
@@ -121,7 +121,7 @@ Ret_Container<T> db_build_list(Base& db, const Container<uint32_t>& id_vect, con
     const QString suffix = db_get_items_list_suffix<Item_T>(id_vect, column_index);
     if (suffix.isEmpty())
         return {};
-    return db_build_list<T, Ret_Container>(db, suffix, db_name);
+    return db_build_list<T, Ret_Container>(db, suffix, {}, db_name);
 }
 
 template<typename T, typename ID_T>

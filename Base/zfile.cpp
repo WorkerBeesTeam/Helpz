@@ -52,7 +52,7 @@ std::string File::read_all(std::size_t size)
     lseek(_fd, 0, SEEK_SET);
 
     std::string text(size, char());
-    size = read(_fd, text.data(), size);
+    size = read(_fd, const_cast<char*>(text.data()), size);
     if (size > 0)
         text.resize(size);
     return text;
