@@ -107,10 +107,11 @@ QString db_get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t
     if (!T::table_short_name().isEmpty())
         suffix += T::table_short_name() + '.';
 
-    suffix += T::table_column_names().at(column_index) + " IN (";
-    for (uint32_t id: id_vect)
-        suffix += QString::number(id) + ',';
-    suffix.replace(suffix.size() - 1, 1, QChar(')'));
+//    suffix += get_db_field_in_sql(T::table_column_names().at(column_index), id_vect);
+    suffix += T::table_column_names().at(column_index) + " IN ("; // deprecated
+    for (uint32_t id: id_vect)                                    // deprecated
+        suffix += QString::number(id) + ',';                      // deprecated
+    suffix.replace(suffix.size() - 1, 1, QChar(')'));             // deprecated
     return suffix;
 }
 
