@@ -19,7 +19,7 @@ public:
     Node(Controller* controller, Socket* socket);
     virtual ~Node();
 
-    std::recursive_mutex mutex_;
+    mutable std::recursive_mutex mutex_;
 
     void close();
 

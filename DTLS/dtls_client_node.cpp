@@ -13,6 +13,7 @@ Client_Node::Client_Node(Client_Controller *controller, Socket *socket) :
 
 void Client_Node::start(const std::string &host, const boost::asio::ip::udp::endpoint& receiver_endpoint, const std::vector<std::string> &next_protocols)
 {
+    std::lock_guard lock(mutex_);
     reset_ping_flag();
     set_receiver_endpoint(receiver_endpoint);
     auto tools = controller_->dtls_tools();
@@ -23,18 +24,18 @@ void Client_Node::start(const std::string &host, const boost::asio::ip::udp::end
 void Client_Node::reset_ping_flag()
 {
     if (ping_flag_)
-    {
         ping_flag_ = false;
-    }
 }
 
 std::string Client_Node::application_protocol() const
 {
+    std::lock_guard lock(mutex_);
     return dtls_ ? static_cast<Botan::TLS::Client*>(dtls_.get())->application_protocol() : std::string{};
 }
 
 bool Client_Node::is_reconnect_needed()
 {
+    std::lock_guard lock(mutex_);
     if (dtls_ && dtls_->is_active())
     {
         auto last_recv_delta = std::chrono::system_clock::now() - last_msg_recv_time();

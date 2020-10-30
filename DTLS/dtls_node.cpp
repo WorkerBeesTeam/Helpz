@@ -37,16 +37,18 @@ void Node::close()
 
 std::shared_ptr<Net::Protocol> Node::protocol()
 {
+    // TODO: Тут ошибка. Возвращённый пользователю умный указатель не потоко-безопасен
+    // и при удалении объекта у пользователя не будтет захвачен mutex_ что приведёт к состоянию гонки.
+    std::lock_guard lock(mutex_);
     return protocol_;
 }
 
 void Node::set_protocol(std::shared_ptr<Net::Protocol>&& protocol)
 {
+    std::lock_guard lock(mutex_);
     protocol_ = std::move(protocol);
     if (protocol_)
-    {
         protocol_->set_writer(std::static_pointer_cast<Net::Protocol_Writer>(get_shared()));
-    }
 }
 
 const boost::asio::ip::udp::endpoint &Node::receiver_endpoint() const { return receiver_endpoint_; }
@@ -55,9 +57,7 @@ void Node::set_receiver_endpoint(const boost::asio::ip::udp::endpoint &endpoint)
 {
     receiver_endpoint_ = endpoint;
     if (title().isEmpty())
-    {
         set_title(QString::fromStdString(address()));
-    }
 }
 
 std::string Node::address() const
@@ -81,21 +81,15 @@ void Node::process_received_data(std::unique_ptr<uint8_t[]> &&data, std::size_t 
         if (first_active && dtls_)
         {
             if (dtls_->timeout_check())
-            {
                 qCWarning(Log).noquote() << title() << "Handshake timeout detected";
-            }
 
             if (dtls_->is_active())
             {
                 if (!protocol_)
-                {
                     set_protocol(create_protocol());
-                }
 
                 if (protocol_)
-                {
                     protocol_->ready_write();
-                }
             }
         }
     }
@@ -166,12 +160,18 @@ std::shared_ptr<Net::Protocol> Node::create_protocol() { return {}; }
 
 void Node::tls_record_received(Botan::u64bit, const uint8_t data[], size_t size)
 {
+//    std::lock_guard lock(mutex_); // Мьютекс уже захвачен в process_received_data
     if (protocol_)
-        protocol_->process_bytes(data, size);
+    {
+        std::shared_ptr<Net::Protocol> p = protocol_;
+        p->process_bytes(data, size);
+    }
 }
 
 void Node::tls_alert(Botan::TLS::Alert alert)
 {
+//    std::lock_guard lock(mutex_); // Мьютекс уже захвачен в process_received_data
+
     qCWarning(Log).noquote() << title() << "tls_alert" << alert.type_string().c_str();
 
     if (protocol_ && alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)

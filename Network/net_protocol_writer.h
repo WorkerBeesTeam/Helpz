@@ -22,7 +22,9 @@ public:
     virtual void write(std::shared_ptr<Message_Item> message) = 0;
     virtual void add_timeout_at(std::chrono::system_clock::time_point time_point, void* data = nullptr) = 0;
 
-    virtual std::shared_ptr<Protocol> protocol() = 0;
+    virtual std::shared_ptr<Protocol> protocol() = 0; // TODO: FIXIT: умный указатель не потоко-безопасен.
+    // нужно возвращать новый объект под умным указателем который будет предоставлять функции доступа к Procotol с блокировкой.
+    // Или новый объект Protocol, скопированный с оригинала.
 private:
     QString title_;
     std::chrono::time_point<std::chrono::system_clock> last_msg_recv_time_;
