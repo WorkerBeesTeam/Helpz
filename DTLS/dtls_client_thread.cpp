@@ -96,9 +96,7 @@ void Client_Thread::stop()
     std::lock_guard lock(mutex_);
     stop_flag_ = true;
     if (client_)
-    {
         client_->close();
-    }
 }
 
 std::shared_ptr<Client> Client_Thread::client()
@@ -119,18 +117,12 @@ void Client_Thread::run(Client_Thread_Config conf)
             try
             {
                 if (is_first_connect)
-                {
                     is_first_connect = false;
-                }
                 else
-                {
                     std::this_thread::sleep_for(conf.reconnect_interval());
-                }
 
                 if (start(tools, conf))
-                {
                     client_->run();
-                }
             }
             catch (std::exception& e)
             {
@@ -153,9 +145,7 @@ void Client_Thread::run(Client_Thread_Config conf)
 
     stop();
     if (client_)
-    {
         client_.reset();
-    }
 }
 
 bool Client_Thread::start(const std::shared_ptr<Tools>& tools, const Client_Thread_Config& conf)

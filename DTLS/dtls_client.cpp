@@ -50,14 +50,17 @@ void Client::start_connection(const std::string &host, const std::string &port, 
 
 void Client::close()
 {
-    node()->close();
-
-    if (socket_ && socket_->is_open())
+    io_context_->post([this]()
     {
-        socket_->cancel();
-        socket_->close();
-    }
-    io_context_->stop();
+        node()->close();
+
+        if (socket_ && socket_->is_open())
+        {
+            socket_->cancel();
+            socket_->close();
+        }
+        io_context_->stop();
+    });
 }
 
 Client_Node *Client::node()
