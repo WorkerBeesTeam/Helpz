@@ -97,8 +97,31 @@ Container<T> db_build_list(Base& db, const QString& suffix = QString(), const QV
     return db_build_list<T, Container>(q);
 }
 
-template<typename T, template<typename...> class Container>
-QString db_get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t column_index = 0)
+template<typename T, template<typename...> class Container, typename... Args>
+QString get_db_field_in_sql(const QString& field_name, const Container<T>& id_list, Args... ids)
+{
+    QString sql = field_name;
+    sql += (sizeof...(ids) + id_list.size() == 1) ? "=" : " IN (";
+
+    for (const uint32_t id: id_list)
+    {
+        sql += QString::number(id);
+        sql += ',';
+    }
+
+    if constexpr (sizeof...(ids))
+        sql += ((QString::number(ids) + ',') + ...);
+
+    if (sizeof...(ids) + id_list.size() == 1)
+        sql.remove(sql.size() - 1, 1);
+    else
+        sql.replace(sql.size() - 1, 1, QChar(')'));
+
+    return sql;
+}
+
+template<typename T, typename ID_T, template<typename...> class Container>
+QString db_get_items_list_suffix(const Container<ID_T>& id_vect, std::size_t column_index = 0)
 {
     if (id_vect.empty() || static_cast<std::size_t>(T::table_column_names().size()) <= column_index)
         return {};
@@ -107,11 +130,7 @@ QString db_get_items_list_suffix(const Container<uint32_t>& id_vect, std::size_t
     if (!T::table_short_name().isEmpty())
         suffix += T::table_short_name() + '.';
 
-//    suffix += get_db_field_in_sql(T::table_column_names().at(column_index), id_vect);
-    suffix += T::table_column_names().at(column_index) + " IN ("; // deprecated
-    for (uint32_t id: id_vect)                                    // deprecated
-        suffix += QString::number(id) + ',';                      // deprecated
-    suffix.replace(suffix.size() - 1, 1, QChar(')'));             // deprecated
+    suffix += get_db_field_in_sql(T::table_column_names().at(column_index), id_vect);
     return suffix;
 }
 
@@ -140,29 +159,6 @@ T db_build_item(Base& db, ID_T id, const QString& db_name = QString())
         return db_build<T>(q);
 
     return {};
-}
-
-template<typename T, template<typename...> class Container, typename... Args>
-QString get_db_field_in_sql(const QString& field_name, const Container<T>& id_list, Args... ids)
-{
-    QString sql = field_name;
-    sql += (sizeof...(ids) + id_list.size() == 1) ? "=" : " IN (";
-
-    for (const uint32_t id: id_list)
-    {
-        sql += QString::number(id);
-        sql += ',';
-    }
-
-    if constexpr (sizeof...(ids))
-        sql += ((QString::number(ids) + ',') + ...);
-
-    if (sizeof...(ids) + id_list.size() == 1)
-        sql.remove(sql.size() - 1, 1);
-    else
-        sql.replace(sql.size() - 1, 1, QChar(')'));
-
-    return sql;
 }
 
 } // namespace DB
