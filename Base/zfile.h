@@ -44,6 +44,10 @@ public:
 
     explicit File(const std::string& name);
     explicit File(const std::string& name, int open_mode, int permissions = DEFAULT_CREATE_PERM);
+    File(File&& o);
+    File& operator=(File&& o);
+    File(const File&) = delete;
+    File& operator=(const File&) = delete;
     ~File();
 
     static bool exist(const std::string& name);
@@ -55,6 +59,7 @@ public:
 
     std::string read_all(std::size_t size = -1);
     bool is_opened() const;
+    operator bool() const;
     bool open(int open_mode = READ_WRITE, int file_attibute = DEFAULT_CREATE_PERM);
     void close();
 
@@ -68,9 +73,13 @@ public:
 
     bool seek(int pos);
 
+    std::string last_error() const;
+
+    int descriptor() const;
+
 private:
     int _fd;
-    const std::string _name;
+    std::string _name;
 };
 
 } // namespace Helpz

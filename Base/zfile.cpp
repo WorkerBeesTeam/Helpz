@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h> // mkdir
+#include <cstring>
 
 #include "zfile.h"
 
@@ -9,6 +10,21 @@ namespace Helpz {
 File::File(const std::string &name) : _fd(-1), _name(name) {}
 
 File::File(const std::string &name, int open_mode, int permissions) : _fd(-1), _name(name) { open(open_mode, permissions); }
+
+File::File(File &&o) :
+    _fd{std::move(o._fd)},
+    _name{std::move(o._name)}
+{
+    o._fd = -1;
+}
+
+File &File::operator=(File &&o)
+{
+    _name = std::move(o._name);
+    _fd = std::move(o._fd);
+    o._fd = -1;
+    return *this;
+}
 
 File::~File()
 {
@@ -60,7 +76,12 @@ std::string File::read_all(std::size_t size)
 
 bool File::is_opened() const
 {
-    return _fd != -1;
+    return _fd >= -1;
+}
+
+File::operator bool() const
+{
+    return is_opened();
 }
 
 bool File::open(int open_mode, int file_attibute)
@@ -109,6 +130,16 @@ bool File::truncate(std::size_t size)
 bool File::seek(int pos)
 {
     return lseek(_fd, pos, SEEK_SET) != -1;
+}
+
+std::string File::last_error() const
+{
+    return std::strerror(errno);
+}
+
+int File::descriptor() const
+{
+    return _fd;
 }
 
 } // namespace Helpz
