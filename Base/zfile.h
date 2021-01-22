@@ -42,6 +42,7 @@ public:
         DEFAULT_MKDIR_PERM = (READ_WRITE_EXEC_BY_OWNER|READ_BY_GROUP|READ_BY_OTHER)
     };
 
+    explicit File() = default;
     explicit File(const std::string& name);
     explicit File(const std::string& name, int open_mode, int permissions = DEFAULT_CREATE_PERM);
     File(File&& o);
@@ -56,6 +57,8 @@ public:
                       int open_mode = CREATE | WRITE_ONLY | TRUNCATE, int permissions = DEFAULT_CREATE_PERM);
 
     static bool create_dir(const std::string& name, int permissions = DEFAULT_MKDIR_PERM);
+
+    std::string name() const;
 
     std::string read_all(std::size_t size = -1);
     bool is_opened() const;
@@ -78,7 +81,7 @@ public:
     int descriptor() const;
 
 private:
-    int _fd;
+    int _fd = -1;
     std::string _name;
 };
 

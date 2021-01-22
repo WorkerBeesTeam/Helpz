@@ -7,9 +7,8 @@
 
 namespace Helpz {
 
-File::File(const std::string &name) : _fd(-1), _name(name) {}
-
-File::File(const std::string &name, int open_mode, int permissions) : _fd(-1), _name(name) { open(open_mode, permissions); }
+File::File(const std::string &name) : _name(name) {}
+File::File(const std::string &name, int open_mode, int permissions) : _name(name) { open(open_mode, permissions); }
 
 File::File(File &&o) :
     _fd{std::move(o._fd)},
@@ -51,6 +50,11 @@ File::~File()
 /*static*/ bool File::create_dir(const std::string &name, int permissions)
 {
     return mkdir(name.c_str(), permissions) != -1;
+}
+
+std::string File::name() const
+{
+    return _name;
 }
 
 std::string File::read_all(std::size_t size)
