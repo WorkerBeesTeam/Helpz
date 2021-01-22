@@ -80,7 +80,7 @@ std::string File::read_all(std::size_t size)
 
 bool File::is_opened() const
 {
-    return _fd >= -1;
+    return _fd >= 0;
 }
 
 File::operator bool() const
