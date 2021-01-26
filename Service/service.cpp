@@ -19,7 +19,7 @@ Base* g_obj = nullptr;
 void term_handler(int signal)
 {
     int exit_code;
-    if (signal == SIGSEGV || signal == SIGFPE)
+    if (signal == SIGSEGV || signal == SIGFPE || signal == SIGBUS)
     {
         void *array[10];
         int size = backtrace(array, 10);
@@ -119,6 +119,7 @@ void Base::start()
     {
         std::signal(SIGSEGV, term_handler);
         std::signal(SIGFPE, term_handler);
+        std::signal(SIGBUS, term_handler);
     }
 }
 
