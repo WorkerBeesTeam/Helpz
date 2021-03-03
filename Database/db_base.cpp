@@ -112,9 +112,7 @@ bool Base::create_connection()
 {
     QSqlDatabase db_obj = database();
     if (db_obj.isValid())
-    {
         return create_connection(db_obj);
-    }
 
     return create_connection(info_.to_db(connection_name_));
 }
@@ -122,16 +120,15 @@ bool Base::create_connection()
 bool Base::create_connection(QSqlDatabase db)
 {
     if (db.isOpen())
-    {
         db.close();
-    }
 
     if (!db.open())
     {
         QSqlError err = db.lastError();
         if (err.type() != QSqlError::NoError)
         {
-            qCCritical(DBLog) << err.text() << QSqlDatabase::drivers() << QThread::currentThread() << db.driver()->thread();
+            _last_error = err.text();
+            qCCritical(DBLog) << _last_error << QSqlDatabase::drivers() << QThread::currentThread() << db.driver()->thread();
         }
         return false;
     }
@@ -179,6 +176,8 @@ QSqlDatabase Base::database() const
 
 bool Base::is_silent() const { return silent_; }
 void Base::set_silent(bool sailent) { silent_ = sailent; }
+
+const QString &Base::last_error() const { return _last_error; }
 
 bool Base::create_table(const Helpz::DB::Table &table, const QStringList &types)
 {
@@ -341,10 +340,11 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
     if (sql.isEmpty())
         return QSqlQuery();
 
-    QSqlError lastError;
     ushort attempts_count = 3;
     do
     {
+        _last_error.clear();
+
         if (!is_open() && !create_connection())
             continue;
 
@@ -363,12 +363,13 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
                 return query;
             }
 
-            lastError = query.lastError();
-
-            QString errString;
+            QString error_str;
             {
-                QTextStream ts(&errString, QIODevice::WriteOnly);
-                ts << "DriverMsg: " << lastError.type() << ' ' << lastError.text()
+                QSqlError sql_error = query.lastError();
+                _last_error = sql_error.text();
+
+                QTextStream ts(&error_str, QIODevice::WriteOnly);
+                ts << "DriverMsg: " << sql_error.type() << ' ' << _last_error
                    << "\nSQL: " << sql
                    << "\nAttempt: " << attempts_count
                    << "\nData:";
@@ -384,16 +385,15 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
                 }
             }
 
-            std::cerr << errString.toStdString() << std::endl;
             if (is_silent())
-                std::cerr << errString.toStdString() << std::endl;
+                std::cerr << error_str.toStdString() << std::endl;
             else if (attempts_count == 1) // if no more attempts
             {
-                qCCritical(DBLog).noquote() << errString;
+                qCCritical(DBLog).noquote() << error_str;
 //                    return query; // return with sql error for user
             }
             else
-                qCDebug(DBLog).noquote() << errString;
+                qCDebug(DBLog).noquote() << error_str;
         }
 
 //        if (lastError.type() == QSqlError::ConnectionError || attempts_count == 2)

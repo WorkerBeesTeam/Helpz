@@ -19,95 +19,32 @@ Server_Thread_Config::Server_Thread_Config(uint16_t port, const std::string &tls
 {
 }
 
-Create_Server_Protocol_Func_T Server_Thread_Config::create_protocol_func()
-{
-    return create_protocol_func_;
-}
+Create_Server_Protocol_Func_T Server_Thread_Config::create_protocol_func() { return create_protocol_func_; }
+void Server_Thread_Config::set_create_protocol_func(Create_Server_Protocol_Func_T create_protocol_func) { create_protocol_func_ = std::move(create_protocol_func); }
 
-void Server_Thread_Config::set_create_protocol_func(Create_Server_Protocol_Func_T create_protocol_func)
-{
-    create_protocol_func_ = std::move(create_protocol_func);
-}
+std::chrono::seconds Server_Thread_Config::cleaning_timeout() const { return cleaning_timeout_; }
+void Server_Thread_Config::set_cleaning_timeout(const std::chrono::seconds &cleaning_timeout) { cleaning_timeout_ = cleaning_timeout; }
 
-std::chrono::seconds Server_Thread_Config::cleaning_timeout() const
-{
-    return cleaning_timeout_;
-}
+uint16_t Server_Thread_Config::port() const { return port_; }
+void Server_Thread_Config::set_port(const uint16_t &port) { port_ = port; }
 
-void Server_Thread_Config::set_cleaning_timeout(const std::chrono::seconds &cleaning_timeout)
-{
-    cleaning_timeout_ = cleaning_timeout;
-}
+std::string Server_Thread_Config::tls_police_file_name() const { return tls_police_file_name_; }
+void Server_Thread_Config::set_tls_police_file_name(const std::string &tls_police_file_name) { tls_police_file_name_ = tls_police_file_name; }
 
-uint16_t Server_Thread_Config::port() const
-{
-    return port_;
-}
+std::string Server_Thread_Config::certificate_file_name() const { return certificate_file_name_; }
+void Server_Thread_Config::set_certificate_file_name(const std::string &certificate_file_name) { certificate_file_name_ = certificate_file_name; }
 
-void Server_Thread_Config::set_port(const uint16_t &port)
-{
-    port_ = port;
-}
+std::string Server_Thread_Config::certificate_key_file_name() const { return certificate_key_file_name_; }
+void Server_Thread_Config::set_certificate_key_file_name(const std::string &certificate_key_file_name) { certificate_key_file_name_ = certificate_key_file_name; }
 
-std::string Server_Thread_Config::tls_police_file_name() const
-{
-    return tls_police_file_name_;
-}
+uint16_t Server_Thread_Config::receive_thread_count() const { return receive_thread_count_; }
+void Server_Thread_Config::set_receive_thread_count(const uint16_t &receive_thread_count) { receive_thread_count_ = receive_thread_count; }
 
-void Server_Thread_Config::set_tls_police_file_name(const std::string &tls_police_file_name)
-{
-    tls_police_file_name_ = tls_police_file_name;
-}
+uint16_t Server_Thread_Config::record_thread_count() const { return record_thread_count_; }
+void Server_Thread_Config::set_record_thread_count(const uint16_t &record_thread_count) { record_thread_count_ = record_thread_count; }
 
-std::string Server_Thread_Config::certificate_file_name() const
-{
-    return certificate_file_name_;
-}
-
-void Server_Thread_Config::set_certificate_file_name(const std::string &certificate_file_name)
-{
-    certificate_file_name_ = certificate_file_name;
-}
-
-std::string Server_Thread_Config::certificate_key_file_name() const
-{
-    return certificate_key_file_name_;
-}
-
-void Server_Thread_Config::set_certificate_key_file_name(const std::string &certificate_key_file_name)
-{
-    certificate_key_file_name_ = certificate_key_file_name;
-}
-
-uint16_t Server_Thread_Config::receive_thread_count() const
-{
-    return receive_thread_count_;
-}
-
-void Server_Thread_Config::set_receive_thread_count(const uint16_t &receive_thread_count)
-{
-    receive_thread_count_ = receive_thread_count;
-}
-
-uint16_t Server_Thread_Config::record_thread_count() const
-{
-    return record_thread_count_;
-}
-
-void Server_Thread_Config::set_record_thread_count(const uint16_t &record_thread_count)
-{
-    record_thread_count_ = record_thread_count;
-}
-
-int Server_Thread_Config::main_thread_priority() const
-{
-    return main_thread_priority_;
-}
-
-void Server_Thread_Config::set_main_thread_priority(int main_thread_priority)
-{
-    main_thread_priority_ = main_thread_priority;
-}
+int Server_Thread_Config::main_thread_priority() const { return main_thread_priority_; }
+void Server_Thread_Config::set_main_thread_priority(int main_thread_priority) { main_thread_priority_ = main_thread_priority; }
 
 // -------------------------------------------------------------------------------------------------------------------
 

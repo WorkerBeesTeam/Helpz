@@ -25,7 +25,5 @@ void Controller::add_timeout_at(const boost::asio::ip::udp::endpoint &remote_end
     protocol_timer_.add(time_point, remote_endpoint, data);
 }
 
-
-
 } // namespace DTLS
 } // namespace Helpz

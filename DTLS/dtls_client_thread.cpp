@@ -7,71 +7,38 @@ namespace Helpz {
 namespace DTLS {
 
 Client_Thread_Config::Client_Thread_Config(const std::string &tls_police_file_name, const std::string &host,
-                                           const std::string &port, const std::vector<std::string> &next_protocols, uint32_t reconnect_interval_sec) :
-    reconnect_interval_(reconnect_interval_sec),
-    tls_police_file_name_(tls_police_file_name), host_(host), port_(port), next_protocols_(next_protocols)
+                                           const std::string &port, const std::vector<std::string> &next_protocols,
+                                           std::chrono::seconds reconnect_interval_sec, std::chrono::milliseconds ocsp_timeout_msec,
+                                           const std::vector<std::string> &cert_paths) :
+    _ocsp_timeout(ocsp_timeout_msec), reconnect_interval_(reconnect_interval_sec),
+    tls_police_file_name_(tls_police_file_name), host_(host), port_(port), next_protocols_(next_protocols),
+    _cert_paths(cert_paths)
 {
 }
 
-Create_Client_Protocol_Func_T Client_Thread_Config::create_protocol_func() const
-{
-    return create_protocol_func_;
-}
+Create_Client_Protocol_Func_T Client_Thread_Config::create_protocol_func() const { return create_protocol_func_; }
+void Client_Thread_Config::set_create_protocol_func(Create_Client_Protocol_Func_T create_protocol_func) { create_protocol_func_ = std::move(create_protocol_func); }
 
-void Client_Thread_Config::set_create_protocol_func(Create_Client_Protocol_Func_T create_protocol_func)
-{
-    create_protocol_func_ = std::move(create_protocol_func);
-}
+std::chrono::milliseconds Client_Thread_Config::ocsp_timeout() const { return _ocsp_timeout; }
+void Client_Thread_Config::set_ocsp_timeout(const std::chrono::milliseconds &ocsp_timeout) { _ocsp_timeout = ocsp_timeout; }
 
-std::chrono::seconds Client_Thread_Config::reconnect_interval() const
-{
-    return reconnect_interval_;
-}
+std::chrono::seconds Client_Thread_Config::reconnect_interval() const { return reconnect_interval_; }
+void Client_Thread_Config::set_reconnect_interval(const std::chrono::seconds &reconnect_interval) { reconnect_interval_ = reconnect_interval; }
 
-void Client_Thread_Config::set_reconnect_interval(const std::chrono::seconds &reconnect_interval)
-{
-    reconnect_interval_ = reconnect_interval;
-}
+std::string Client_Thread_Config::tls_police_file_name() const { return tls_police_file_name_; }
+void Client_Thread_Config::set_tls_police_file_name(const std::string &tls_police_file_name) { tls_police_file_name_ = tls_police_file_name; }
 
-std::string Client_Thread_Config::tls_police_file_name() const
-{
-    return tls_police_file_name_;
-}
+std::string Client_Thread_Config::host() const { return host_; }
+void Client_Thread_Config::set_host(const std::string &host) { host_ = host; }
 
-void Client_Thread_Config::set_tls_police_file_name(const std::string &tls_police_file_name)
-{
-    tls_police_file_name_ = tls_police_file_name;
-}
+std::string Client_Thread_Config::port() const { return port_; }
+void Client_Thread_Config::set_port(const std::string &port) { port_ = port; }
 
-std::string Client_Thread_Config::host() const
-{
-    return host_;
-}
+std::vector<std::string> Client_Thread_Config::next_protocols() const { return next_protocols_; }
+void Client_Thread_Config::set_next_protocols(const std::vector<std::string> &next_protocols) { next_protocols_ = next_protocols; }
 
-void Client_Thread_Config::set_host(const std::string &host)
-{
-    host_ = host;
-}
-
-std::string Client_Thread_Config::port() const
-{
-    return port_;
-}
-
-void Client_Thread_Config::set_port(const std::string &port)
-{
-    port_ = port;
-}
-
-std::vector<std::string> Client_Thread_Config::next_protocols() const
-{
-    return next_protocols_;
-}
-
-void Client_Thread_Config::set_next_protocols(const std::vector<std::string> &next_protocols)
-{
-    next_protocols_ = next_protocols;
-}
+std::vector<std::string> Client_Thread_Config::cert_paths() const { return _cert_paths; }
+void Client_Thread_Config::set_cert_paths(const std::vector<std::string> &cert_paths) { _cert_paths = cert_paths; }
 
 // ---------------------------------------------------------------------------------------------
 
@@ -110,9 +77,9 @@ void Client_Thread::run(Client_Thread_Config conf)
     try
     {
         bool is_first_connect = true;
-        std::shared_ptr<Tools> tools{new Tools{conf.tls_police_file_name()}};
+        std::shared_ptr<Tools> tools{new Tools{conf.tls_police_file_name(), {}, {}, conf.ocsp_timeout(), conf.cert_paths()}};
 
-        while(!stop_flag_)
+        while (!stop_flag_)
         {
             try
             {
@@ -138,7 +105,7 @@ void Client_Thread::run(Client_Thread_Config conf)
     {
         std::cerr << "DTLS Client_Thread: " << e.what() << std::endl;
     }
-    catch(...)
+    catch (...)
     {
         std::cerr << "DTLS Client_Thread exception" << std::endl;
     }

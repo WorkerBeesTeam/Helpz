@@ -4,6 +4,7 @@
 #include <botan-2/botan/hex.h>
 #include <botan-2/botan/tls_exceptn.h>
 
+#include "dtls_tools.h"
 #include "dtls_node.h"
 
 namespace Helpz {
@@ -186,17 +187,16 @@ void Node::tls_emit_data(const uint8_t data[], size_t size)
     socket_->send(receiver_endpoint_, data, size);
 }
 
-void Node::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cert_chain, const std::vector<std::shared_ptr<const Botan::OCSP::Response> > &ocsp, const std::vector<Botan::Certificate_Store *> &trusted_roots, Botan::Usage_Type usage, const std::string &hostname, const Botan::TLS::Policy &policy)
+void Node::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cert_chain,
+                                 const std::vector<std::shared_ptr<const Botan::OCSP::Response> > &ocsp,
+                                 const std::vector<Botan::Certificate_Store *> &trusted_roots, Botan::Usage_Type usage,
+                                 const std::string &hostname, const Botan::TLS::Policy &policy)
 {
     if (cert_chain.empty())
-    {
         throw std::invalid_argument(title().toStdString() + " Certificate chain was empty");
-    }
 
     Botan::Path_Validation_Restrictions restrictions(policy.require_cert_revocation_info(),
                                                      policy.minimum_signature_strength());
-
-    auto ocsp_timeout = std::chrono::milliseconds(1000);
 
     Botan::Path_Validation_Result result =
             Botan::x509_path_validate(cert_chain,
@@ -205,13 +205,15 @@ void Node::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cer
                                       hostname,
                                       usage,
                                       std::chrono::system_clock::now(),
-                                      ocsp_timeout,
+                                      controller_->dtls_tools()->_ocsp_timeout,
                                       ocsp);
 
-    QString status_string = title() + " Certificate validation status: " + result.result_string().c_str();
+    std::string status_string = title().toStdString();
+    status_string += ' ' + hostname;
+    status_string += " Certificate validation status: " + result.result_string();
     if (result.successful_validation())
     {
-        qCDebug(Log).noquote() << status_string;
+        qCDebug(Log) << status_string.c_str();
 
         auto status = result.all_statuses();
         if (status.size() > 0 && status[0].count(Botan::Certificate_Status_Code::OCSP_RESPONSE_GOOD))
@@ -221,7 +223,7 @@ void Node::tls_verify_cert_chain(const std::vector<Botan::X509_Certificate> &cer
     }
     else
     {
-        qCWarning(Log).noquote() << status_string;
+        qCWarning(Log) << status_string.c_str();
     }
 }
 

@@ -8,7 +8,7 @@
 namespace Helpz {
 namespace DTLS {
 
-Credentials_Manager::Credentials_Manager() { load_certstores(); }
+Credentials_Manager::Credentials_Manager(const std::vector<std::string> &paths) { load_certstores(paths); }
 Credentials_Manager::Credentials_Manager(Botan::RandomNumberGenerator &rng, const std::string &server_crt, const std::string &server_key)
 {
     Certificate_Info cert;
@@ -27,13 +27,12 @@ Credentials_Manager::Credentials_Manager(Botan::RandomNumberGenerator &rng, cons
     m_creds.push_back(cert);
 }
 
-void Credentials_Manager::load_certstores()
+void Credentials_Manager::load_certstores(const std::vector<std::string> &paths)
 {
     try
     {
         // TODO: make path configurable
 #ifdef __linux__
-        const std::vector<std::string> paths = { "/usr/share/ca-certificates" };
         for(const std::string& path : paths)
         {
             std::shared_ptr<Botan::Certificate_Store> cs(new Botan::Certificate_Store_In_Memory(path));
@@ -80,27 +79,24 @@ std::vector<Botan::X509_Certificate> Credentials_Manager::cert_chain(const std::
 {
     BOTAN_UNUSED(type);
 
-    for(const Certificate_Info& i : m_creds)
-    {
-        if(std::find(algos.begin(), algos.end(), i.key->algo_name()) == algos.end())
-            continue;
+    if (!hostname.empty())
+        for (const Certificate_Info& i : m_creds)
+        {
+            if (std::find(algos.cbegin(), algos.cend(), i.key->algo_name()) == algos.cend())
+                continue;
 
-        if(hostname != "" && !i.certs[0].matches_dns_name(hostname))
-            continue;
-
-        return i.certs;
-    }
+            if (i.certs[0].matches_dns_name(hostname))
+                return i.certs;
+        }
 
     return std::vector<Botan::X509_Certificate>();
 }
 
 Botan::Private_Key *Credentials_Manager::private_key_for(const Botan::X509_Certificate &cert, const std::string &, const std::string &)
 {
-    for(auto&& i : m_creds)
-    {
-        if(cert == i.certs[0])
+    for (auto&& i : m_creds)
+        if (cert == i.certs[0])
             return i.key.get();
-    }
 
     return nullptr;
 }

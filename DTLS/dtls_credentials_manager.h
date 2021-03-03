@@ -9,12 +9,12 @@ namespace DTLS {
 class Credentials_Manager : public Botan::Credentials_Manager
 {
 public:
-    Credentials_Manager();
+    Credentials_Manager(const std::vector<std::string>& paths = { "/usr/share/ca-certificates", "/etc/ssl/certs" });
     Credentials_Manager(Botan::RandomNumberGenerator& rng,
                               const std::string& server_crt,
                               const std::string& server_key);
 
-    void load_certstores();
+    void load_certstores(const std::vector<std::string>& paths);
 
     std::vector<Botan::Certificate_Store*>
         trusted_certificate_authorities(const std::string& type,

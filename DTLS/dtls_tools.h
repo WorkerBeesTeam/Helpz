@@ -15,7 +15,11 @@ class Tools
 public:
     Tools(const std::string& tls_policy_file_name,
           const std::string& crt_file_name = std::string(),
-          const std::string& key_file_name = std::string());
+          const std::string& key_file_name = std::string(),
+          const std::chrono::milliseconds ocsp_timeout = std::chrono::milliseconds{50},
+          const std::vector<std::string>& cert_paths = {});
+
+    std::chrono::milliseconds _ocsp_timeout;
 
     std::unique_ptr<Botan::RandomNumberGenerator> rng_;
     std::unique_ptr<Credentials_Manager> creds_;

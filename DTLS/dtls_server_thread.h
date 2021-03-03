@@ -17,7 +17,7 @@ namespace DTLS {
 class Server_Thread_Config
 {
 public:
-    Server_Thread_Config(uint16_t port = 0,
+    Server_Thread_Config(uint16_t port = 25588,
                          const std::string& tls_police_file_name = std::string{},
                          const std::string& certificate_file_name = std::string{},
                          const std::string& certificate_key_file_name = std::string{},

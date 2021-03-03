@@ -1,22 +1,43 @@
 #ifndef HELPZ_SETTINGSHELPER_H
 #define HELPZ_SETTINGSHELPER_H
 
+#include <functional>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/join.hpp>
+
 #include <QSettings>
 
-#include <functional>
-
+#include <Helpz/zstring.h>
 #include <Helpz/simplethread.h>
 
-template<>
-inline std::string qvariant_cast<std::string>(const QVariant& value)
-{
+template<> inline std::string qvariant_cast<std::string>(const QVariant& value) {
     return value.toString().toStdString();
+}
+
+template<> inline std::vector<std::string> qvariant_cast<std::vector<std::string>>(const QVariant& value)
+{
+    std::vector<std::string> res;
+    boost::split(res, value.toString().toStdString(), [](char c) { return c == ','; });
+    for (std::string& str: res)
+        Helpz::String::trim(str);
+    return res;
+}
+
+template<> inline std::chrono::seconds qvariant_cast<std::chrono::seconds>(const QVariant& value) {
+    return std::chrono::seconds{value.toLongLong()};
+}
+
+template<> inline std::chrono::milliseconds qvariant_cast<std::chrono::milliseconds>(const QVariant& value) {
+    return std::chrono::milliseconds{value.toLongLong()};
 }
 
 namespace Helpz {
 
 template<typename T> inline QVariant QValueNormalize(const T& default_value) { return default_value; }
 template<> inline QVariant QValueNormalize<std::string>(const std::string& default_value) { return QString::fromStdString(default_value); }
+template<> inline QVariant QValueNormalize<std::vector<std::string>>(const std::vector<std::string>& default_value) { return QString::fromStdString(boost::join(default_value, ",")); }
+template<> inline QVariant QValueNormalize<std::chrono::seconds>(const std::chrono::seconds& default_value) { return QVariant{static_cast<qlonglong>(default_value.count())}; }
+template<> inline QVariant QValueNormalize<std::chrono::milliseconds>(const std::chrono::milliseconds& default_value) { return QVariant{static_cast<qlonglong>(default_value.count())}; }
 
 template<typename _Tp> struct CharArrayToQString { typedef _Tp type; };
 template<> struct CharArrayToQString<const char*> { typedef QString type; };

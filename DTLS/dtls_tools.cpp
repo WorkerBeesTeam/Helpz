@@ -29,7 +29,9 @@
 namespace Helpz {
 namespace DTLS {
 
-Tools::Tools(const std::string &tls_policy_file_name, const std::string &crt_file_name, const std::string &key_file_name)
+Tools::Tools(const std::string &tls_policy_file_name, const std::string &crt_file_name, const std::string &key_file_name,
+             const std::chrono::milliseconds ocsp_timeout, const std::vector<std::string> &cert_paths) :
+    _ocsp_timeout(ocsp_timeout)
 {
     try {
         const std::string drbg_seed = "";
@@ -75,19 +77,27 @@ Tools::Tools(const std::string &tls_policy_file_name, const std::string &crt_fil
 
         session_manager_.reset(new Botan::TLS::Session_Manager_In_Memory(*rng_));
 
-        creds_.reset(crt_file_name.empty() ? new Credentials_Manager() :
+        creds_.reset(crt_file_name.empty() ? new Credentials_Manager(cert_paths) :
                                             new Credentials_Manager(*rng_, crt_file_name, key_file_name));
 
         // init policy ------------------------------------------>
         try {
             std::ifstream policy_is(tls_policy_file_name);
             if (policy_is.fail())
-                std::cout << "Fail to open TLS policy file: " << tls_policy_file_name << std::endl;
-            else
-                policy_.reset(new Botan::TLS::Text_Policy(policy_is));
+                throw std::runtime_error("Can't open");
+            else if (policy_is.peek() == std::ifstream::traits_type::eof())
+                throw std::runtime_error("File empty");
+            policy_.reset(new Botan::TLS::Text_Policy(policy_is));
         }
         catch(const std::exception& e) {
-            std::cerr << "Fail to read TLS policy: " << e.what() << std::endl;
+            std::cerr << "Fail to read TLS policy: " << e.what() << ' ' << tls_policy_file_name << std::endl;
+            policy_.reset(new Botan::TLS::Text_Policy(std::string()));
+
+            try {
+                std::ofstream ofs (tls_policy_file_name);
+                policy_->print(ofs);
+                ofs.close();
+            } catch (...) {}
         }
 
         if (!policy_)

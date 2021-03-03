@@ -54,6 +54,8 @@ public:
     bool is_silent() const;
     void set_silent(bool sailent);
 
+    const QString& last_error() const;
+
     bool create_table(const Table& table, const QStringList& types);
 
     QSqlQuery select(const Table &table, const QString& suffix = QString(), const QVariantList &values = QVariantList(), const std::vector<uint>& field_ids = {});
@@ -79,7 +81,7 @@ private:
     QStringList escape_fields(const Table& table, const std::vector<uint> &field_ids, bool use_short_name = false, QSqlDriver *driver = nullptr) const;
 
     bool silent_ = false;
-    QString connection_name_;
+    QString connection_name_, _last_error;
 
     Connection_Info info_;
 };
