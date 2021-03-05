@@ -17,7 +17,8 @@ template<> inline std::string qvariant_cast<std::string>(const QVariant& value) 
 template<> inline std::vector<std::string> qvariant_cast<std::vector<std::string>>(const QVariant& value)
 {
     std::vector<std::string> res;
-    boost::split(res, value.toString().toStdString(), [](char c) { return c == ','; });
+    std::string text = value.toString().toStdString();
+    boost::split(res, text, [](char c) { return c == ','; });
     for (std::string& str: res)
         Helpz::String::trim(str);
     return res;
