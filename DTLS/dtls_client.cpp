@@ -38,7 +38,7 @@ void Client::start_connection(const std::string &host, const std::string &port, 
 {
     udp::resolver resolver(*get_io_context());
     udp::resolver::query query(udp::v4(), host, port);
-    udp::endpoint receiver_endpoint = *resolver.resolve(query);
+    udp::endpoint receiver_endpoint = *resolver.resolve(query).begin();
 
     socket_->open(udp::v4());
 

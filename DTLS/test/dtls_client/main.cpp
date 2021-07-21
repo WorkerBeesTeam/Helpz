@@ -133,7 +133,9 @@ int main(int argc, char *argv[])
     if (argc >= 3)
         host = argv[2];
 
-    Helpz::DTLS::Client_Thread_Config conf{(qApp->applicationDirPath() + "/tls_policy.conf").toStdString(), host, port, {"helpz_test/1.1"}, 5};
+    std::string tls_police_file_name = (qApp->applicationDirPath() + "/tls_policy.conf").toStdString();
+    Helpz::DTLS::Client_Thread_Config conf{tls_police_file_name, host, port,
+        {"helpz_test/1.1"}, std::chrono::seconds{3}};
     conf.set_create_protocol_func(std::move(func));
     Helpz::DTLS::Client_Thread client_thread{std::move(conf)};
 
