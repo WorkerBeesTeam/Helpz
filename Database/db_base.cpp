@@ -349,13 +349,21 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
             continue;
 
         {
+            bool res;
             QSqlQuery query(database());
-            query.prepare(sql);
 
-            for (const QVariant& val: values)
-                query.addBindValue(val);
+            if (values.empty())
+                res = query.exec(sql);
+            else
+            {
+                query.prepare(sql);
 
-            if (query.exec())
+                for (const QVariant& val: values)
+                    query.addBindValue(val);
+                res = query.exec();
+            }
+
+            if (res)
             {
                 if (id_out)
                     *id_out = query.lastInsertId();
