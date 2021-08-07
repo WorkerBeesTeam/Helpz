@@ -60,6 +60,11 @@ public:
 
     std::string name() const;
 
+    std::size_t pos() const;
+    std::size_t size() const;
+
+    std::size_t read(char* data, std::size_t size);
+    std::string read(std::size_t size);
     std::string read_all(std::size_t size = -1);
     bool is_opened() const;
     operator bool() const;

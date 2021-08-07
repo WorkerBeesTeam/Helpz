@@ -57,6 +57,31 @@ std::string File::name() const
     return _name;
 }
 
+std::size_t File::pos() const { return lseek(_fd, 0, SEEK_CUR); }
+
+std::size_t File::size() const
+{
+    std::size_t curr = pos();
+    lseek(_fd, 0, SEEK_END);
+    std::size_t size = pos();
+    lseek(_fd, curr, SEEK_SET);
+    return size;
+}
+
+std::size_t File::read(char *data, std::size_t size)
+{
+    return ::read(_fd, data, size);
+}
+
+std::string File::read(std::size_t size)
+{
+    std::string text(size, char());
+    size = ::read(_fd, const_cast<char*>(text.data()), size);
+    if (size > 0)
+        text.resize(size);
+    return text;
+}
+
 std::string File::read_all(std::size_t size)
 {
     if (!is_opened())
@@ -72,7 +97,7 @@ std::string File::read_all(std::size_t size)
     lseek(_fd, 0, SEEK_SET);
 
     std::string text(size, char());
-    size = read(_fd, const_cast<char*>(text.data()), size);
+    size = ::read(_fd, const_cast<char*>(text.data()), size);
     if (size > 0)
         text.resize(size);
     return text;
