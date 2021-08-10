@@ -416,35 +416,34 @@ QSqlQuery Base::exec(const QString &sql, const QVariantList &values, QVariant *i
     return QSqlQuery();
 }
 
+QStringList escape_fields_impl(QSqlDriver *driver, const QString& table_short_name, const QStringList& fields)
+{
+    QStringList escaped_fields;
+    for (const QString& field_name: fields)
+        escaped_fields.push_back( table_short_name.isEmpty() ?
+            driver->escapeIdentifier(field_name, QSqlDriver::FieldName) :
+            driver->escapeIdentifier(table_short_name + field_name, QSqlDriver::FieldName)
+        );
+    return escaped_fields;
+}
+
 QStringList Base::escape_fields(const Table &table, const std::vector<uint> &field_ids, bool use_short_name, QSqlDriver* driver) const
 {
     if (!driver)
-    {
         driver = database().driver();
-    }
 
     QString table_short_name;
     if (use_short_name && !table.short_name().isEmpty())
-    {
         table_short_name = table.short_name() + '.';
-    }
 
-    QStringList escapedFields;
-    for (int i = 0; i < table.field_names().size(); ++i)
-    {
-        if (field_ids.empty() || std::find(field_ids.cbegin(), field_ids.cend(), i) != field_ids.cend())
-        {
-            if (table_short_name.isEmpty())
-            {
-                escapedFields.push_back( driver->escapeIdentifier(table.field_names().at(i), QSqlDriver::FieldName) );
-            }
-            else
-            {
-                escapedFields.push_back( driver->escapeIdentifier(table_short_name + table.field_names().at(i), QSqlDriver::FieldName) );
-            }
-        }
-    }
-    return escapedFields;
+    if (field_ids.empty())
+        return escape_fields_impl(driver, table_short_name, table.field_names());
+
+    QStringList fields;
+    for (uint i: field_ids)
+        if (i < table.field_names().size())
+            fields.push_back(table.field_names().at(i));
+    return escape_fields_impl(driver, table_short_name, fields);
 }
 
 } // namespace DB
