@@ -29,7 +29,13 @@ namespace DB {
 }
 
 thread_local Base base_instance;
-/*static*/ Base& Base::get_thread_local_instance() { return base_instance; }
+/*static*/ Base& Base::get_thread_local_instance() 
+{
+    if (!base_instance.is_open() && !base_instance.create_connection())
+        qCCritical(DBLog) << "Get database instance for not open driver" << base_instance.connection_name_;
+
+    return base_instance;
+}
 
 /*static*/ QString Base::get_q_array(int fields_count, int row_count)
 {
